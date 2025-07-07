@@ -7,7 +7,8 @@ import {
   Target, 
   TrendingUp,
   Settings,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import clsx from 'clsx';
@@ -28,6 +29,7 @@ const Sidebar: React.FC = () => {
       { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['super-admin', 'director'] },
       { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
       { name: 'User Management', href: '/users', icon: Settings, roles: ['super-admin'] },
+      { name: 'Permissions', href: '/permissions', icon: Shield, roles: ['super-admin'] },
     ];
   };
 
