@@ -1,7 +1,7 @@
 # Supabase Authentication Setup
 
 ## Overview
-This application now uses Supabase for authentication with username-only signup and login support. Users sign up with only a username (no email required) and login with their username.
+This application uses Supabase with a custom profiles table for authentication. Users sign up with username, name, password, and role selection (Director or Clinician). No email is required - authentication is purely username-based.
 
 ## Setup Instructions
 
@@ -30,12 +30,6 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 ```
 
-### 3. Email Configuration (Optional)
-To enable email verification and password reset:
-1. Go to Authentication > Settings in your Supabase dashboard
-2. Configure your SMTP settings or use Supabase's built-in email service
-3. Customize email templates as needed
-
 ## Features
 
 ### Authentication Methods
@@ -46,28 +40,24 @@ To enable email verification and password reset:
 ### User Profiles
 - Each user has a profile with:
   - Unique username
-  - Auto-generated email (for Supabase compatibility)
   - Full name
-  - Role (admin, clinical_director, clinician)
-  - Assigned clinicians (for directors)
-  - Assigned director (for clinicians)
+  - Role (director, clinician)
+  - Password (stored directly in database)
+  - Created/Updated timestamps
 
 ### Security Features
 - Row Level Security (RLS) enabled
-- Users can only access their own profile data
-- Password hashing handled by Supabase
-- Email verification (if configured)
+- Public access for authentication (users can sign up and login)
+- Simple password-based authentication
 
 ## Database Schema
 
 ### profiles Table
-- `id`: UUID (references auth.users)
-- `name`: TEXT (full name)
-- `email`: TEXT (email address)
+- `id`: UUID (primary key, auto-generated)
 - `username`: TEXT (unique username)
-- `role`: TEXT (admin, clinical_director, clinician)
-- `assigned_clinicians`: TEXT[] (array of user IDs)
-- `assigned_director`: TEXT (user ID)
+- `name`: TEXT (full name)
+- `role`: TEXT (director, clinician)
+- `password`: TEXT (password)
 - `created_at`: TIMESTAMP
 - `updated_at`: TIMESTAMP
 
@@ -88,15 +78,15 @@ await signup('username', 'password', 'Full Name', 'clinician'); // For Clinician
 ```
 
 **Available Roles:**
-- `clinical_director` - For users with director privileges
+- `director` - For users with director privileges
 - `clinician` - For regular clinician users
 
-**Note**: The system automatically generates a dummy email (`username@clinickpi.local`) for Supabase compatibility, but users never see or interact with this email.
+**Note**: After successful signup, users are automatically logged in and redirected to the dashboard.
 
 ### Demo Accounts
 For testing, the following demo accounts are available:
-- **Username**: `admin` - Role: Admin
-- **Username**: `director` - Role: Clinical Director
+- **Username**: `admin` - Role: Director
+- **Username**: `director` - Role: Director
 - **Username**: `clinician` - Role: Clinician
 
 All demo accounts use the password: `password`

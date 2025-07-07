@@ -4,63 +4,41 @@ import { supabase } from '../lib/supabase';
 interface User {
   id: string;
   name: string;
-  email: string;
-  username?: string;
-  role: 'admin' | 'clinical_director' | 'clinician';
-  assignedClinicians?: string[];
-  assignedDirector?: string;
+  username: string;
+  role: 'director' | 'clinician';
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, password: string, name: string, role: 'clinical_director' | 'clinician') => Promise<void>;
+  signup: (username: string, password: string, name: string, role: 'director' | 'clinician') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Enhanced mock users with proper relationships (for demo purposes)
+// Demo users for fallback (matches the database structure)
 const mockUsers: User[] = [
   {
     id: '1',
     name: 'Dr. Sarah Johnson',
-    email: 'admin@clinickpi.local',
     username: 'admin',
-    role: 'admin',
+    role: 'director',
   },
   {
     id: '2',
     name: 'Dr. Michael Chen',
-    email: 'director@clinickpi.local',
     username: 'director',
-    role: 'clinical_director',
-    assignedClinicians: ['3', '4', '5', '6', '7'],
+    role: 'director',
   },
   {
     id: '3',
     name: 'Dr. Emily Rodriguez',
-    email: 'clinician@clinickpi.local',
     username: 'clinician',
     role: 'clinician',
-    assignedDirector: '2',
-  },
-  {
-    id: '4',
-    name: 'Dr. James Wilson',
-    email: 'james.wilson@clinickpi.local',
-    username: 'james.wilson',
-    role: 'clinician',
-    assignedDirector: '2',
-  },
-  {
-    id: '5',
-    name: 'Dr. Lisa Thompson',
-    email: 'lisa.thompson@clinickpi.local',
-    username: 'lisa.thompson',
-    role: 'clinician',
-    assignedDirector: '2',
   },
 ];
 
@@ -75,62 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
     }
-
-    // Check for existing Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // Get user profile from Supabase
-        getUserProfile(session.user.id);
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        getUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem('user');
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
-
-  const getUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return;
-      }
-
-      if (data) {
-        const userProfile: User = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          username: data.username,
-          role: data.role,
-          assignedClinicians: data.assigned_clinicians,
-          assignedDirector: data.assigned_director,
-        };
-        setUser(userProfile);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(userProfile));
-      }
-    } catch (error) {
-      console.error('Error in getUserProfile:', error);
-    }
-  };
 
   const login = async (username: string, password: string) => {
     try {
@@ -143,37 +66,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // If username, get email from profiles table for Supabase auth
+      // Query the profiles table directly
       const { data, error } = await supabase
         .from('profiles')
-        .select('email')
+        .select('*')
         .eq('username', username)
+        .eq('password', password)
         .single();
 
       if (error || !data) {
-        throw new Error('Username not found');
+        throw new Error('Invalid username or password');
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: password,
-      });
+      const userProfile: User = {
+        id: data.id,
+        name: data.name,
+        username: data.username,
+        role: data.role,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
 
-      if (authError) {
-        throw new Error(authError.message);
-      }
-
-      if (authData.user) {
-        await getUserProfile(authData.user.id);
-      }
+      setUser(userProfile);
+      setIsAuthenticated(true);
+      localStorage.setItem('user', JSON.stringify(userProfile));
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     }
   };
 
-  const signup = async (username: string, password: string, name: string, role: 'clinical_director' | 'clinician') => {
+  const signup = async (username: string, password: string, name: string, role: 'director' | 'clinician') => {
     try {
+      console.log('Starting signup for username:', username);
+      
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
@@ -181,44 +107,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('username', username)
         .single();
 
+      console.log('Username check result:', { existingUser, checkError });
+
+      // If we got data, username exists
       if (existingUser) {
         throw new Error('Username already exists');
       }
 
-      // Generate a dummy email for Supabase auth (since it requires email)
-      const dummyEmail = `${username}@clinickpi.local`;
-
-      // Sign up with Supabase using the dummy email
-      const { data, error } = await supabase.auth.signUp({
-        email: dummyEmail,
-        password: password,
-        options: {
-          data: {
-            name: name,
-            username: username,
-            role: role,
-          },
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      // If there's an error other than "not found", throw it
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Username check error:', checkError);
+        throw new Error('Database error while checking username');
       }
 
-      if (data.user) {
-        // Create user profile
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          name: name,
-          email: dummyEmail,
+      console.log('Inserting new user...');
+      
+      // Insert new user directly into profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
           username: username,
+          password: password,
+          name: name,
           role: role,
-        });
+        })
+        .select()
+        .single();
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          throw new Error('Failed to create user profile');
+      console.log('Insert result:', { data, error });
+
+      if (error) {
+        console.error('Signup error:', error);
+        if (error.code === '23505') {
+          throw new Error('Username already exists');
         }
+        throw new Error(`Failed to create account: ${error.message}`);
+      }
+
+      if (data) {
+        const userProfile: User = {
+          id: data.id,
+          name: data.name,
+          username: data.username,
+          role: data.role,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        };
+
+        console.log('User profile created:', userProfile);
+
+        // Automatically log in the user after successful signup
+        setUser(userProfile);
+        setIsAuthenticated(true);
+        localStorage.setItem('user', JSON.stringify(userProfile));
       }
 
       return data;
@@ -228,12 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');

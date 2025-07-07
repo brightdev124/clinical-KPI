@@ -13,7 +13,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'clinical_director' | 'clinician'>('clinician');
+  const [role, setRole] = useState<'director' | 'clinician'>('clinician');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,9 +36,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
         }
         
         await signup(username, password, name, role);
-        setError('');
-        // Show success message and switch to login
-        setError('Account created successfully! You can now login with your username.');
+        // Close modal on successful signup (user is automatically logged in)
+        onClose();
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
@@ -48,8 +47,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
   };
 
   const demoAccounts = [
-    { username: 'admin', role: 'Admin', password: 'password' },
-    { username: 'director', role: 'Clinical Director', password: 'password' },
+    { username: 'admin', role: 'Director', password: 'password' },
+    { username: 'director', role: 'Director', password: 'password' },
     { username: 'clinician', role: 'Clinician', password: 'password' }
   ];
 
@@ -172,9 +171,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                       id="director"
                       name="role"
                       type="radio"
-                      value="clinical_director"
-                      checked={role === 'clinical_director'}
-                      onChange={(e) => setRole(e.target.value as 'clinical_director' | 'clinician')}
+                      value="director"
+                      checked={role === 'director'}
+                      onChange={(e) => setRole(e.target.value as 'director' | 'clinician')}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <label htmlFor="director" className="ml-3 block text-sm font-medium text-gray-700">
@@ -188,7 +187,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                       type="radio"
                       value="clinician"
                       checked={role === 'clinician'}
-                      onChange={(e) => setRole(e.target.value as 'clinical_director' | 'clinician')}
+                      onChange={(e) => setRole(e.target.value as 'director' | 'clinician')}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <label htmlFor="clinician" className="ml-3 block text-sm font-medium text-gray-700">
