@@ -5,7 +5,7 @@ interface User {
   id: string;
   name: string;
   username: string;
-  role: 'director' | 'clinician';
+  role: 'super-admin' | 'director' | 'clinician';
   accept?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -14,7 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, password: string, name: string, role: 'director' | 'clinician') => Promise<void>;
+  signup: (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isPendingApproval: boolean;
@@ -26,9 +26,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const mockUsers: User[] = [
   {
     id: '1',
-    name: 'Dr. Sarah Johnson',
+    name: 'System Administrator',
     username: 'admin',
-    role: 'director',
+    role: 'super-admin',
     accept: true,
   },
   {
@@ -77,21 +77,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     try {
-      console.log('Login attempt for:', username);
       // First, try to find the user in mock users for demo
       const mockUser = mockUsers.find(u => u.username === username);
-      console.log('Found mock user:', mockUser);
       
       if (mockUser && password === 'password') {
-        console.log('Mock user found, accept status:', mockUser.accept);
         if (mockUser.accept) {
-          console.log('User accepted, setting authenticated');
           setUser(mockUser);
           setIsAuthenticated(true);
           setIsPendingApproval(false);
           localStorage.setItem('user', JSON.stringify(mockUser));
         } else {
-          console.log('User not accepted, setting pending approval');
           setUser(mockUser);
           setIsAuthenticated(false);
           setIsPendingApproval(true);
@@ -140,18 +135,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (username: string, password: string, name: string, role: 'director' | 'clinician') => {
+  const signup = async (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician') => {
     try {
-      console.log('Starting signup for username:', username);
-      
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('username')
         .eq('username', username)
         .single();
-
-      console.log('Username check result:', { existingUser, checkError });
 
       // If we got data, username exists
       if (existingUser) {
@@ -160,11 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If there's an error other than "not found", throw it
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Username check error:', checkError);
         throw new Error('Database error while checking username');
       }
-
-      console.log('Inserting new user...');
       
       // Insert new user directly into profiles table
       const { data, error } = await supabase
@@ -179,10 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select()
         .single();
 
-      console.log('Insert result:', { data, error });
-
       if (error) {
-        console.error('Signup error:', error);
         if (error.code === '23505') {
           throw new Error('Username already exists');
         }
@@ -200,8 +185,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: data.updated_at,
         };
 
-        console.log('User profile created:', userProfile);
-
         // Set user to pending approval state
         setUser(userProfile);
         setIsAuthenticated(false);
@@ -211,7 +194,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return data;
     } catch (error) {
-      console.error('Signup error:', error);
       throw error;
     }
   };

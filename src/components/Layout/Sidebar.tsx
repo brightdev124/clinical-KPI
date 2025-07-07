@@ -15,14 +15,23 @@ import clsx from 'clsx';
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['admin', 'clinical_director', 'clinician'] },
-    { name: 'KPI Management', href: '/kpis', icon: Target, roles: ['admin', 'clinical_director'] },
-    { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['admin', 'clinical_director'] },
-    { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['admin', 'clinical_director'] },
-    { name: 'User Management', href: '/users', icon: Settings, roles: ['admin'] },
-  ];
+  const getNavigation = () => {
+    if (user?.role === 'clinician') {
+      return [
+        { name: 'My Profile', href: `/clinician/${user.id}`, icon: Users, roles: ['clinician'] },
+      ];
+    }
+    
+    return [
+      { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['super-admin', 'director'] },
+      { name: 'KPI Management', href: '/kpis', icon: Target, roles: ['super-admin'] },
+      { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['super-admin', 'director'] },
+      { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
+      { name: 'User Management', href: '/users', icon: Settings, roles: ['super-admin'] },
+    ];
+  };
 
+  const navigation = getNavigation();
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes(user?.role || '')
   );

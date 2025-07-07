@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'clinician' CHECK (role IN ('director', 'clinician')),
+  role TEXT NOT NULL DEFAULT 'clinician' CHECK (role IN ('super-admin', 'director', 'clinician')),
   password TEXT NOT NULL,
   accept BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TRIGGER update_profiles_updated_at
 -- Insert sample data (optional)
 INSERT INTO profiles (username, name, role, password, accept) 
 VALUES 
-  ('admin', 'Dr. Sarah Johnson', 'director', 'password', true),
+  ('admin', 'System Administrator', 'super-admin', 'password', true),
   ('director', 'Dr. Michael Chen', 'director', 'password', true),
   ('clinician', 'Dr. Emily Rodriguez', 'clinician', 'password', true)
 ON CONFLICT (username) DO NOTHING;

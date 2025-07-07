@@ -14,34 +14,62 @@ import PerformanceAnalytics from './pages/PerformanceAnalytics';
 import UserManagement from './pages/UserManagement';
 import ClinicianProfile from './pages/ClinicianProfile';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isPendingApproval } = useAuth();
-
-  console.log('AppContent state:', { isAuthenticated, isPendingApproval });
+  const { isAuthenticated, isPendingApproval, user } = useAuth();
 
   if (isPendingApproval) {
-    console.log('Showing PendingApproval page');
     return <PendingApproval />;
   }
 
   if (!isAuthenticated) {
-    console.log('Showing LandingPage');
     return <LandingPage />;
   }
 
-  console.log('Showing authenticated routes');
+  // Special handling for clinicians - redirect to their profile
+  if (user?.role === 'clinician') {
+    return (
+      <Routes>
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route index element={<ClinicianProfile />} />
+          <Route path="clinician/:id" element={<ClinicianProfile />} />
+          <Route path="*" element={<ClinicianProfile />} />
+        </Route>
+      </Routes>
+    );
+  }
 
   return (
     <Routes>
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="kpis" element={<KPIManagement />} />
-        <Route path="clinicians" element={<ClinicianManagement />} />
+        <Route path="kpis" element={
+          <RoleBasedRoute allowedRoles={['super-admin']}>
+            <KPIManagement />
+          </RoleBasedRoute>
+        } />
+        <Route path="clinicians" element={
+          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+            <ClinicianManagement />
+          </RoleBasedRoute>
+        } />
         <Route path="clinician/:id" element={<ClinicianProfile />} />
-        <Route path="review/:clinicianId" element={<MonthlyReview />} />
-        <Route path="analytics" element={<PerformanceAnalytics />} />
-        <Route path="users" element={<UserManagement />} />
+        <Route path="review/:clinicianId" element={
+          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+            <MonthlyReview />
+          </RoleBasedRoute>
+        } />
+        <Route path="analytics" element={
+          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+            <PerformanceAnalytics />
+          </RoleBasedRoute>
+        } />
+        <Route path="users" element={
+          <RoleBasedRoute allowedRoles={['super-admin']}>
+            <UserManagement />
+          </RoleBasedRoute>
+        } />
       </Route>
     </Routes>
   );
