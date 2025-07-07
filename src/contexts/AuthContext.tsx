@@ -6,6 +6,7 @@ interface User {
   name: string;
   username: string;
   role: 'director' | 'clinician';
+  accept?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -16,6 +17,7 @@ interface AuthContextType {
   signup: (username: string, password: string, name: string, role: 'director' | 'clinician') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isPendingApproval: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,42 +29,74 @@ const mockUsers: User[] = [
     name: 'Dr. Sarah Johnson',
     username: 'admin',
     role: 'director',
+    accept: true,
   },
   {
     id: '2',
     name: 'Dr. Michael Chen',
     username: 'director',
     role: 'director',
+    accept: true,
   },
   {
     id: '3',
     name: 'Dr. Emily Rodriguez',
     username: 'clinician',
     role: 'clinician',
+    accept: true,
+  },
+  {
+    id: '4',
+    name: 'Dr. John Pending',
+    username: 'pending',
+    role: 'clinician',
+    accept: false,
   },
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
 
   useEffect(() => {
     // Check for stored user session
     const storedUser = localStorage.getItem('user');
+    const storedPendingUser = localStorage.getItem('pendingUser');
+    
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
+      setIsPendingApproval(false);
+    } else if (storedPendingUser) {
+      setUser(JSON.parse(storedPendingUser));
+      setIsAuthenticated(false);
+      setIsPendingApproval(true);
     }
   }, []);
 
   const login = async (username: string, password: string) => {
     try {
+      console.log('Login attempt for:', username);
       // First, try to find the user in mock users for demo
       const mockUser = mockUsers.find(u => u.username === username);
+      console.log('Found mock user:', mockUser);
+      
       if (mockUser && password === 'password') {
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(mockUser));
+        console.log('Mock user found, accept status:', mockUser.accept);
+        if (mockUser.accept) {
+          console.log('User accepted, setting authenticated');
+          setUser(mockUser);
+          setIsAuthenticated(true);
+          setIsPendingApproval(false);
+          localStorage.setItem('user', JSON.stringify(mockUser));
+        } else {
+          console.log('User not accepted, setting pending approval');
+          setUser(mockUser);
+          setIsAuthenticated(false);
+          setIsPendingApproval(true);
+          localStorage.setItem('pendingUser', JSON.stringify(mockUser));
+        }
         return;
       }
 
@@ -83,13 +117,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: data.name,
         username: data.username,
         role: data.role,
+        accept: data.accept,
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
 
-      setUser(userProfile);
-      setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(userProfile));
+      // Check if user is accepted
+      if (userProfile.accept) {
+        setUser(userProfile);
+        setIsAuthenticated(true);
+        setIsPendingApproval(false);
+        localStorage.setItem('user', JSON.stringify(userProfile));
+      } else {
+        setUser(userProfile);
+        setIsAuthenticated(false);
+        setIsPendingApproval(true);
+        localStorage.setItem('pendingUser', JSON.stringify(userProfile));
+      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -130,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password: password,
           name: name,
           role: role,
+          accept: false,
         })
         .select()
         .single();
@@ -150,16 +195,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: data.name,
           username: data.username,
           role: data.role,
+          accept: data.accept,
           created_at: data.created_at,
           updated_at: data.updated_at,
         };
 
         console.log('User profile created:', userProfile);
 
-        // Automatically log in the user after successful signup
+        // Set user to pending approval state
         setUser(userProfile);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(userProfile));
+        setIsAuthenticated(false);
+        setIsPendingApproval(true);
+        localStorage.setItem('pendingUser', JSON.stringify(userProfile));
       }
 
       return data;
@@ -172,11 +219,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    setIsPendingApproval(false);
     localStorage.removeItem('user');
+    localStorage.removeItem('pendingUser');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated, isPendingApproval }}>
       {children}
     </AuthContext.Provider>
   );

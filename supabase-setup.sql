@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'clinician' CHECK (role IN ('director', 'clinician')),
   password TEXT NOT NULL,
+  accept BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -36,9 +37,9 @@ CREATE TRIGGER update_profiles_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert sample data (optional)
-INSERT INTO profiles (username, name, role, password) 
+INSERT INTO profiles (username, name, role, password, accept) 
 VALUES 
-  ('admin', 'Dr. Sarah Johnson', 'director', 'password'),
-  ('director', 'Dr. Michael Chen', 'director', 'password'),
-  ('clinician', 'Dr. Emily Rodriguez', 'clinician', 'password')
+  ('admin', 'Dr. Sarah Johnson', 'director', 'password', true),
+  ('director', 'Dr. Michael Chen', 'director', 'password', true),
+  ('clinician', 'Dr. Emily Rodriguez', 'clinician', 'password', true)
 ON CONFLICT (username) DO NOTHING;

@@ -5,6 +5,7 @@ import { DataProvider } from './contexts/DataContext';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
 import LandingPage from './components/LandingPage';
+import PendingApproval from './components/PendingApproval';
 import Dashboard from './pages/Dashboard';
 import KPIManagement from './pages/KPIManagement';
 import ClinicianManagement from './pages/ClinicianManagement';
@@ -15,11 +16,21 @@ import ClinicianProfile from './pages/ClinicianProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isPendingApproval } = useAuth();
+
+  console.log('AppContent state:', { isAuthenticated, isPendingApproval });
+
+  if (isPendingApproval) {
+    console.log('Showing PendingApproval page');
+    return <PendingApproval />;
+  }
 
   if (!isAuthenticated) {
+    console.log('Showing LandingPage');
     return <LandingPage />;
   }
+
+  console.log('Showing authenticated routes');
 
   return (
     <Routes>
