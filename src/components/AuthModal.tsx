@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Eye, EyeOff, Activity, Mail, Lock, User } from 'lucide-react';
+import { X, Eye, EyeOff, Activity, Lock, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
@@ -9,13 +9,14 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) => {
-  const [email, setEmail] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,30 +25,38 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
 
     try {
       if (mode === 'login') {
-        await login(email, password);
+        await login(usernameOrEmail, password);
         onClose();
       } else {
-        // For demo purposes, we'll just switch to login mode
-        setError('Sign up is not available in demo mode. Please use the demo accounts.');
+        // Signup mode
+        if (!username || !password || !name) {
+          setError('All fields are required');
+          return;
+        }
+        
+        await signup(username, password, name);
+        setError('');
+        // Show success message and switch to login
+        setError('Account created successfully! You can now login with your username.');
       }
-    } catch (err) {
-      setError('Invalid email or password');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   const demoAccounts = [
-    { email: 'admin@clinic.com', role: 'Admin', password: 'password' },
-    { email: 'director@clinic.com', role: 'Clinical Director', password: 'password' },
-    { email: 'clinician@clinic.com', role: 'Clinician', password: 'password' }
+    { username: 'admin', role: 'Admin', password: 'password' },
+    { username: 'director', role: 'Clinical Director', password: 'password' },
+    { username: 'clinician', role: 'Clinician', password: 'password' }
   ];
 
-  const handleDemoLogin = async (demoEmail: string) => {
+  const handleDemoLogin = async (demoUsername: string) => {
     setLoading(true);
     setError('');
     try {
-      await login(demoEmail, 'password');
+      await login(demoUsername, 'password');
       onClose();
     } catch (err) {
       setError('Demo login failed');
@@ -99,12 +108,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                 {demoAccounts.map((account, index) => (
                   <button
                     key={index}
-                    onClick={() => handleDemoLogin(account.email)}
+                    onClick={() => handleDemoLogin(account.username)}
                     disabled={loading}
                     className="w-full text-left p-2 text-xs bg-white rounded-lg border border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
                   >
                     <div className="font-medium text-blue-900">{account.role}</div>
-                    <div className="text-blue-600">{account.email}</div>
+                    <div className="text-blue-600">Username: {account.username}</div>
                   </button>
                 ))}
               </div>
@@ -132,22 +141,43 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  placeholder="Enter your email"
-                  required
-                />
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Username
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {mode === 'login' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Username
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={usernameOrEmail}
+                    onChange={(e) => setUsernameOrEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
