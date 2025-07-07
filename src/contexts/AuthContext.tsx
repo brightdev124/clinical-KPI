@@ -14,7 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, password: string, name: string) => Promise<void>;
+  signup: (username: string, password: string, name: string, role: 'clinical_director' | 'clinician') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (username: string, password: string, name: string) => {
+  const signup = async (username: string, password: string, name: string, role: 'clinical_director' | 'clinician') => {
     try {
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
@@ -196,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             name: name,
             username: username,
+            role: role,
           },
         },
       });
@@ -211,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: name,
           email: dummyEmail,
           username: username,
-          role: 'clinician', // Default role
+          role: role,
         });
 
         if (profileError) {

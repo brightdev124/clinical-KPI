@@ -40,7 +40,7 @@ To enable email verification and password reset:
 
 ### Authentication Methods
 - **Login**: Users login with username only
-- **Signup**: Users sign up with username, full name, and password (no email required)
+- **Signup**: Users sign up with username, full name, password, and role selection (Director or Clinician)
 - **Demo Accounts**: Fallback demo accounts for testing
 
 ### User Profiles
@@ -80,10 +80,16 @@ await login('username', 'password');
 ```
 
 ### Signup
-New users sign up with username, name, and password (no email required):
+New users sign up with username, name, password, and role selection:
 ```javascript
-await signup('username', 'password', 'Full Name');
+await signup('username', 'password', 'Full Name', 'clinical_director'); // For Director
+// or
+await signup('username', 'password', 'Full Name', 'clinician'); // For Clinician
 ```
+
+**Available Roles:**
+- `clinical_director` - For users with director privileges
+- `clinician` - For regular clinician users
 
 **Note**: The system automatically generates a dummy email (`username@clinickpi.local`) for Supabase compatibility, but users never see or interact with this email.
 

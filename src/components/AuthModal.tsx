@@ -13,6 +13,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [role, setRole] = useState<'clinical_director' | 'clinician'>('clinician');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,12 +30,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
         onClose();
       } else {
         // Signup mode
-        if (!username || !password || !name) {
+        if (!username || !password || !name || !role) {
           setError('All fields are required');
           return;
         }
         
-        await signup(username, password, name);
+        await signup(username, password, name, role);
         setError('');
         // Show success message and switch to login
         setError('Account created successfully! You can now login with your username.');
@@ -156,6 +157,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                     placeholder="Enter your username"
                     required
                   />
+                </div>
+              </div>
+            )}
+
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Role
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      id="director"
+                      name="role"
+                      type="radio"
+                      value="clinical_director"
+                      checked={role === 'clinical_director'}
+                      onChange={(e) => setRole(e.target.value as 'clinical_director' | 'clinician')}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <label htmlFor="director" className="ml-3 block text-sm font-medium text-gray-700">
+                      Director
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="clinician"
+                      name="role"
+                      type="radio"
+                      value="clinician"
+                      checked={role === 'clinician'}
+                      onChange={(e) => setRole(e.target.value as 'clinical_director' | 'clinician')}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <label htmlFor="clinician" className="ml-3 block text-sm font-medium text-gray-700">
+                      Clinician
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
