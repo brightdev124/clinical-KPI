@@ -1,46 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Edit2, Trash2, Target, Weight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Target, Weight, Building, RefreshCw, AlertCircle } from 'lucide-react';
 
 const KPIManagement: React.FC = () => {
-  const { kpis, addKPI, updateKPI, deleteKPI } = useData();
+  const { kpis, addKPI, updateKPI, deleteKPI, refreshKPIs, loading, error } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingKPI, setEditingKPI] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
     weight: 5,
-    category: '',
+    floor: '',
   });
+  const [submitLoading, setSubmitLoading] = useState(false);
 
-  const categories = ['Patient Care', 'Administration', 'Professional Development', 'Teamwork', 'Quality Improvement'];
+  // Get unique floors from existing KPIs
+  const floors = Array.from(new Set(kpis.map(kpi => kpi.floor).filter(Boolean))).sort();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingKPI) {
-      updateKPI({ ...editingKPI, ...formData });
-      setEditingKPI(null);
-    } else {
-      addKPI(formData);
+    if (!formData.title.trim() || !formData.description.trim() || !formData.floor.trim()) {
+      alert('Please fill in all required fields');
+      return;
     }
-    setFormData({ name: '', description: '', weight: 5, category: '' });
-    setShowForm(false);
+    
+    if (formData.weight < 1 || formData.weight > 10) {
+      alert('Weight must be between 1 and 10');
+      return;
+    }
+
+    setSubmitLoading(true);
+    try {
+      if (editingKPI) {
+        await updateKPI({ 
+          ...editingKPI, 
+          ...formData,
+          is_removed: editingKPI.is_removed || false
+        });
+        setEditingKPI(null);
+      } else {
+        await addKPI({
+          ...formData,
+          is_removed: false,
+        });
+      }
+      setFormData({ title: '', description: '', weight: 5, floor: '' });
+      setShowForm(false);
+    } catch (error) {
+      console.error('Failed to save KPI:', error);
+      alert('Failed to save KPI. Please try again.');
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   const handleEdit = (kpi: any) => {
     setEditingKPI(kpi);
     setFormData({
-      name: kpi.name,
+      title: kpi.title,
       description: kpi.description,
       weight: kpi.weight,
-      category: kpi.category,
+      floor: kpi.floor,
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this KPI?')) {
-      deleteKPI(id);
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this KPI? This action cannot be undone.')) {
+      try {
+        await deleteKPI(id);
+      } catch (error) {
+        console.error('Failed to delete KPI:', error);
+        alert('Failed to delete KPI. Please try again.');
+      }
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refreshKPIs();
+    } catch (error) {
+      console.error('Failed to refresh KPIs:', error);
     }
   };
 
@@ -52,14 +92,31 @@ const KPIManagement: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">KPI Management</h2>
           <p className="text-gray-600 mt-1">Configure and manage key performance indicators</p>
+          {error && (
+            <div className="mt-2 flex items-center space-x-2 text-red-600">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add KPI</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="p-2 text-gray-600 hover:text-blue-600 transition-colors disabled:opacity-50"
+            title="Refresh KPIs"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add KPI</span>
+          </button>
+        </div>
       </div>
 
       {/* Weight Summary */}
@@ -87,48 +144,65 @@ const KPIManagement: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900">Active KPIs ({kpis.length})</h3>
         </div>
         <div className="divide-y divide-gray-200">
-          {kpis.map((kpi) => (
-            <div key={kpi.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Target className="w-5 h-5 text-blue-600" />
-                    <h4 className="text-lg font-medium text-gray-900">{kpi.name}</h4>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      {kpi.category}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-3">{kpi.description}</p>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Weight className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">Weight: {kpi.weight}</span>
+          {loading && kpis.length === 0 ? (
+            <div className="p-6 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading KPIs...</p>
+            </div>
+          ) : kpis.length === 0 ? (
+            <div className="p-6 text-center">
+              <Target className="w-8 h-8 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No KPIs found. Add your first KPI to get started.</p>
+            </div>
+          ) : (
+            kpis.map((kpi) => (
+              <div key={kpi.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Target className="w-5 h-5 text-blue-600" />
+                      <h4 className="text-lg font-medium text-gray-900">{kpi.title}</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center space-x-1">
+                        <Building className="w-3 h-3" />
+                        <span>{kpi.floor}</span>
+                      </span>
                     </div>
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: `${(kpi.weight / 10) * 100}%` }}
-                      />
+                    <p className="text-gray-600 mb-3">{kpi.description}</p>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <Weight className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">Weight: {kpi.weight}</span>
+                      </div>
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{ width: `${(kpi.weight / 10) * 100}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => handleEdit(kpi)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(kpi.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={() => handleEdit(kpi)}
+                      disabled={loading}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                      title="Edit KPI"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(kpi.id)}
+                      disabled={loading}
+                      className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                      title="Delete KPI"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -142,57 +216,71 @@ const KPIManagement: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  KPI Name
+                  KPI Title *
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter KPI title"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={3}
+                  placeholder="Enter KPI description"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
+                  Floor *
                 </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <div className="flex space-x-2">
+                  <select
+                    value={formData.floor}
+                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Floor</option>
+                    {floors.map(floor => (
+                      <option key={floor} value={floor}>{floor}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={formData.floor}
+                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Or enter new floor"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Weight (1-10)
+                  Weight (1-10) *
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="10"
                   value={formData.weight}
-                  onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) || 1 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Weight determines the importance of this KPI (1 = lowest, 10 = highest)
+                </p>
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button
@@ -200,17 +288,20 @@ const KPIManagement: React.FC = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingKPI(null);
-                    setFormData({ name: '', description: '', weight: 5, category: '' });
+                    setFormData({ title: '', description: '', weight: 5, floor: '' });
                   }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={submitLoading}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={submitLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
                 >
-                  {editingKPI ? 'Update' : 'Add'} KPI
+                  {submitLoading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  <span>{editingKPI ? 'Update' : 'Add'} KPI</span>
                 </button>
               </div>
             </form>

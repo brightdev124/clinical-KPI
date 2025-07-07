@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={kpi.id} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-900 text-sm">{kpi.name}</span>
+                      <span className="font-medium text-gray-900 text-sm">{kpi.title}</span>
                       <span className="text-sm font-semibold text-gray-900">{percentage}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">

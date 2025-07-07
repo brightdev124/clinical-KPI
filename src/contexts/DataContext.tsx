@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { KPI, KPIService } from '../services/kpiService';
 
-interface KPI {
+interface KPIContextType {
   id: string;
-  name: string;
+  title: string;
   description: string;
   weight: number;
-  category: string;
+  floor: string;
+  is_removed: boolean;
 }
 
 interface Clinician {
@@ -36,9 +38,12 @@ interface DataContextType {
   kpis: KPI[];
   clinicians: Clinician[];
   reviews: ReviewEntry[];
-  updateKPI: (kpi: KPI) => void;
-  addKPI: (kpi: Omit<KPI, 'id'>) => void;
-  deleteKPI: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  updateKPI: (kpi: KPI) => Promise<void>;
+  addKPI: (kpi: Omit<KPI, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  deleteKPI: (id: string) => Promise<void>;
+  refreshKPIs: () => Promise<void>;
   updateClinician: (clinician: Clinician) => void;
   addClinician: (clinician: Omit<Clinician, 'id'>) => void;
   deleteClinician: (id: string) => void;
@@ -53,52 +58,59 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 const mockKPIs: KPI[] = [
   {
     id: '1',
-    name: 'Patient Satisfaction Score',
+    title: 'Patient Satisfaction Score',
     description: 'Maintain patient satisfaction above 4.5/5 based on post-visit surveys',
     weight: 9,
-    category: 'Patient Care',
+    floor: '1st Floor',
+    is_removed: false,
   },
   {
     id: '2',
-    name: 'Documentation Compliance',
+    title: 'Documentation Compliance',
     description: 'Complete all required documentation within 24 hours of patient encounter',
     weight: 8,
-    category: 'Administration',
+    floor: '2nd Floor',
+    is_removed: false,
   },
   {
     id: '3',
-    name: 'Continuing Education',
+    title: 'Continuing Education',
     description: 'Complete required CE hours and attend mandatory training sessions',
     weight: 6,
-    category: 'Professional Development',
+    floor: '1st Floor',
+    is_removed: false,
   },
   {
     id: '4',
-    name: 'Team Collaboration',
+    title: 'Team Collaboration',
     description: 'Effective collaboration with multidisciplinary team and peer feedback',
     weight: 7,
-    category: 'Teamwork',
+    floor: '3rd Floor',
+    is_removed: false,
   },
   {
     id: '5',
-    name: 'Clinical Outcomes',
+    title: 'Clinical Outcomes',
     description: 'Achieve target clinical outcomes for assigned patient population',
     weight: 10,
-    category: 'Patient Care',
+    floor: '2nd Floor',
+    is_removed: false,
   },
   {
     id: '6',
-    name: 'Safety Protocols',
+    title: 'Safety Protocols',
     description: 'Adherence to safety protocols and incident-free performance',
     weight: 9,
-    category: 'Patient Safety',
+    floor: '1st Floor',
+    is_removed: false,
   },
   {
     id: '7',
-    name: 'Quality Improvement',
+    title: 'Quality Improvement',
     description: 'Participation in quality improvement initiatives and process optimization',
     weight: 5,
-    category: 'Quality Improvement',
+    floor: '3rd Floor',
+    is_removed: false,
   },
 ];
 
@@ -206,21 +218,83 @@ const generateMockReviews = (): ReviewEntry[] => {
 const mockReviews = generateMockReviews();
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [kpis, setKPIs] = useState<KPI[]>(mockKPIs);
+  const [kpis, setKPIs] = useState<KPI[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>(mockClinicians);
   const [reviews, setReviews] = useState<ReviewEntry[]>(mockReviews);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const updateKPI = (kpi: KPI) => {
-    setKPIs(prev => prev.map(k => k.id === kpi.id ? kpi : k));
+  // Load KPIs from Supabase on component mount
+  useEffect(() => {
+    refreshKPIs();
+  }, []);
+
+  const refreshKPIs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedKPIs = await KPIService.getAllKPIs();
+      setKPIs(fetchedKPIs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load KPIs');
+      // Fallback to mock data if database fails
+      setKPIs(mockKPIs);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const addKPI = (kpi: Omit<KPI, 'id'>) => {
-    const newKPI = { ...kpi, id: Date.now().toString() };
-    setKPIs(prev => [...prev, newKPI]);
+  const updateKPI = async (kpi: KPI) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await KPIService.updateKPI(kpi.id, {
+        title: kpi.title,
+        description: kpi.description,
+        weight: kpi.weight,
+        floor: kpi.floor,
+        is_removed: kpi.is_removed,
+      });
+      setKPIs(prev => prev.map(k => k.id === kpi.id ? kpi : k));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update KPI');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteKPI = (id: string) => {
-    setKPIs(prev => prev.filter(k => k.id !== id));
+  const addKPI = async (kpi: Omit<KPI, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const newKPI = await KPIService.createKPI({
+        title: kpi.title,
+        description: kpi.description,
+        weight: kpi.weight,
+        floor: kpi.floor,
+      });
+      setKPIs(prev => [...prev, newKPI]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add KPI');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteKPI = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await KPIService.deleteKPI(id);
+      setKPIs(prev => prev.filter(k => k.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete KPI');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateClinician = (clinician: Clinician) => {
@@ -273,9 +347,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       kpis,
       clinicians,
       reviews,
+      loading,
+      error,
       updateKPI,
       addKPI,
       deleteKPI,
+      refreshKPIs,
       updateClinician,
       addClinician,
       deleteClinician,

@@ -293,7 +293,7 @@ const MonthlyReview: React.FC = () => {
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900">{kpi.name}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900">{kpi.title}</h3>
                       <div className="flex items-center space-x-2">
                         <Target className="w-4 h-4 text-gray-400" />
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">

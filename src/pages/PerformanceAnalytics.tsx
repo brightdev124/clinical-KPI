@@ -92,7 +92,7 @@ const PerformanceAnalytics: React.FC = () => {
     });
     
     return {
-      name: kpi.name,
+      name: kpi.title,
       percentage: totalReviews > 0 ? Math.round((metReviews / totalReviews) * 100) : 0,
       weight: kpi.weight,
     };

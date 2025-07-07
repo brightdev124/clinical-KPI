@@ -41,7 +41,7 @@ const ClinicianProfile: React.FC = () => {
     const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
     
     return {
-      name: kpi.name,
+      name: kpi.title,
       percentage,
       weight: kpi.weight,
       met: metCount,

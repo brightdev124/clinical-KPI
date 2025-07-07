@@ -5,7 +5,7 @@ import Header from './Header';
 import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext';
 
 const LayoutContent: React.FC = () => {
-  const { isCollapsed, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+  const { isCollapsed, isMobile, closeSidebar } = useSidebar();
 
   return (
     <div className="flex h-screen bg-gray-50">
