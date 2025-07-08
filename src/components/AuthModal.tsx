@@ -72,11 +72,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
+              <img src="/assets/logo_simple.png" alt="KPI Brain Logo" className="h-10 flex-shrink-0" />
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Clinical KPI
+                KPI Brain
               </span>
             </div>
             <button
@@ -94,8 +92,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
             </h2>
             <p className="text-gray-600">
               {mode === 'login' 
-                ? 'Sign in to your Clinical KPI account' 
-                : 'Create your Clinical KPI account'
+                ? 'Sign in to your KPI Brain account' 
+                : 'Create your KPI Brain account'
               }
             </p>
           </div>
