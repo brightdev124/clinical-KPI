@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Activity, BarChart3, Users, Target, TrendingUp, CheckCircle, ArrowRight, Star, Shield, Zap } from 'lucide-react';
+import { Activity, BarChart3, Users, Target, TrendingUp, CheckCircle, ArrowRight, Star, Shield, Zap, AlertTriangle, MessageSquare, FileX, ArrowDown, Check, X, FileText, BarChart, ClipboardCheck, TrendingDown, Clock, UserCheck, Heart, Award, Lock } from 'lucide-react';
 import AuthModal from './AuthModal';
 
 const LandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [currentStep, setCurrentStep] = useState(0);
 
   const features = [
     {
@@ -33,6 +34,87 @@ const LandingPage: React.FC = () => {
     }
   ];
 
+  const problemPoints = [
+    {
+      icon: MessageSquare,
+      title: 'Avoiding hard conversations',
+      description: 'Directors sidestep difficult performance discussions, letting issues fester',
+      color: 'text-red-600'
+    },
+    {
+      icon: UserCheck,
+      title: 'Acting more like union reps',
+      description: 'Defending clinicians instead of setting clear expectations and standards',
+      color: 'text-orange-600'
+    },
+    {
+      icon: FileX,
+      title: 'No documentation, no follow-through',
+      description: 'Conversations happen but nothing gets recorded or tracked for improvement',
+      color: 'text-yellow-600'
+    }
+  ];
+
+  const solutionSteps = [
+    {
+      icon: Target,
+      title: 'Set KPIs',
+      description: 'Define clear, measurable performance indicators',
+      color: 'bg-blue-500'
+    },
+    {
+      icon: ClipboardCheck,
+      title: 'Score Check-ins',
+      description: 'Simple checkbox system - met or not met',
+      color: 'bg-green-500'
+    },
+    {
+      icon: FileText,
+      title: 'Document',
+      description: 'Record conversations and improvement plans',
+      color: 'bg-purple-500'
+    },
+    {
+      icon: BarChart,
+      title: 'Track',
+      description: 'Monitor progress over time with trends',
+      color: 'bg-orange-500'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Report',
+      description: 'Generate insights and performance summaries',
+      color: 'bg-pink-500'
+    }
+  ];
+
+  const clinicalFeatures = [
+    {
+      icon: Zap,
+      title: 'Zero training required',
+      description: 'Intuitive interface that clinical directors can use immediately',
+      highlight: true
+    },
+    {
+      icon: Target,
+      title: 'Trackable accountability',
+      description: 'Clear documentation trail for all performance conversations',
+      highlight: false
+    },
+    {
+      icon: Heart,
+      title: 'Feedback-driven performance culture',
+      description: 'Transform reactive management into proactive development',
+      highlight: false
+    },
+    {
+      icon: Lock,
+      title: 'HIPAA-friendly',
+      description: 'Secure, compliant platform designed for healthcare environments',
+      highlight: true
+    }
+  ];
+
   const testimonials = [
     {
       name: 'Dr. Sarah Johnson',
@@ -58,6 +140,14 @@ const LandingPage: React.FC = () => {
     setAuthMode(mode);
     setShowAuthModal(true);
   };
+
+  // Auto-advance carousel
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % solutionSteps.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -124,64 +214,301 @@ const LandingPage: React.FC = () => {
         <div className="absolute top-1/2 right-20 w-16 h-16 bg-green-200 rounded-full opacity-20 animate-pulse delay-500"></div>
       </section>
 
+      {/* Problem Section */}
+      <section className="py-20 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 left-10 w-32 h-32 border-2 border-red-400 rounded-full"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 border-2 border-orange-400 rounded-full"></div>
+          <div className="absolute bottom-20 left-1/4 w-20 h-20 border-2 border-yellow-400 rounded-full"></div>
+          <div className="absolute bottom-40 right-1/3 w-28 h-28 border-2 border-red-400 rounded-full"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-100 to-orange-100 rounded-full text-red-800 text-sm font-bold mb-8 shadow-lg border border-red-200">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              The Reality Check
+            </div>
+            <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
+              Do your Clinical Directors:
+            </h2>
+            <p className="text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed font-medium">
+              Most clinical directors struggle with performance management, creating dangerous gaps in accountability and team development that impact patient care
+            </p>
+            
+            {/* Warning Stats */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-red-100">
+                <div className="text-3xl font-bold text-red-600 mb-2">73%</div>
+                <div className="text-sm text-gray-700 font-medium">of directors avoid difficult conversations</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-orange-100">
+                <div className="text-3xl font-bold text-orange-600 mb-2">68%</div>
+                <div className="text-sm text-gray-700 font-medium">lack structured documentation</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-yellow-100">
+                <div className="text-3xl font-bold text-yellow-600 mb-2">81%</div>
+                <div className="text-sm text-gray-700 font-medium">report inconsistent follow-through</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            {problemPoints.map((problem, index) => (
+              <div key={index} className="group bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border-l-4 border-red-400 relative overflow-hidden">
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="w-14 h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                      <problem.icon className={`w-7 h-7 ${problem.color}`} />
+                    </div>
+                    <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+                      <X className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full mb-3">
+                      CRITICAL ISSUE #{index + 1}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 leading-tight">{problem.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{problem.description}</p>
+                  
+                  {/* Impact indicator */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <div className="flex items-center space-x-2">
+                      <TrendingDown className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-red-600 font-medium">
+                        {index === 0 && "Leads to unresolved performance issues"}
+                        {index === 1 && "Creates toxic team dynamics"}
+                        {index === 2 && "Results in repeated mistakes"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Enhanced Solution Bridge */}
+          <div className="relative">
+            {/* Animated arrow pointing down */}
+            <div className="flex justify-center mb-8">
+              <div className="animate-bounce">
+                <ArrowDown className="w-8 h-8 text-red-500" />
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className="relative inline-block">
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-lg opacity-30 scale-110"></div>
+                
+                <div className="relative inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white font-bold text-lg shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  KPI Brain will help you help them track important KPIs
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
+                </div>
+              </div>
+              
+              <p className="mt-6 text-gray-600 max-w-2xl mx-auto font-medium">
+                Transform reactive management into proactive leadership with structured accountability
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solution Section */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 bg-blue-100 rounded-full text-blue-800 text-sm font-medium mb-6">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              The Solution
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              How KPI Brain Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              A simple check-the-box tool to track if clinicians are meeting KPIs
+            </p>
+            <div className="bg-white rounded-xl p-6 max-w-2xl mx-auto shadow-lg border border-blue-200">
+              <div className="grid grid-cols-2 gap-6 text-left">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                  <span className="text-gray-700 font-medium">Yes they did → Check the box</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                    <X className="w-5 h-5 text-red-600" />
+                  </div>
+                  <span className="text-gray-700 font-medium">No they didn't → Document & plan</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Interactive Carousel */}
+          <div className="relative">
+            <div className="flex justify-center mb-8">
+              <div className="flex space-x-2">
+                {solutionSteps.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentStep(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentStep ? 'bg-blue-600 w-8' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+              {solutionSteps.map((step, index) => (
+                <div
+                  key={index}
+                  className={`group relative bg-white rounded-2xl p-6 shadow-lg transition-all duration-500 transform ${
+                    index === currentStep 
+                      ? 'scale-105 shadow-2xl ring-4 ring-blue-200' 
+                      : 'hover:shadow-xl hover:-translate-y-1'
+                  }`}
+                >
+                  <div className={`w-14 h-14 ${step.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <step.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
+                  
+                  {/* Step number */}
+                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">{index + 1}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 bg-green-100 rounded-full text-green-800 text-sm font-medium mb-6">
+              <Heart className="w-4 h-4 mr-2" />
+              Clinical Excellence
+            </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need for Clinical Excellence
+              Built for Clinical Teams
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Comprehensive tools designed specifically for healthcare performance management
+              Designed specifically for healthcare environments with the features that matter most
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="group p-8 bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className={`w-14 h-14 ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="w-7 h-7 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {clinicalFeatures.map((feature, index) => (
+              <div 
+                key={index} 
+                className={`group p-8 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 ${
+                  feature.highlight 
+                    ? 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 shadow-xl' 
+                    : 'bg-gray-50 hover:bg-white border border-gray-200 hover:shadow-lg'
+                }`}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${
+                    feature.highlight ? 'bg-gradient-to-r from-blue-600 to-purple-600' : 'bg-gray-200'
+                  }`}>
+                    <feature.icon className={`w-6 h-6 ${feature.highlight ? 'text-white' : 'text-gray-600'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                      {feature.title}
+                      {feature.highlight && (
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                          Key Feature
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">98%</div>
-              <div className="text-blue-100">User Satisfaction</div>
-            </div>
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">50+</div>
-              <div className="text-blue-100">Healthcare Organizations</div>
-            </div>
-            <div className="text-white">
-              <div className="text-4xl font-bold mb-2">25%</div>
-              <div className="text-blue-100">Performance Improvement</div>
+          {/* Call-to-action within features */}
+          <div className="mt-16 text-center">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+              <h3 className="text-2xl font-bold mb-4">Ready to transform your clinical management?</h3>
+              <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+                Join healthcare leaders who are building accountability and improving patient outcomes
+              </p>
+              <button
+                onClick={() => handleAuthClick('signup')}
+                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                Start Your Free Trial
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-gray-50">
+      {/* Testimonial Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 bg-yellow-100 rounded-full text-yellow-800 text-sm font-medium mb-6">
+              <Award className="w-4 h-4 mr-2" />
+              Leadership Insight
+            </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Trusted by Healthcare Leaders
             </h2>
-            <p className="text-xl text-gray-600">
-              See what our customers say about transforming their clinical operations
-            </p>
           </div>
           
+          {/* Featured Testimonial */}
+          <div className="mb-16">
+            <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-4xl mx-auto border border-gray-100">
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-6 h-6 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-2xl font-medium text-gray-900 leading-relaxed mb-6">
+                  "Communication usually flows the wrong way. When clinical directors relay clinicians' problems instead of setting expectations, they fail to establish clear standards for their team. With KPI Brain, they are now the voice of accountability."
+                </blockquote>
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl font-bold">JM</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-gray-900">Jennifer Martinez</div>
+                    <div className="text-gray-600">Clinical Operations Leader</div>
+                    <div className="text-sm text-gray-500">Regional Medical Center</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Testimonials Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
@@ -191,15 +518,23 @@ const LandingPage: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
-                <div>
-                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                  <div className="text-gray-500 text-sm">{testimonial.role}</div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {testimonial.name.split(' ').map(n => n[0]).join('')}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                    <div className="text-gray-500 text-sm">{testimonial.role}</div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-20 bg-white">
