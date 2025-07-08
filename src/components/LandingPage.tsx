@@ -206,16 +206,13 @@ const LandingPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-white">
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Transform Your Clinical Performance?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8">
-              Join thousands of healthcare professionals already using Clinical KPI
-            </p>
+              Ready to bring structure to clinician leadership?
+            </h2>           
             <button
               onClick={() => handleAuthClick('signup')}
-              className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 inline-flex items-center"
+              className="bg-white mt-4 text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 inline-flex items-center"
             >
-              Start Your Free Trial
+              Start Free Trial - sign up today
               <ArrowRight className="w-5 h-5 ml-2" />
             </button>
           </div>
