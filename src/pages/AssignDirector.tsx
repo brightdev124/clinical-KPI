@@ -13,7 +13,8 @@ const AssignDirector: React.FC = () => {
     loading,
     error,
     refreshProfiles,
-    refreshAssignments
+    refreshAssignments,
+    assignments
   } = useData();
   const { user } = useAuth();
 
@@ -79,6 +80,13 @@ const AssignDirector: React.FC = () => {
     refreshAssignments();
   }, []);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Directors:', directors);
+    console.log('Unassigned clinicians:', unassignedClinicians);
+    console.log('Assignments:', assignments);
+  }, [directors, unassignedClinicians, assignments]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -128,8 +136,8 @@ const AssignDirector: React.FC = () => {
 
         {/* Directors Overview */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Directors Overview</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Assignment Overview</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {directors.length}
@@ -138,9 +146,15 @@ const AssignDirector: React.FC = () => {
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
+                {directors.filter(director => getAssignedClinicians(director.id).length > 0).length}
+              </div>
+              <div className="text-sm text-green-700">Directors with Assignments</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
                 {directors.reduce((sum, director) => sum + getAssignedClinicians(director.id).length, 0)}
               </div>
-              <div className="text-sm text-green-700">Assigned Clinicians</div>
+              <div className="text-sm text-purple-700">Total Assignments</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
@@ -154,7 +168,8 @@ const AssignDirector: React.FC = () => {
         {/* Directors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {directors.map((director) => {
-            const assignedCount = getAssignedClinicians(director.id).length;
+            const assignedClinicians = getAssignedClinicians(director.id);
+            const assignedCount = assignedClinicians.length;
             
             return (
               <div key={director.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200">
@@ -166,7 +181,13 @@ const AssignDirector: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{assignedCount} clinicians</span>
+                    <span className={`text-sm px-2 py-1 rounded-full ${
+                      assignedCount > 0 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {assignedCount} clinicians
+                    </span>
                   </div>
                 </div>
                 
@@ -187,6 +208,39 @@ const AssignDirector: React.FC = () => {
                       Since {new Date(director.created_at).toLocaleDateString()}
                     </span>
                   </div>
+
+                  {/* Assigned Clinicians List */}
+                  {assignedCount > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Clinicians:</h4>
+                      <div className="space-y-2">
+                        {assignedClinicians.slice(0, 3).map((clinician) => (
+                          <div key={clinician.id} className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-medium">
+                                {clinician.name.split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <span className="text-sm text-gray-600 truncate">{clinician.name}</span>
+                          </div>
+                        ))}
+                        {assignedCount > 3 && (
+                          <div className="text-xs text-gray-500 ml-8">
+                            +{assignedCount - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {assignedCount === 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <div className="flex items-center space-x-2 text-gray-500">
+                        <User className="w-4 h-4" />
+                        <span className="text-sm">No clinicians assigned</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
@@ -194,13 +248,18 @@ const AssignDirector: React.FC = () => {
                     <button
                       onClick={() => handleAssignClick(director.id)}
                       className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center"
+                      disabled={unassignedClinicians.length === 0}
                     >
                       <UserPlus className="w-4 h-4 mr-1" />
                       Assign
                     </button>
                     <button
                       onClick={() => handleUnassignClick(director.id)}
-                      className="flex-1 bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors flex items-center justify-center"
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
+                        assignedCount === 0
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-50 text-red-600 hover:bg-red-100'
+                      }`}
                       disabled={assignedCount === 0}
                     >
                       <UserMinus className="w-4 h-4 mr-1" />
@@ -212,6 +271,15 @@ const AssignDirector: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Empty State */}
+        {directors.length === 0 && (
+          <div className="text-center py-12">
+            <User className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Directors Found</h3>
+            <p className="text-gray-600">There are no directors in the system yet.</p>
+          </div>
+        )}
       </div>
 
       {/* Right Sidebar */}

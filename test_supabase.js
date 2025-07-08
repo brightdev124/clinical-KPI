@@ -36,6 +36,18 @@ async function testConnection() {
     if (assignError) {
       console.error('Assign table error:', assignError);
       console.log('This might mean the assign table does not exist yet.');
+      
+      // Try to create a simple assignment to test
+      console.log('\n2.1 Testing assignment creation...');
+      const { error: insertError } = await supabase
+        .from('assign')
+        .insert({ clinician: 1, director: 1 });
+      
+      if (insertError) {
+        console.error('Insert error:', insertError);
+      } else {
+        console.log('Assignment created successfully!');
+      }
     } else {
       console.log('Assignments found:', assignments?.length || 0);
       if (assignments && assignments.length > 0) {
