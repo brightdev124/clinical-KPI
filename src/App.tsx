@@ -29,14 +29,13 @@ const AppContent: React.FC = () => {
     return <LandingPage />;
   }
 
-  // Special handling for clinicians - redirect to their profile
+  // Special handling for clinicians - only show Dashboard
   if (user?.role === 'clinician') {
     return (
       <Routes>
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<ClinicianProfile />} />
-          <Route path="clinician/:id" element={<ClinicianProfile />} />
-          <Route path="*" element={<ClinicianProfile />} />
+          <Route index element={<Dashboard />} />
+          <Route path="*" element={<Dashboard />} />
         </Route>
       </Routes>
     );
@@ -52,7 +51,7 @@ const AppContent: React.FC = () => {
           </RoleBasedRoute>
         } />
         <Route path="clinicians" element={
-          <RoleBasedRoute allowedRoles={['clinical_director']}>
+          <RoleBasedRoute allowedRoles={['director']}>
             <ClinicianManagement />
           </RoleBasedRoute>
         } />
@@ -63,12 +62,12 @@ const AppContent: React.FC = () => {
         } />
         <Route path="clinician/:id" element={<ClinicianProfile />} />
         <Route path="review/:clinicianId" element={
-          <RoleBasedRoute allowedRoles={['clinical_director']}>
+          <RoleBasedRoute allowedRoles={['director']}>
             <MonthlyReview />
           </RoleBasedRoute>
         } />
         <Route path="analytics" element={
-          <RoleBasedRoute allowedRoles={['clinical_director']}>
+          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
             <PerformanceAnalytics />
           </RoleBasedRoute>
         } />

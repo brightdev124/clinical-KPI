@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter } from 'lucide-react';
+import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserService, { User } from '../services/userService';
 
@@ -8,7 +8,7 @@ import UserService, { User } from '../services/userService';
 interface EditUserData {
   name: string;
   username: string;
-  role: 'super-admin' | 'director' | 'clinician';
+  role: 'director' | 'clinician';
   accept: boolean;
   password?: string;
 }
@@ -79,6 +79,12 @@ const PermissionManagement: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
+    // Prevent editing super-admin users
+    if (user.role === 'super-admin') {
+      setError('Super Admin users cannot be edited');
+      return;
+    }
+    
     setEditingUser(user);
     setEditData({
       name: user.name,
@@ -94,6 +100,13 @@ const PermissionManagement: React.FC = () => {
   const handleSaveEdit = async () => {
     try {
       if (!editingUser) return;
+
+      // Double-check to prevent editing super-admin users
+      if (editingUser.role === 'super-admin') {
+        setError('Super Admin users cannot be edited');
+        setShowEditModal(false);
+        return;
+      }
 
       const updateData: any = {
         name: editData.name,
@@ -134,6 +147,13 @@ const PermissionManagement: React.FC = () => {
         return;
       }
 
+      // Prevent deleting superadmin users
+      if (userToDelete.role === 'super-admin') {
+        setError('Super Admin users cannot be deleted');
+        setShowDeleteModal(false);
+        return;
+      }
+
       await UserService.deleteUser(userToDelete.id);
 
       setSuccess('User deleted successfully');
@@ -148,6 +168,12 @@ const PermissionManagement: React.FC = () => {
 
   const toggleUserAcceptance = async (user: User) => {
     try {
+      // Prevent changing super-admin status
+      if (user.role === 'super-admin') {
+        setError('Super Admin status cannot be changed');
+        return;
+      }
+      
       await UserService.toggleUserAcceptance(user.id, !user.accept);
       setSuccess(`User ${!user.accept ? 'approved' : 'rejected'} successfully`);
       fetchUsers();
@@ -172,6 +198,15 @@ const PermissionManagement: React.FC = () => {
 
   const getStatusColor = (accept: boolean) => {
     return accept ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  };
+  
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'super-admin': return Shield;
+      case 'director': return UsersIcon;
+      case 'clinician': return UserIcon;
+      default: return UserIcon;
+    }
   };
 
   if (loading) {
@@ -321,13 +356,15 @@ const PermissionManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                          {user.role}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                          {React.createElement(getRoleIcon(user.role), { className: "w-3 h-3 mr-1" })}
+                          {user.role.replace('-', ' ').toUpperCase()}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.accept)}`}>
-                          {user.accept ? 'Approved' : 'Pending'}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                          {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                          {user.accept ? 'APPROVED' : 'PENDING'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -338,29 +375,43 @@ const PermissionManagement: React.FC = () => {
                           <button
                             onClick={() => toggleUserAcceptance(user)}
                             className={`p-2 rounded-lg transition-colors ${
-                              user.accept
-                                ? 'text-red-600 hover:bg-red-50'
-                                : 'text-green-600 hover:bg-green-50'
+                              user.role === 'super-admin'
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : user.accept
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-green-600 hover:bg-green-50'
                             }`}
-                            title={user.accept ? 'Reject User' : 'Approve User'}
+                            title={
+                              user.role === 'super-admin'
+                                ? 'Super Admin status cannot be changed'
+                                : user.accept ? 'Reject User' : 'Approve User'
+                            }
+                            disabled={user.role === 'super-admin'}
                           >
                             {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={() => handleEdit(user)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit User"
+                            className={`p-2 rounded-lg transition-colors ${
+                              user.role === 'super-admin' 
+                                ? 'text-gray-400 cursor-not-allowed' 
+                                : 'text-blue-600 hover:bg-blue-50'
+                            }`}
+                            title={user.role === 'super-admin' ? 'Super Admin users cannot be edited' : 'Edit User'}
+                            disabled={user.role === 'super-admin'}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleDelete(user)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete User"
-                            disabled={user.id === currentUser?.id}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {user.role !== 'super-admin' && (
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete User"
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -422,10 +473,9 @@ const PermissionManagement: React.FC = () => {
                     </label>
                     <select
                       value={editData.role}
-                      onChange={(e) => setEditData({ ...editData, role: e.target.value as 'super-admin' | 'director' | 'clinician' })}
+                      onChange={(e) => setEditData({ ...editData, role: e.target.value as 'director' | 'clinician' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="super-admin">Super Admin</option>
                       <option value="director">Director</option>
                       <option value="clinician">Clinician</option>
                     </select>

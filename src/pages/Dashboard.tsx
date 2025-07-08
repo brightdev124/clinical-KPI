@@ -27,9 +27,9 @@ const Dashboard: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   // Filter clinicians based on user role
-  const userClinicians = user?.role === 'admin' 
+  const userClinicians = user?.role === 'super-admin' 
     ? clinicians 
-    : user?.role === 'clinical_director'
+    : user?.role === 'director'
     ? clinicians.filter(c => user?.assignedClinicians?.includes(c.id))
     : clinicians.filter(c => c.id === user?.id);
 

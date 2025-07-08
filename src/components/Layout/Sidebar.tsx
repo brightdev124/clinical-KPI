@@ -23,7 +23,7 @@ const Sidebar: React.FC = () => {
   const getNavigation = () => {
     if (user?.role === 'clinician') {
       return [
-        { name: 'My Profile', href: `/clinician/${user.id}`, icon: Users, roles: ['clinician'] },
+        { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['clinician'] },
       ];
     }
     
@@ -33,7 +33,6 @@ const Sidebar: React.FC = () => {
       { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
-      { name: 'User Management', href: '/users', icon: Settings, roles: ['super-admin'] },
       { name: 'Permissions', href: '/permissions', icon: Shield, roles: ['super-admin'] },
     ];
   };

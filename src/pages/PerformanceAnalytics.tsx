@@ -11,7 +11,7 @@ const PerformanceAnalytics: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
 
   // Filter clinicians based on user role
-  const userClinicians = user?.role === 'admin' 
+  const userClinicians = user?.role === 'super-admin' 
     ? clinicians 
     : clinicians.filter(c => user?.assignedClinicians?.includes(c.id));
 
