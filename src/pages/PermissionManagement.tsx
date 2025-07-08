@@ -218,8 +218,8 @@ const PermissionManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
+    <div>
+      <div className="mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
