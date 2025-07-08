@@ -66,11 +66,9 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
+              <img src="/assets/logo_simple.png" alt="Logo" className="h-10 flex-shrink-0" />
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Clinical KPI
+                KPI Brain
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -100,9 +98,9 @@ const LandingPage: React.FC = () => {
               Transform Your Clinical Performance Management
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Smart KPI Tracking for
+              Built for clinicians who manage clinicians
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
-                Healthcare Excellence
+                no experience required
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
@@ -114,15 +112,8 @@ const LandingPage: React.FC = () => {
                 onClick={() => handleAuthClick('signup')}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center"
               >
-                Start Free Trial
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </button>
-              <button
-                onClick={() => handleAuthClick('login')}
-                className="bg-white text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200"
-              >
-                View Demo
-              </button>
+                Start Free Trial - First 6 months free
+              </button>              
             </div>
           </div>
         </div>
@@ -236,10 +227,8 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">Clinical KPI</span>
+              <img src="/assets/logo_simple.png" alt="Clinical KPI Logo" className="h-8 flex-shrink-0" />
+              <span className="text-xl font-bold">KPI Brain</span>
             </div>
             <div className="text-gray-400 text-sm">
               © 2024 Clinical KPI. All rights reserved.

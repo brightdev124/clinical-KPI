@@ -7,7 +7,6 @@ import {
   Target, 
   TrendingUp,
   Settings,
-  Activity,
   Shield,
   ChevronLeft,
   ChevronRight,
@@ -67,12 +66,12 @@ const Sidebar: React.FC = () => {
           'flex items-center transition-all duration-300',
           isCollapsed && !isMobile ? 'space-x-0' : 'space-x-2'
         )}>
-          <Activity className="w-8 h-8 text-blue-600 flex-shrink-0" />
+          <img src="/assets/logo_simple.png" alt="Logo" className="h-8 w-8 flex-shrink-0" />
           <span className={clsx(
             'text-xl font-bold text-gray-900 transition-all duration-300',
             isCollapsed && !isMobile ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
           )}>
-            Clinical KPI
+            KPI Brain
           </span>
         </div>
       </div>
