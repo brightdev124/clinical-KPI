@@ -21,10 +21,8 @@ const ClinicianManagement: React.FC = () => {
   const positions = ['Staff Physician', 'Nurse Practitioner', 'Physician Assistant', 'Resident', 'Fellow'];
   const departments = ['Internal Medicine', 'Primary Care', 'Emergency Medicine', 'Pediatrics', 'Surgery'];
 
-  // Filter clinicians based on user role
-  const userClinicians = user?.role === 'admin' 
-    ? clinicians 
-    : clinicians.filter(c => user?.assignedClinicians?.includes(c.id));
+  // Filter clinicians based on user role - only directors can access this page
+  const userClinicians = clinicians.filter(c => user?.assignedClinicians?.includes(c.id));
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
@@ -77,7 +75,7 @@ const ClinicianManagement: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Clinician Management</h2>
           <p className="text-gray-600 mt-1">Manage your clinical team members and track their performance</p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'clinical_director') && (
+        {user?.role === 'clinical_director' && (
           <button
             onClick={() => setShowForm(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -140,7 +138,7 @@ const ClinicianManagement: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {(user?.role === 'admin' || user?.role === 'clinical_director') && (
+                  {user?.role === 'clinical_director' && (
                     <>
                       <button
                         onClick={() => handleEdit(clinician)}
@@ -148,14 +146,6 @@ const ClinicianManagement: React.FC = () => {
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      {user?.role === 'admin' && (
-                        <button
-                          onClick={() => handleDelete(clinician.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </>
                   )}
                 </div>
@@ -198,7 +188,7 @@ const ClinicianManagement: React.FC = () => {
                   <ChevronRight className="w-4 h-4" />
                 </Link>
                 
-                {(user?.role === 'admin' || user?.role === 'clinical_director') && (
+                {user?.role === 'clinical_director' && (
                   <div className="flex space-x-2">
                     <Link
                       to={`/review/${clinician.id}`}

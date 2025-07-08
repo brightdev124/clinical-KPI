@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
           </RoleBasedRoute>
         } />
         <Route path="clinicians" element={
-          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+          <RoleBasedRoute allowedRoles={['clinical_director']}>
             <ClinicianManagement />
           </RoleBasedRoute>
         } />
@@ -63,12 +63,12 @@ const AppContent: React.FC = () => {
         } />
         <Route path="clinician/:id" element={<ClinicianProfile />} />
         <Route path="review/:clinicianId" element={
-          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+          <RoleBasedRoute allowedRoles={['clinical_director']}>
             <MonthlyReview />
           </RoleBasedRoute>
         } />
         <Route path="analytics" element={
-          <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
+          <RoleBasedRoute allowedRoles={['clinical_director']}>
             <PerformanceAnalytics />
           </RoleBasedRoute>
         } />

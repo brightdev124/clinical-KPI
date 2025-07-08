@@ -118,19 +118,19 @@ const LandingPage: React.FC = () => {
   const testimonials = [
     {
       name: 'Dr. Sarah Johnson',
-      role: 'Clinical Director',
+      role: 'Clinical',
       content: 'This platform transformed how we track and improve clinical performance. The insights are invaluable.',
       rating: 5
     },
     {
       name: 'Michael Chen',
-      role: 'Healthcare Administrator',
+      role: 'Clinical',
       content: 'Finally, a solution that makes KPI tracking simple and actionable. Our team loves the intuitive interface.',
       rating: 5
     },
     {
       name: 'Dr. Emily Rodriguez',
-      role: 'Chief Medical Officer',
+      role: 'Clinical',
       content: 'The weighted scoring system and trend analysis help us identify improvement opportunities quickly.',
       rating: 5
     }
@@ -451,21 +451,7 @@ const LandingPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Call-to-action within features */}
-          <div className="mt-16 text-center">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-              <h3 className="text-2xl font-bold mb-4">Ready to transform your clinical management?</h3>
-              <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-                Join healthcare leaders who are building accountability and improving patient outcomes
-              </p>
-              <button
-                onClick={() => handleAuthClick('signup')}
-                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
-              >
-                Start Your Free Trial
-              </button>
-            </div>
-          </div>
+         
         </div>
       </section>
 

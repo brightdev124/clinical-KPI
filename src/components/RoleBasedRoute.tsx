@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 
 interface RoleBasedRouteProps {
   children: React.ReactNode;
-  allowedRoles: ('super-admin' | 'director' | 'clinician')[];
+  allowedRoles: ('super-admin' | 'director' | 'clinical_director' | 'clinician')[];
   redirectTo?: string;
 }
 
