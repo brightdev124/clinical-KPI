@@ -36,6 +36,7 @@ interface ReviewEntry {
 
 interface DataContextType {
   kpis: KPI[];
+  removedKPIs: KPI[];
   clinicians: Clinician[];
   reviews: ReviewEntry[];
   loading: boolean;
@@ -43,7 +44,10 @@ interface DataContextType {
   updateKPI: (kpi: KPI) => Promise<void>;
   addKPI: (kpi: Omit<KPI, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   deleteKPI: (id: string) => Promise<void>;
+  restoreKPI: (id: string) => Promise<void>;
+  permanentlyDeleteKPI: (id: string) => Promise<void>;
   refreshKPIs: () => Promise<void>;
+  refreshRemovedKPIs: () => Promise<void>;
   updateClinician: (clinician: Clinician) => void;
   addClinician: (clinician: Omit<Clinician, 'id'>) => void;
   deleteClinician: (id: string) => void;
@@ -219,6 +223,7 @@ const mockReviews = generateMockReviews();
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [kpis, setKPIs] = useState<KPI[]>([]);
+  const [removedKPIs, setRemovedKPIs] = useState<KPI[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>(mockClinicians);
   const [reviews, setReviews] = useState<ReviewEntry[]>(mockReviews);
   const [loading, setLoading] = useState(false);
@@ -227,6 +232,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load KPIs from Supabase on component mount
   useEffect(() => {
     refreshKPIs();
+    refreshRemovedKPIs();
   }, []);
 
   const refreshKPIs = async () => {
@@ -241,6 +247,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setKPIs(mockKPIs);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshRemovedKPIs = async () => {
+    try {
+      setError(null);
+      const fetchedRemovedKPIs = await KPIService.getRemovedKPIs();
+      setRemovedKPIs(fetchedRemovedKPIs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load removed KPIs');
+      console.error('Error fetching removed KPIs:', err);
     }
   };
 
@@ -287,10 +304,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
-      await KPIService.deleteKPI(id);
-      setKPIs(prev => prev.filter(k => k.id !== id));
+      await KPIService.deleteKPI(id); // This is soft delete
+      // Move KPI from active to removed
+      const kpiToRemove = kpis.find(k => k.id === id);
+      if (kpiToRemove) {
+        setKPIs(prev => prev.filter(k => k.id !== id));
+        setRemovedKPIs(prev => [...prev, { ...kpiToRemove, is_removed: true }]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete KPI');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const restoreKPI = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const restoredKPI = await KPIService.restoreKPI(id);
+      // Move KPI from removed to active
+      setRemovedKPIs(prev => prev.filter(k => k.id !== id));
+      setKPIs(prev => [...prev, restoredKPI]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore KPI');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const permanentlyDeleteKPI = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await KPIService.permanentlyDeleteKPI(id);
+      // Remove KPI completely from removed list
+      setRemovedKPIs(prev => prev.filter(k => k.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to permanently delete KPI');
       throw err;
     } finally {
       setLoading(false);
@@ -345,6 +398,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{
       kpis,
+      removedKPIs,
       clinicians,
       reviews,
       loading,
@@ -352,7 +406,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateKPI,
       addKPI,
       deleteKPI,
+      restoreKPI,
+      permanentlyDeleteKPI,
       refreshKPIs,
+      refreshRemovedKPIs,
       updateClinician,
       addClinician,
       deleteClinician,
