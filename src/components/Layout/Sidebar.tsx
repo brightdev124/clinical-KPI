@@ -30,7 +30,7 @@ const Sidebar: React.FC = () => {
     return [
       { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['super-admin', 'director'] },
       { name: 'KPI Management', href: '/kpis', icon: Target, roles: ['super-admin'] },
-      { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['super-admin', 'director'] },
+      { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
       { name: 'User Management', href: '/users', icon: Settings, roles: ['super-admin'] },
