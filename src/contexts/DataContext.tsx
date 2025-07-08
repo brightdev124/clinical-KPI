@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { KPI, KPIService } from '../services/kpiService';
+import { supabase } from '../lib/supabase';
 
 interface KPIContextType {
   id: string;
@@ -34,11 +35,30 @@ interface ReviewEntry {
   files?: string[];
 }
 
+interface Assignment {
+  id: string;
+  clinician: number;
+  director: number;
+  created_at: string;
+}
+
+interface Profile {
+  id: number;
+  name: string;
+  username: string;
+  role: 'super-admin' | 'director' | 'clinician';
+  accept: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface DataContextType {
   kpis: KPI[];
   removedKPIs: KPI[];
   clinicians: Clinician[];
   reviews: ReviewEntry[];
+  assignments: Assignment[];
+  profiles: Profile[];
   loading: boolean;
   error: string | null;
   updateKPI: (kpi: KPI) => Promise<void>;
@@ -54,6 +74,14 @@ interface DataContextType {
   submitReview: (review: Omit<ReviewEntry, 'id'>) => void;
   getClinicianReviews: (clinicianId: string) => ReviewEntry[];
   getClinicianScore: (clinicianId: string, month: string, year: number) => number;
+  // Assignment functions
+  assignClinician: (clinicianId: number, directorId: number) => Promise<void>;
+  unassignClinician: (clinicianId: number, directorId: number) => Promise<void>;
+  getAssignedClinicians: (directorId: number) => Profile[];
+  getUnassignedClinicians: () => Profile[];
+  getDirectors: () => Profile[];
+  refreshProfiles: () => Promise<void>;
+  refreshAssignments: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -221,11 +249,106 @@ const generateMockReviews = (): ReviewEntry[] => {
 
 const mockReviews = generateMockReviews();
 
+// Services for database operations
+const ProfileService = {
+  async getAllProfiles(): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('accept', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching profiles:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  async getDirectors(): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'director')
+      .eq('accept', true)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching directors:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  async getClinicians(): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'clinician')
+      .eq('accept', true)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching clinicians:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+};
+
+const AssignmentService = {
+  async getAllAssignments(): Promise<Assignment[]> {
+    const { data, error } = await supabase
+      .from('assign')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching assignments:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  async assignClinician(clinicianId: number, directorId: number): Promise<void> {
+    const { error } = await supabase
+      .from('assign')
+      .insert({
+        clinician: clinicianId,
+        director: directorId
+      });
+
+    if (error) {
+      console.error('Error assigning clinician:', error);
+      throw error;
+    }
+  },
+
+  async unassignClinician(clinicianId: number, directorId: number): Promise<void> {
+    const { error } = await supabase
+      .from('assign')
+      .delete()
+      .eq('clinician', clinicianId)
+      .eq('director', directorId);
+
+    if (error) {
+      console.error('Error unassigning clinician:', error);
+      throw error;
+    }
+  }
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [kpis, setKPIs] = useState<KPI[]>([]);
   const [removedKPIs, setRemovedKPIs] = useState<KPI[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>(mockClinicians);
   const [reviews, setReviews] = useState<ReviewEntry[]>(mockReviews);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -233,6 +356,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     refreshKPIs();
     refreshRemovedKPIs();
+    refreshProfiles();
+    refreshAssignments();
   }, []);
 
   const refreshKPIs = async () => {
@@ -395,12 +520,98 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
   };
 
+  // Assignment functions
+  const assignClinician = async (clinicianId: number, directorId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await AssignmentService.assignClinician(clinicianId, directorId);
+      
+      // Refresh assignments after successful assignment
+      await refreshAssignments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign clinician');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const unassignClinician = async (clinicianId: number, directorId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await AssignmentService.unassignClinician(clinicianId, directorId);
+      
+      // Refresh assignments after successful unassignment
+      await refreshAssignments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unassign clinician');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAssignedClinicians = (directorId: number): Profile[] => {
+    const assignedClinicianIds = assignments
+      .filter(a => a.director === directorId)
+      .map(a => a.clinician);
+    
+    return profiles.filter(p => 
+      assignedClinicianIds.includes(p.id) && p.role === 'clinician'
+    );
+  };
+
+  const getUnassignedClinicians = (): Profile[] => {
+    const assignedClinicianIds = assignments.map(a => a.clinician);
+    return profiles.filter(p => 
+      !assignedClinicianIds.includes(p.id) && p.role === 'clinician'
+    );
+  };
+
+  const getDirectors = (): Profile[] => {
+    return profiles.filter(p => p.role === 'director');
+  };
+
+  const refreshProfiles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedProfiles = await ProfileService.getAllProfiles();
+      setProfiles(fetchedProfiles);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh profiles');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshAssignments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedAssignments = await AssignmentService.getAllAssignments();
+      setAssignments(fetchedAssignments);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh assignments');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       kpis,
       removedKPIs,
       clinicians,
       reviews,
+      assignments,
+      profiles,
       loading,
       error,
       updateKPI,
@@ -416,6 +627,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       submitReview,
       getClinicianReviews,
       getClinicianScore,
+      assignClinician,
+      unassignClinician,
+      getAssignedClinicians,
+      getUnassignedClinicians,
+      getDirectors,
+      refreshProfiles,
+      refreshAssignments,
     }}>
       {children}
     </DataContext.Provider>

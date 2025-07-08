@@ -9,6 +9,7 @@ import PendingApproval from './components/PendingApproval';
 import Dashboard from './pages/Dashboard';
 import KPIManagement from './pages/KPIManagement';
 import ClinicianManagement from './pages/ClinicianManagement';
+import AssignDirector from './pages/AssignDirector';
 import MonthlyReview from './pages/MonthlyReview';
 import PerformanceAnalytics from './pages/PerformanceAnalytics';
 import UserManagement from './pages/UserManagement';
@@ -53,6 +54,11 @@ const AppContent: React.FC = () => {
         <Route path="clinicians" element={
           <RoleBasedRoute allowedRoles={['super-admin', 'director']}>
             <ClinicianManagement />
+          </RoleBasedRoute>
+        } />
+        <Route path="assign-director" element={
+          <RoleBasedRoute allowedRoles={['super-admin']}>
+            <AssignDirector />
           </RoleBasedRoute>
         } />
         <Route path="clinician/:id" element={<ClinicianProfile />} />
