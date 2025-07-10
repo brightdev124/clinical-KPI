@@ -300,7 +300,7 @@ const PositionManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -335,8 +335,8 @@ const PositionManagement: React.FC = () => {
                         {position.role.replace('-', ' ').toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                      <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => handleEditClick(position)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
