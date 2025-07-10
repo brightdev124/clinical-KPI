@@ -476,10 +476,12 @@ const PermissionManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.position_name ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              <Briefcase className="w-3 h-3 mr-1" />
-                              {user.position_name}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <Briefcase className="w-3 h-3 mr-1" />
+                                {user.position_name}
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-gray-400">Not assigned</span>
                           )}
@@ -598,9 +600,6 @@ const PermissionManagement: React.FC = () => {
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 <Briefcase className="w-3 h-3 mr-1" />
                                 {user.position_name}
-                              </span>
-                              <span className="text-xs text-gray-400 mt-1">
-                                Position ID: {user.position_id}
                               </span>
                             </div>
                           ) : (
@@ -721,9 +720,6 @@ const PermissionManagement: React.FC = () => {
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 <Briefcase className="w-3 h-3 mr-1" />
                                 {user.position_name}
-                              </span>
-                              <span className="text-xs text-gray-400 mt-1">
-                                Position ID: {user.position_id}
                               </span>
                             </div>
                           ) : (
