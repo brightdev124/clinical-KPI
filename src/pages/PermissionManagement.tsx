@@ -50,13 +50,12 @@ const PermissionManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [editData, setEditData] = useState<EditUserData>({
     name: '',
-    email: '',
+    username: '',
     role: 'clinician',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState<'all' | 'super-admin' | 'director' | 'clinician'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending'>('all');
   const [activeTab, setActiveTab] = useState<'super-admin' | 'director' | 'clinician'>('super-admin');
 
@@ -72,6 +71,10 @@ const PermissionManagement: React.FC = () => {
         UserService.getAllPositions(),
         UserService.getAllClinicianTypes()
       ]);
+      console.log('Fetched users:', userData);
+      console.log('Fetched positions:', positionsData);
+      console.log('Fetched clinician types:', clinicianTypesData);
+      
       setUsers(userData);
       setPositions(positionsData);
       setClinicianTypes(clinicianTypesData);
@@ -93,11 +96,6 @@ const PermissionManagement: React.FC = () => {
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.username.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    // Apply role filter
-    if (filterRole !== 'all') {
-      filtered = filtered.filter(user => user.role === filterRole);
     }
 
     // Apply status filter
@@ -123,11 +121,12 @@ const PermissionManagement: React.FC = () => {
     }
 
     setFilteredUsers(filtered);
-  }, [users, searchTerm, filterRole, filterStatus, activeTab]);
+  }, [users, searchTerm, filterStatus, activeTab]);
 
   const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setEditData({
+    console.log('Editing user:', user);
+    
+    const editDataObj = {
       name: user.name,
       username: user.username,
       role: user.role,
@@ -139,7 +138,12 @@ const PermissionManagement: React.FC = () => {
       clinician_info: user.clinician_info ? {
         type_id: user.clinician_info.type_id
       } : undefined
-    });
+    };
+    
+    console.log('Setting edit data:', editDataObj);
+    
+    setEditingUser(user);
+    setEditData(editDataObj);
     setShowEditModal(true);
     setError('');
     setSuccess('');
@@ -150,39 +154,50 @@ const PermissionManagement: React.FC = () => {
       if (!editingUser) return;
 
       // Validate role-specific requirements
-      if (editData.role === 'director') {
-        if (!editData.position_id) {
-          setError('Directors must have a position assigned');
+      if (editData.position_id) {
+        // If a position is selected, verify it exists
+        const selectedPosition = positions.find(p => p.id === editData.position_id);
+        if (!selectedPosition) {
+          setError('Selected position does not exist');
           return;
         }
         
-        // Verify the position exists and has director role
-        const selectedPosition = positions.find(p => p.id === editData.position_id);
-        if (!selectedPosition || selectedPosition.role !== 'director') {
-          setError('Selected position must have director role');
-          return;
+        // Make sure the position role matches the user role
+        if (selectedPosition.role !== editData.role) {
+          // Auto-correct: update the role to match the position
+          console.log(`Auto-correcting role from ${editData.role} to ${selectedPosition.role}`);
+          editData.role = selectedPosition.role as 'super-admin' | 'director' | 'clinician';
         }
-      } else if (editData.role === 'clinician') {
-        if (!editData.position_id) {
-          setError('Clinicians must have a position assigned');
-          return;
-        }
-        
-        // Verify the position exists and has clinician role
-        const selectedPosition = positions.find(p => p.id === editData.position_id);
-        if (!selectedPosition || selectedPosition.role !== 'clinician') {
-          setError('Selected position must have clinician role');
-          return;
-        }
+      } else {
+        // For directors and clinicians, we'll find a position in the update logic
+        console.log(`No position selected for ${editData.role} role`);
       }
 
+      // Create the update data object
       const updateData: any = {
         name: editData.name,
         username: editData.username,
-        role: editData.role,
         accept: editData.accept,
-        position_id: editData.position_id
+        role: editData.role  // Explicitly set the role
       };
+      
+      // Only include position_id if it's provided
+      if (editData.position_id) {
+        updateData.position_id = editData.position_id;
+      }
+      
+      // For any role without position, we need to find a matching position
+      if (!editData.position_id) {
+        // Find a position matching the selected role
+        const matchingPosition = positions.find(p => p.role === editData.role);
+        if (matchingPosition) {
+          console.log(`Found matching position for ${editData.role}: ${matchingPosition.position_title}`);
+          updateData.position_id = matchingPosition.id;
+        } else {
+          setError(`No position found for ${editData.role} role. Please create one first.`);
+          return;
+        }
+      }
 
       // Only include password if it's provided
       if (editData.password && editData.password.trim() !== '') {
@@ -190,18 +205,42 @@ const PermissionManagement: React.FC = () => {
       }
 
       // Add role-specific information
-      if (editData.role === 'director' && editData.director_info) {
-        updateData.director_info = editData.director_info;
-      } else if (editData.role === 'clinician' && editData.clinician_info) {
-        updateData.clinician_info = editData.clinician_info;
+      if (editData.role === 'director') {
+        if (editData.director_info) {
+          updateData.director_info = editData.director_info;
+        } else {
+          // Create default director_info if not provided
+          updateData.director_info = { direction: 'General' };
+        }
+      } else if (editData.role === 'clinician') {
+        if (editData.clinician_info && editData.clinician_info.type_id) {
+          updateData.clinician_info = editData.clinician_info;
+        } else {
+          // For clinicians, we need a type_id
+          const firstType = clinicianTypes[0];
+          if (firstType) {
+            updateData.clinician_info = { type_id: firstType.id };
+          } else {
+            setError('No clinician types found. Please create one first.');
+            return;
+          }
+        }
       }
 
-      await UserService.updateUser(editingUser.id, updateData);
-
-      setSuccess('User updated successfully');
-      setShowEditModal(false);
-      setEditingUser(null);
-      fetchData();
+      console.log('Updating user with data:', updateData);
+      
+      try {
+        const updatedUser = await UserService.updateUser(editingUser.id, updateData);
+        console.log('User updated successfully:', updatedUser);
+        
+        setSuccess('User updated successfully');
+        setShowEditModal(false);
+        setEditingUser(null);
+        fetchData();
+      } catch (updateError: any) {
+        console.error('Error in updateUser:', updateError);
+        setError(updateError.message || 'Failed to update user');
+      }
     } catch (error: any) {
       console.error('Error updating user:', error);
       setError(error.message || 'Failed to update user');
@@ -393,22 +432,9 @@ const PermissionManagement: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <div className="flex items-center space-x-2">
                 <Filter className="text-gray-400 w-4 h-4" />
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Roles</option>
-                  <option value="super-admin">Super Admin</option>
-                  <option value="director">Director</option>
-                  <option value="clinician">Clinician</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center space-x-2">
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -708,7 +734,7 @@ const PermissionManagement: React.FC = () => {
                           {user.clinician_info ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
                               <UserIcon className="w-3 h-3 mr-1" />
-                              {user.clinician_info.clinician}
+                              {user.clinician_info.type_title || 'Unknown Type'}
                             </span>
                           ) : (
                             <span className="text-gray-400">Not assigned</span>
@@ -821,44 +847,61 @@ const PermissionManagement: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={editData.role}
+                      onChange={(e) => {
+                        // When role changes, clear the position if it doesn't match
+                        const newRole = e.target.value as 'super-admin' | 'director' | 'clinician';
+                        const currentPosition = positions.find(p => p.id === editData.position_id);
+                        
+                        setEditData({
+                          ...editData,
+                          role: newRole,
+                          // Clear position if it doesn't match the new role
+                          position_id: currentPosition && currentPosition.role === newRole 
+                            ? editData.position_id 
+                            : undefined
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="super-admin">Super Admin</option>
+                      <option value="director">Director</option>
+                      <option value="clinician">Clinician</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Position
                     </label>
                     <select
                       value={editData.position_id || ''}
                       onChange={(e) => {
-                        const selectedPosition = positions.find(p => p.id === e.target.value);
                         setEditData({ 
                           ...editData, 
-                          position_id: e.target.value || undefined,
-                          role: selectedPosition?.role as 'super-admin' | 'director' | 'clinician' || 'clinician'
+                          position_id: e.target.value || undefined
                         });
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select a position</option>
-                      {/* Show only positions matching the current tab */}
-                      {(activeTab === 'director' ? getPositionsByRole('director') : 
-                        activeTab === 'clinician' ? getPositionsByRole('clinician') : 
-                        positions).map(position => (
-                        <option key={position.id} value={position.id}>
-                          {position.position_title} ({position.role})
-                        </option>
-                      ))}
+                      {/* Filter positions by selected role */}
+                      {positions
+                        .filter(position => position.role === editData.role)
+                        .map(position => (
+                          <option key={position.id} value={position.id}>
+                            {position.position_title}
+                          </option>
+                        ))
+                      }
                     </select>
-                    {(activeTab === 'director' || activeTab === 'clinician') && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Only positions with "{activeTab}" role are shown
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Showing positions for {editData.role} role
+                    </p>
                   </div>
-
-                  {editData.position_id && (
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">
-                        Selected Role: <span className="font-medium">{editData.role}</span>
-                      </p>
-                    </div>
-                  )}
 
                   {/* Role-specific fields */}
                   {editData.role === 'director' && (
@@ -886,18 +929,32 @@ const PermissionManagement: React.FC = () => {
                       </label>
                       <select
                         value={editData.clinician_info?.type_id || ''}
-                        onChange={(e) => setEditData({ 
-                          ...editData, 
-                          clinician_info: { type_id: e.target.value } 
-                        })}
+                        onChange={(e) => {
+                          console.log('Selected clinician type:', e.target.value);
+                          console.log('Available types:', clinicianTypes);
+                          setEditData({ 
+                            ...editData, 
+                            clinician_info: { type_id: e.target.value } 
+                          });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="">Select a type</option>
-                        {clinicianTypes.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.title}
+                        {clinicianTypes.length > 0 ? (
+                          clinicianTypes.map(type => (
+                            <option key={type.id} value={type.id}>
+                              {type.title}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No clinician types available</option>
+                        )}
+                        {/* Add debugging info */}
+                        {editData.clinician_info?.type_id && !clinicianTypes.some(t => t.id === editData.clinician_info?.type_id) && (
+                          <option value={editData.clinician_info.type_id}>
+                            Current Type (ID: {editData.clinician_info.type_id})
                           </option>
-                        ))}
+                        )}
                       </select>
                     </div>
                   )}

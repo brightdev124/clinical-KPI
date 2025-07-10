@@ -269,13 +269,8 @@ export class UserService {
    * Create a new user with role-specific information
    */
   static async createUser(userData: CreateUserData): Promise<User> {
-    // Start a transaction
-    const { error: txnError } = await supabase.rpc('begin_transaction');
-    if (txnError) {
-      throw new Error(`Failed to start transaction: ${txnError.message}`);
-    }
-
     try {
+      console.log('Creating user with data:', userData);
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
@@ -333,17 +328,10 @@ export class UserService {
         }
       }
 
-      // Commit the transaction
-      const { error: commitError } = await supabase.rpc('commit_transaction');
-      if (commitError) {
-        throw new Error(`Failed to commit transaction: ${commitError.message}`);
-      }
-
       // Return the created user with complete information
       return await this.getUserById(profile.id) as User;
     } catch (error) {
-      // Rollback the transaction on error
-      await supabase.rpc('rollback_transaction');
+      console.error('Error creating user:', error);
       throw error;
     }
   }
@@ -352,13 +340,8 @@ export class UserService {
    * Update a user with role-specific information
    */
   static async updateUser(id: string, userData: UpdateUserData): Promise<User> {
-    // Start a transaction
-    const { error: txnError } = await supabase.rpc('begin_transaction');
-    if (txnError) {
-      throw new Error(`Failed to start transaction: ${txnError.message}`);
-    }
-
     try {
+      console.log('Updating user with data:', userData);
       // Get the current user to check role
       const currentUser = await this.getUserById(id);
       if (!currentUser) {
@@ -489,17 +472,10 @@ export class UserService {
         }
       }
 
-      // Commit the transaction
-      const { error: commitError } = await supabase.rpc('commit_transaction');
-      if (commitError) {
-        throw new Error(`Failed to commit transaction: ${commitError.message}`);
-      }
-
       // Return the updated user with complete information
       return await this.getUserById(id) as User;
     } catch (error) {
-      // Rollback the transaction on error
-      await supabase.rpc('rollback_transaction');
+      console.error('Error updating user:', error);
       throw error;
     }
   }
@@ -508,13 +484,8 @@ export class UserService {
    * Delete a user and their role-specific information
    */
   static async deleteUser(id: string): Promise<void> {
-    // Start a transaction
-    const { error: txnError } = await supabase.rpc('begin_transaction');
-    if (txnError) {
-      throw new Error(`Failed to start transaction: ${txnError.message}`);
-    }
-
     try {
+      console.log('Deleting user with ID:', id);
       // Get the current user to check role
       const currentUser = await this.getUserById(id);
       if (!currentUser) {
@@ -552,14 +523,8 @@ export class UserService {
         throw new Error(`Failed to delete user profile: ${profileError.message}`);
       }
 
-      // Commit the transaction
-      const { error: commitError } = await supabase.rpc('commit_transaction');
-      if (commitError) {
-        throw new Error(`Failed to commit transaction: ${commitError.message}`);
-      }
     } catch (error) {
-      // Rollback the transaction on error
-      await supabase.rpc('rollback_transaction');
+      console.error('Error deleting user:', error);
       throw error;
     }
   }
