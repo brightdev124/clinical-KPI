@@ -10,6 +10,7 @@ This document explains the role-based access control system implemented in the C
   - Dashboard
   - KPI Management
   - Clinicians Management
+  - Clinician Types Management
   - Analytics/Performance
   - User Management
 

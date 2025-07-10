@@ -15,6 +15,7 @@ import PerformanceAnalytics from './pages/PerformanceAnalytics';
 import UserManagement from './pages/UserManagement';
 import PermissionManagement from './pages/PermissionManagement';
 import ClinicianProfile from './pages/ClinicianProfile';
+import ClinicianTypesManagement from './pages/ClinicianTypesManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 
@@ -79,6 +80,11 @@ const AppContent: React.FC = () => {
         <Route path="permissions" element={
           <RoleBasedRoute allowedRoles={['super-admin']}>
             <PermissionManagement />
+          </RoleBasedRoute>
+        } />
+        <Route path="clinician-types" element={
+          <RoleBasedRoute allowedRoles={['super-admin']}>
+            <ClinicianTypesManagement />
           </RoleBasedRoute>
         } />
       </Route>
