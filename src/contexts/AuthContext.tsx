@@ -96,17 +96,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Query the profiles table with position information
+      // First, find the user in the profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          position_info:position(
-            id,
-            position_title,
-            role
-          )
-        `)
+        .select('*')
         .eq('username', username)
         .eq('password', password)
         .single();
@@ -115,29 +108,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid username or password');
       }
 
+      // Check if user is pending approval
+      if (!data.accept) {
+        // User is pending approval - create user object without position info
+        const pendingUser: User = {
+          id: data.id,
+          name: data.name,
+          username: data.username,
+          role: 'clinician', // Default role for pending users
+          position: data.position,
+          accept: false,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        };
+        
+        setUser(pendingUser);
+        setIsAuthenticated(false);
+        setIsPendingApproval(true);
+        localStorage.setItem('pendingUser', JSON.stringify(pendingUser));
+        return;
+      }
+
+      // User is accepted - get role from position table
+      let userRole = 'clinician'; // Default role
+      
+      if (data.position) {
+        // Get role from position table using the position UUID
+        const { data: positionData, error: positionError } = await supabase
+          .from('position')
+          .select('role')
+          .eq('id', data.position)
+          .single();
+        
+        if (!positionError && positionData) {
+          userRole = positionData.role;
+        }
+      }
+
       const userProfile: User = {
         id: data.id,
         name: data.name,
         username: data.username,
-        role: data.position_info?.role || 'clinician',
+        role: userRole,
         position: data.position,
-        accept: data.accept,
+        accept: true,
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
 
-      // Check if user is accepted
-      if (userProfile.accept) {
-        setUser(userProfile);
-        setIsAuthenticated(true);
-        setIsPendingApproval(false);
-        localStorage.setItem('user', JSON.stringify(userProfile));
-      } else {
-        setUser(userProfile);
-        setIsAuthenticated(false);
-        setIsPendingApproval(true);
-        localStorage.setItem('pendingUser', JSON.stringify(userProfile));
-      }
+      // User is accepted - authenticate and redirect to appropriate page
+      setUser(userProfile);
+      setIsAuthenticated(true);
+      setIsPendingApproval(false);
+      localStorage.setItem('user', JSON.stringify(userProfile));
+      
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -208,14 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           position: positionId, // Add position UUID if found
           accept: false,
         })
-        .select(`
-          *,
-          position_info:position(
-            id,
-            position_title,
-            role
-          )
-        `)
+        .select()
         .single();
 
       if (error) {
@@ -226,11 +243,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
+        // Get the role from position table if position was set
+        let userRole = role; // Use the original role as fallback
+        
+        if (positionId) {
+          const { data: positionData, error: positionError } = await supabase
+            .from('position')
+            .select('role')
+            .eq('id', positionId)
+            .single();
+          
+          if (!positionError && positionData) {
+            userRole = positionData.role;
+          }
+        }
+
         const userProfile: User = {
           id: data.id,
           name: data.name,
           username: data.username,
-          role: data.position_info?.role || role,
+          role: userRole,
           position: data.position,
           accept: data.accept,
           created_at: data.created_at,
