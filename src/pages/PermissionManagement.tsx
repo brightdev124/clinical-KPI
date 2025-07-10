@@ -58,6 +58,7 @@ const PermissionManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending'>('all');
   const [activeTab, setActiveTab] = useState<'super-admin' | 'director' | 'clinician'>('super-admin');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -152,6 +153,9 @@ const PermissionManagement: React.FC = () => {
   const handleSaveEdit = async () => {
     try {
       if (!editingUser) return;
+      
+      // Set updating state to true to show spinner and disable button
+      setIsUpdating(true);
 
       // Validate role-specific requirements
       if (editData.position_id) {
@@ -159,6 +163,7 @@ const PermissionManagement: React.FC = () => {
         const selectedPosition = positions.find(p => p.id === editData.position_id);
         if (!selectedPosition) {
           setError('Selected position does not exist');
+          setIsUpdating(false);
           return;
         }
         
@@ -195,6 +200,7 @@ const PermissionManagement: React.FC = () => {
           updateData.position_id = matchingPosition.id;
         } else {
           setError(`No position found for ${editData.role} role. Please create one first.`);
+          setIsUpdating(false);
           return;
         }
       }
@@ -222,6 +228,7 @@ const PermissionManagement: React.FC = () => {
             updateData.clinician_info = { type_id: firstType.id };
           } else {
             setError('No clinician types found. Please create one first.');
+            setIsUpdating(false);
             return;
           }
         }
@@ -240,10 +247,14 @@ const PermissionManagement: React.FC = () => {
       } catch (updateError: any) {
         console.error('Error in updateUser:', updateError);
         setError(updateError.message || 'Failed to update user');
+      } finally {
+        // Reset updating state regardless of success or failure
+        setIsUpdating(false);
       }
     } catch (error: any) {
       console.error('Error updating user:', error);
       setError(error.message || 'Failed to update user');
+      setIsUpdating(false);
     }
   };
 
@@ -977,14 +988,23 @@ const PermissionManagement: React.FC = () => {
                   <button
                     onClick={() => setShowEditModal(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={isUpdating}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    disabled={isUpdating}
+                    className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg transition-colors ${isUpdating ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
                   >
-                    Save Changes
+                    {isUpdating ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        <span>Saving...</span>
+                      </div>
+                    ) : (
+                      'Save Changes'
+                    )}
                   </button>
                 </div>
               </div>
