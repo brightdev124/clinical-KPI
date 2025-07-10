@@ -2,14 +2,16 @@ import { supabase } from '../lib/supabase';
 
 export interface Position {
   id: string;
-  name: string;
+  position_title: string;
+  role: string;
+  created_at?: string;
 }
 
 export interface User {
   id: string;
   name: string;
   username: string;
-  role: 'super-admin' | 'director' | 'clinician';
+  role: 'super-admin' | 'director' | 'clinician' | 'admin';
   accept: boolean;
   password?: string;
   created_at: string;
@@ -30,7 +32,7 @@ export interface CreateUserData {
   name: string;
   username: string;
   password: string;
-  role: 'super-admin' | 'director' | 'clinician';
+  role: 'super-admin' | 'director' | 'clinician' | 'admin';
   accept?: boolean;
   position_id?: string;
   director_info?: {
@@ -68,10 +70,10 @@ export class UserService {
         id, 
         name, 
         username, 
-        role, 
+        position, 
         accept, 
         created_at,
-        position (id, name)
+        position_info:position (id, position_title, role)
       `)
       .order('created_at', { ascending: false });
 
@@ -124,17 +126,17 @@ export class UserService {
         id: profile.id,
         name: profile.name,
         username: profile.username,
-        role: profile.role,
+        role: profile.position_info?.role || 'clinician',
         accept: profile.accept,
         created_at: profile.created_at,
-        position_id: profile.position?.id,
-        position_name: profile.position?.name
+        position_id: profile.position,
+        position_name: profile.position_info?.position_title
       };
 
       // Add role-specific information
-      if (profile.role === 'director' && directorsMap.has(profile.id)) {
+      if (profile.position_info?.role === 'director' && directorsMap.has(profile.id)) {
         user.director_info = directorsMap.get(profile.id);
-      } else if (profile.role === 'clinician' && cliniciansMap.has(profile.id)) {
+      } else if (profile.position_info?.role === 'clinician' && cliniciansMap.has(profile.id)) {
         user.clinician_info = cliniciansMap.get(profile.id);
       }
 
@@ -155,10 +157,10 @@ export class UserService {
         id, 
         name, 
         username, 
-        role, 
+        position,
         accept, 
         created_at,
-        position (id, name)
+        position_info:position (id, position_title, role)
       `)
       .eq('id', id)
       .single();
@@ -179,15 +181,15 @@ export class UserService {
       id: profile.id,
       name: profile.name,
       username: profile.username,
-      role: profile.role,
+      role: profile.position_info?.role || 'clinician',
       accept: profile.accept,
       created_at: profile.created_at,
-      position_id: profile.position?.id,
-      position_name: profile.position?.name
+      position_id: profile.position,
+      position_name: profile.position_info?.position_title
     };
 
     // Add role-specific information
-    if (profile.role === 'director') {
+    if (profile.position_info?.role === 'director') {
       const { data: director, error: directorError } = await supabase
         .from('director')
         .select('id, direction')
@@ -200,7 +202,7 @@ export class UserService {
           direction: director.direction
         };
       }
-    } else if (profile.role === 'clinician') {
+    } else if (profile.position_info?.role === 'clinician') {
       const { data: clinician, error: clinicianError } = await supabase
         .from('clinician')
         .select('id, clinician')
@@ -531,8 +533,15 @@ export class UserService {
   static async getUsersByRole(role: 'super-admin' | 'director' | 'clinician'): Promise<User[]> {
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('role', role)
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
+      .eq('position_info.role', role)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -651,7 +660,7 @@ export class UserService {
     const { data, error } = await supabase
       .from('position')
       .select('*')
-      .order('name', { ascending: true });
+      .order('position_title', { ascending: true });
 
     if (error) {
       throw new Error(`Failed to fetch positions: ${error.message}`);

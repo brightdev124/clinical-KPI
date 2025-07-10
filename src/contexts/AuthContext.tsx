@@ -5,7 +5,8 @@ interface User {
   id: string;
   name: string;
   username: string;
-  role: 'super-admin' | 'director' | 'clinician';
+  role: 'super-admin' | 'director' | 'clinician' | 'admin';
+  position?: string; // UUID reference to position table
   accept?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -14,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  signup: (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician') => Promise<void>;
+  signup: (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician' | 'admin') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isPendingApproval: boolean;
@@ -95,10 +96,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Query the profiles table directly
+      // Query the profiles table with position information
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          position_info:position(
+            id,
+            position_title,
+            role
+          )
+        `)
         .eq('username', username)
         .eq('password', password)
         .single();
@@ -111,7 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.id,
         name: data.name,
         username: data.username,
-        role: data.role,
+        role: data.position_info?.role || 'clinician',
+        position: data.position,
         accept: data.accept,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -135,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician') => {
+  const signup = async (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician' | 'admin') => {
     try {
       // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
@@ -153,6 +162,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (checkError && checkError.code !== 'PGRST116') {
         throw new Error('Database error while checking username');
       }
+
+      // Find the position UUID from position table based on selected role
+      let positionId = null;
+      if (role === 'director' || role === 'admin' || role === 'clinician') {
+        // Map role to position_title for lookup
+        const titleToMatch = role === 'director' ? 'Director' : 
+                            role === 'admin' ? 'Administrator' : 
+                            'Clinician';
+        
+        // First try to find position by exact title match
+        const { data: positionData, error: positionError } = await supabase
+          .from('position')
+          .select('id')
+          .eq('position_title', titleToMatch)
+          .single();
+
+        if (positionError) {
+          // If exact title doesn't exist, try to find any position with matching role
+          const roleToMatch = role === 'admin' ? 'super-admin' : role;
+          const { data: altPositionData, error: altPositionError } = await supabase
+            .from('position')
+            .select('id')
+            .eq('role', roleToMatch)
+            .limit(1)
+            .single();
+
+          if (altPositionError) {
+            console.warn(`No ${role} position found, creating profile without position reference`);
+          } else {
+            positionId = altPositionData.id;
+          }
+        } else {
+          positionId = positionData.id;
+        }
+      }
       
       // Insert new user directly into profiles table
       const { data, error } = await supabase
@@ -161,10 +205,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           username: username,
           password: password,
           name: name,
-          role: role,
+          position: positionId, // Add position UUID if found
           accept: false,
         })
-        .select()
+        .select(`
+          *,
+          position_info:position(
+            id,
+            position_title,
+            role
+          )
+        `)
         .single();
 
       if (error) {
@@ -179,7 +230,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: data.id,
           name: data.name,
           username: data.username,
-          role: data.role,
+          role: data.position_info?.role || role,
+          position: data.position,
           accept: data.accept,
           created_at: data.created_at,
           updated_at: data.updated_at,

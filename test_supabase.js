@@ -59,8 +59,15 @@ async function testConnection() {
     console.log('\n3. Testing directors query...');
     const { data: directors, error: directorsError } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('role', 'director')
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
+      .eq('position_info.role', 'director')
       .eq('accept', true);
     
     if (directorsError) {
@@ -76,8 +83,15 @@ async function testConnection() {
     console.log('\n4. Testing clinicians query...');
     const { data: clinicians, error: cliniciansError } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('role', 'clinician')
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
+      .eq('position_info.role', 'clinician')
       .eq('accept', true);
     
     if (cliniciansError) {

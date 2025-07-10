@@ -13,7 +13,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'director' | 'clinician'>('clinician');
+  const [role, setRole] = useState<'admin' | 'director' | 'clinician'>('clinician');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -166,12 +166,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <input
+                      id="admin"
+                      name="role"
+                      type="radio"
+                      value="admin"
+                      checked={role === 'admin'}
+                      onChange={(e) => setRole(e.target.value as 'admin' | 'director' | 'clinician')}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <label htmlFor="admin" className="ml-3 block text-sm font-medium text-gray-700">
+                      Administrator
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
                       id="director"
                       name="role"
                       type="radio"
                       value="director"
                       checked={role === 'director'}
-                      onChange={(e) => setRole(e.target.value as 'director' | 'clinician')}
+                      onChange={(e) => setRole(e.target.value as 'admin' | 'director' | 'clinician')}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <label htmlFor="director" className="ml-3 block text-sm font-medium text-gray-700">
@@ -185,7 +199,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                       type="radio"
                       value="clinician"
                       checked={role === 'clinician'}
-                      onChange={(e) => setRole(e.target.value as 'director' | 'clinician')}
+                      onChange={(e) => setRole(e.target.value as 'admin' | 'director' | 'clinician')}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                     />
                     <label htmlFor="clinician" className="ml-3 block text-sm font-medium text-gray-700">

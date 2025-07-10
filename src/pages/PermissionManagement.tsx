@@ -778,7 +778,7 @@ const PermissionManagement: React.FC = () => {
                     >
                       <option value="">Select a position</option>
                       {positions.map(position => (
-                        <option key={position.id} value={position.id}>{position.name}</option>
+                        <option key={position.id} value={position.id}>{position.position_title}</option>
                       ))}
                     </select>
                   </div>

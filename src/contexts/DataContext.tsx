@@ -269,8 +269,15 @@ const ProfileService = {
   async getDirectors(): Promise<Profile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('role', 'director')
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
+      .eq('position_info.role', 'director')
       .eq('accept', true)
       .order('name', { ascending: true });
 
@@ -285,8 +292,15 @@ const ProfileService = {
   async getClinicians(): Promise<Profile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('role', 'clinician')
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
+      .eq('position_info.role', 'clinician')
       .eq('accept', true)
       .order('name', { ascending: true });
 
