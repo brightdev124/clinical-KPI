@@ -7,15 +7,19 @@ export interface Position {
   created_at?: string;
 }
 
+export interface ClinicianType {
+  id: string;
+  title: string;
+}
+
 export interface User {
   id: string;
   name: string;
   username: string;
   role: 'super-admin' | 'director' | 'clinician' | 'admin';
-  accept: boolean;
   password?: string;
   created_at: string;
-  updated_at?: string;
+  accept: boolean;
   position_id?: string;
   position_name?: string;
   director_info?: {
@@ -24,7 +28,8 @@ export interface User {
   };
   clinician_info?: {
     id: string;
-    clinician: string;
+    type_id: string;
+    type_title: string;
   };
 }
 
@@ -33,13 +38,13 @@ export interface CreateUserData {
   username: string;
   password: string;
   role: 'super-admin' | 'director' | 'clinician' | 'admin';
-  accept?: boolean;
   position_id?: string;
+  accept?: boolean;
   director_info?: {
     direction: string;
   };
   clinician_info?: {
-    clinician: string;
+    type_id: string;
   };
 }
 
@@ -48,17 +53,33 @@ export interface UpdateUserData {
   username?: string;
   password?: string;
   role?: 'super-admin' | 'director' | 'clinician';
-  accept?: boolean;
   position_id?: string;
+  accept?: boolean;
   director_info?: {
     direction: string;
   };
   clinician_info?: {
-    clinician: string;
+    type_id: string;
   };
 }
 
 export class UserService {
+  /**
+   * Fetch all clinician types from the database
+   */
+  static async getAllClinicianTypes(): Promise<ClinicianType[]> {
+    const { data: types, error: typesError } = await supabase
+      .from('types')
+      .select('id, title')
+      .order('title', { ascending: true });
+
+    if (typesError) {
+      throw new Error(`Failed to fetch clinician types: ${typesError.message}`);
+    }
+
+    return types || [];
+  }
+
   /**
    * Fetch all users from the database with their role-specific information
    */
@@ -71,8 +92,8 @@ export class UserService {
         name, 
         username, 
         position, 
-        accept, 
         created_at,
+        accept,
         position_info:position (id, position_title, role)
       `)
       .order('created_at', { ascending: false });
@@ -94,13 +115,27 @@ export class UserService {
       throw new Error(`Failed to fetch directors: ${directorsError.message}`);
     }
 
-    // Get all clinicians
+    // Get all clinicians with their types
     const { data: clinicians, error: cliniciansError } = await supabase
-      .from('clinician')
-      .select('id, profile, clinician');
+      .from('clician')
+      .select(`
+        id, 
+        profile, 
+        type,
+        type_info:type (id, title)
+      `);
 
     if (cliniciansError) {
       throw new Error(`Failed to fetch clinicians: ${cliniciansError.message}`);
+    }
+
+    // Get all types for reference
+    const { data: types, error: typesError } = await supabase
+      .from('types')
+      .select('id, title');
+
+    if (typesError) {
+      throw new Error(`Failed to fetch types: ${typesError.message}`);
     }
 
     // Map directors and clinicians to their profiles
@@ -114,9 +149,11 @@ export class UserService {
 
     const cliniciansMap = new Map();
     clinicians?.forEach(clinician => {
+      const typeInfo = types?.find(t => t.id === clinician.type);
       cliniciansMap.set(clinician.profile, {
         id: clinician.id,
-        clinician: clinician.clinician
+        type_id: clinician.type,
+        type_title: typeInfo?.title || 'Unknown Type'
       });
     });
 
@@ -127,8 +164,8 @@ export class UserService {
         name: profile.name,
         username: profile.username,
         role: profile.position_info?.role || 'clinician',
-        accept: profile.accept,
         created_at: profile.created_at,
+        accept: profile.accept || false,
         position_id: profile.position,
         position_name: profile.position_info?.position_title
       };
@@ -158,8 +195,8 @@ export class UserService {
         name, 
         username, 
         position,
-        accept, 
         created_at,
+        accept,
         position_info:position (id, position_title, role)
       `)
       .eq('id', id)
@@ -182,8 +219,8 @@ export class UserService {
       name: profile.name,
       username: profile.username,
       role: profile.position_info?.role || 'clinician',
-      accept: profile.accept,
       created_at: profile.created_at,
+      accept: profile.accept || false,
       position_id: profile.position,
       position_name: profile.position_info?.position_title
     };
@@ -204,15 +241,23 @@ export class UserService {
       }
     } else if (profile.position_info?.role === 'clinician') {
       const { data: clinician, error: clinicianError } = await supabase
-        .from('clinician')
-        .select('id, clinician')
+        .from('clician')
+        .select('id, type')
         .eq('profile', id)
         .single();
 
       if (!clinicianError && clinician) {
+        // Get the type information
+        const { data: typeInfo, error: typeError } = await supabase
+          .from('types')
+          .select('id, title')
+          .eq('id', clinician.type)
+          .single();
+
         user.clinician_info = {
           id: clinician.id,
-          clinician: clinician.clinician
+          type_id: clinician.type,
+          type_title: typeInfo?.title || 'Unknown Type'
         };
       }
     }
@@ -253,9 +298,8 @@ export class UserService {
           name: userData.name,
           username: userData.username,
           password: userData.password,
-          role: userData.role,
-          accept: userData.accept || false,
-          position: userData.position_id
+          position: userData.position_id,
+          accept: userData.accept !== undefined ? userData.accept : false
         })
         .select()
         .single();
@@ -278,10 +322,10 @@ export class UserService {
         }
       } else if (userData.role === 'clinician' && userData.clinician_info) {
         const { error: clinicianError } = await supabase
-          .from('clinician')
+          .from('clician')
           .insert({
             profile: profile.id,
-            clinician: userData.clinician_info.clinician
+            type: userData.clinician_info.type_id
           });
 
         if (clinicianError) {
@@ -345,9 +389,8 @@ export class UserService {
       if (userData.password !== undefined && userData.password.trim() !== '') {
         updateData.password = userData.password;
       }
-      if (userData.role !== undefined) updateData.role = userData.role;
-      if (userData.accept !== undefined) updateData.accept = userData.accept;
       if (userData.position_id !== undefined) updateData.position = userData.position_id;
+      if (userData.accept !== undefined) updateData.accept = userData.accept;
 
       // Update the profile
       const { data: updatedProfile, error: profileError } = await supabase
@@ -362,7 +405,19 @@ export class UserService {
       }
 
       // Handle role-specific updates
-      const newRole = userData.role || currentUser.role;
+      // Get the new role from the position if position_id is provided
+      let newRole = currentUser.role;
+      if (userData.position_id) {
+        const { data: positionData, error: positionError } = await supabase
+          .from('position')
+          .select('role')
+          .eq('id', userData.position_id)
+          .single();
+        
+        if (!positionError && positionData) {
+          newRole = positionData.role;
+        }
+      }
 
       // If role changed, we need to handle the role-specific tables
       if (newRole !== currentUser.role) {
@@ -378,7 +433,7 @@ export class UserService {
           }
         } else if (currentUser.role === 'clinician') {
           const { error: deleteClinicianError } = await supabase
-            .from('clinician')
+            .from('clician')
             .delete()
             .eq('profile', id);
 
@@ -401,10 +456,10 @@ export class UserService {
           }
         } else if (newRole === 'clinician' && userData.clinician_info) {
           const { error: clinicianError } = await supabase
-            .from('clinician')
+            .from('clician')
             .insert({
               profile: id,
-              clinician: userData.clinician_info.clinician
+              type: userData.clinician_info.type_id
             });
 
           if (clinicianError) {
@@ -424,8 +479,8 @@ export class UserService {
           }
         } else if (newRole === 'clinician' && userData.clinician_info) {
           const { error: clinicianError } = await supabase
-            .from('clinician')
-            .update({ clinician: userData.clinician_info.clinician })
+            .from('clician')
+            .update({ type: userData.clinician_info.type_id })
             .eq('profile', id);
 
           if (clinicianError) {
@@ -478,7 +533,7 @@ export class UserService {
         }
       } else if (currentUser.role === 'clinician') {
         const { error: clinicianError } = await supabase
-          .from('clinician')
+          .from('clician')
           .delete()
           .eq('profile', id);
 
@@ -534,7 +589,12 @@ export class UserService {
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select(`
-        *,
+        id,
+        name,
+        username,
+        position,
+        created_at,
+        accept,
         position_info:position(
           id,
           position_title,
@@ -566,7 +626,19 @@ export class UserService {
   static async getPendingUsers(): Promise<User[]> {
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(`
+        id,
+        name,
+        username,
+        position,
+        created_at,
+        accept,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
       .eq('accept', false)
       .order('created_at', { ascending: false });
 
@@ -625,7 +697,10 @@ export class UserService {
   }> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('role, accept');
+      .select(`
+        accept,
+        position_info:position(role)
+      `);
 
     if (error) {
       throw new Error(`Failed to fetch user statistics: ${error.message}`);
@@ -640,7 +715,8 @@ export class UserService {
 
     data.forEach(user => {
       // Count by role
-      stats.byRole[user.role] = (stats.byRole[user.role] || 0) + 1;
+      const role = user.position_info?.role || 'unknown';
+      stats.byRole[role] = (stats.byRole[role] || 0) + 1;
       
       // Count by acceptance status
       if (user.accept) {

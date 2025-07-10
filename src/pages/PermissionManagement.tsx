@@ -1,20 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import UserService, { User, Position } from '../services/userService';
+import UserService, { User, Position, ClinicianType } from '../services/userService';
+
+/**
+ * PermissionManagement Component
+ * 
+ * Director Section Implementation:
+ * - Only displays users whose role in the position table is "director"
+ * - Filters by position_id from the profiles table
+ * - Includes full CRUD operations (edit, delete, approve/reject)
+ * - Validates that directors have valid position assignments
+ * - Shows position information and ID for better tracking
+ * 
+ * Clinician Section Implementation:
+ * - Only displays users whose role in the position table is "clinician"
+ * - Filters by position_id from the profiles table (UUID-based)
+ * - Includes full CRUD operations (edit, delete, approve/reject)
+ * - Validates that clinicians have valid position assignments
+ * - Shows position information and ID for better tracking
+ * - Ensures position role matches "clinician" during edit operations
+ */
 
 interface EditUserData {
   name: string;
   username: string;
   role: 'super-admin' | 'director' | 'clinician';
-  accept: boolean;
   password?: string;
   position_id?: string;
+  accept?: boolean;
   director_info?: {
     direction: string;
   };
   clinician_info?: {
-    clinician: string;
+    type_id: string;
   };
 }
 
@@ -22,6 +41,7 @@ const PermissionManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [clinicianTypes, setClinicianTypes] = useState<ClinicianType[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -30,9 +50,8 @@ const PermissionManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [editData, setEditData] = useState<EditUserData>({
     name: '',
-    username: '',
+    email: '',
     role: 'clinician',
-    accept: false,
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -48,12 +67,14 @@ const PermissionManagement: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [userData, positionsData] = await Promise.all([
+      const [userData, positionsData, clinicianTypesData] = await Promise.all([
         UserService.getAllUsers(),
-        UserService.getAllPositions()
+        UserService.getAllPositions(),
+        UserService.getAllClinicianTypes()
       ]);
       setUsers(userData);
       setPositions(positionsData);
+      setClinicianTypes(clinicianTypesData);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       setError(error.message || 'Failed to fetch data');
@@ -87,18 +108,24 @@ const PermissionManagement: React.FC = () => {
     }
 
     // Apply tab filter - always filter by role tab
-    filtered = filtered.filter(user => user.role === activeTab);
+    // For directors, ensure they have both director role AND position_id
+    if (activeTab === 'director') {
+      filtered = filtered.filter(user => 
+        user.role === 'director' && user.position_id
+      );
+    } else if (activeTab === 'clinician') {
+      // For clinicians, filter by role AND ensure they have position_id
+      filtered = filtered.filter(user => 
+        user.role === 'clinician' && user.position_id
+      );
+    } else {
+      filtered = filtered.filter(user => user.role === activeTab);
+    }
 
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterRole, filterStatus, activeTab]);
 
   const handleEdit = (user: User) => {
-    // Prevent editing super-admin users
-    if (user.role === 'super-admin') {
-      setError('Super Admin users cannot be edited');
-      return;
-    }
-    
     setEditingUser(user);
     setEditData({
       name: user.name,
@@ -110,7 +137,7 @@ const PermissionManagement: React.FC = () => {
         direction: user.director_info.direction
       } : undefined,
       clinician_info: user.clinician_info ? {
-        clinician: user.clinician_info.clinician
+        type_id: user.clinician_info.type_id
       } : undefined
     });
     setShowEditModal(true);
@@ -122,11 +149,31 @@ const PermissionManagement: React.FC = () => {
     try {
       if (!editingUser) return;
 
-      // Double-check to prevent editing super-admin users
-      if (editingUser.role === 'super-admin') {
-        setError('Super Admin users cannot be edited');
-        setShowEditModal(false);
-        return;
+      // Validate role-specific requirements
+      if (editData.role === 'director') {
+        if (!editData.position_id) {
+          setError('Directors must have a position assigned');
+          return;
+        }
+        
+        // Verify the position exists and has director role
+        const selectedPosition = positions.find(p => p.id === editData.position_id);
+        if (!selectedPosition || selectedPosition.role !== 'director') {
+          setError('Selected position must have director role');
+          return;
+        }
+      } else if (editData.role === 'clinician') {
+        if (!editData.position_id) {
+          setError('Clinicians must have a position assigned');
+          return;
+        }
+        
+        // Verify the position exists and has clinician role
+        const selectedPosition = positions.find(p => p.id === editData.position_id);
+        if (!selectedPosition || selectedPosition.role !== 'clinician') {
+          setError('Selected position must have clinician role');
+          return;
+        }
       }
 
       const updateData: any = {
@@ -176,16 +223,20 @@ const PermissionManagement: React.FC = () => {
         return;
       }
 
-      // Prevent deleting superadmin users
-      if (userToDelete.role === 'super-admin') {
-        setError('Super Admin users cannot be deleted');
-        setShowDeleteModal(false);
-        return;
+      // Additional validation for role-specific deletions
+      if (userToDelete.role === 'director') {
+        // You could add additional business logic here
+        // For example, check if the director has any assigned clinicians
+        console.log(`Deleting director: ${userToDelete.name} with position: ${userToDelete.position_name}`);
+      } else if (userToDelete.role === 'clinician') {
+        // You could add additional business logic here
+        // For example, check if the clinician has any pending KPI reviews
+        console.log(`Deleting clinician: ${userToDelete.name} with position: ${userToDelete.position_name}`);
       }
 
       await UserService.deleteUser(userToDelete.id);
 
-      setSuccess('User deleted successfully');
+      setSuccess(`${userToDelete.role.charAt(0).toUpperCase() + userToDelete.role.slice(1)} deleted successfully`);
       setShowDeleteModal(false);
       setUserToDelete(null);
       fetchData();
@@ -197,12 +248,6 @@ const PermissionManagement: React.FC = () => {
 
   const toggleUserAcceptance = async (user: User) => {
     try {
-      // Prevent changing super-admin status
-      if (user.role === 'super-admin') {
-        setError('Super Admin status cannot be changed');
-        return;
-      }
-      
       await UserService.toggleUserAcceptance(user.id, !user.accept);
       setSuccess(`User ${!user.accept ? 'approved' : 'rejected'} successfully`);
       fetchData();
@@ -236,6 +281,11 @@ const PermissionManagement: React.FC = () => {
       case 'clinician': return UserIcon;
       default: return UserIcon;
     }
+  };
+
+  // Get positions filtered by role
+  const getPositionsByRole = (role: string) => {
+    return positions.filter(position => position.role === role);
   };
 
   if (loading) {
@@ -447,19 +497,29 @@ const PermissionManagement: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => toggleUserAcceptance(user)}
-                              className="p-2 text-gray-400 cursor-not-allowed rounded-lg transition-colors"
-                              title="Super Admin status cannot be changed"
-                              disabled={true}
+                              className={`p-2 rounded-lg transition-colors ${
+                                user.accept
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-green-600 hover:bg-green-50'
+                              }`}
+                              title={user.accept ? 'Reject User' : 'Approve User'}
                             >
                               {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                             </button>
                             <button
                               onClick={() => handleEdit(user)}
-                              className="p-2 text-gray-400 cursor-not-allowed rounded-lg transition-colors"
-                              title="Super Admin users cannot be edited"
-                              disabled={true}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit User"
                             >
                               <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete User"
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -534,12 +594,17 @@ const PermissionManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.position_name ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              <Briefcase className="w-3 h-3 mr-1" />
-                              {user.position_name}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <Briefcase className="w-3 h-3 mr-1" />
+                                {user.position_name}
+                              </span>
+                              <span className="text-xs text-gray-400 mt-1">
+                                Position ID: {user.position_id}
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-gray-400">Not assigned</span>
+                            <span className="text-red-400 font-medium">⚠️ No position assigned</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -652,12 +717,17 @@ const PermissionManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {user.position_name ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              <Briefcase className="w-3 h-3 mr-1" />
-                              {user.position_name}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <Briefcase className="w-3 h-3 mr-1" />
+                                {user.position_name}
+                              </span>
+                              <span className="text-xs text-gray-400 mt-1">
+                                Position ID: {user.position_id}
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-gray-400">Not assigned</span>
+                            <span className="text-red-400 font-medium">⚠️ No position assigned</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -734,7 +804,7 @@ const PermissionManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      value={editData.username}
+                      value={editData.username || ''}
                       onChange={(e) => setEditData({ ...editData, username: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -755,33 +825,44 @@ const PermissionManagement: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Role
-                    </label>
-                    <select
-                      value={editData.role}
-                      onChange={(e) => setEditData({ ...editData, role: e.target.value as 'super-admin' | 'director' | 'clinician' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="director">Director</option>
-                      <option value="clinician">Clinician</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Position
                     </label>
                     <select
                       value={editData.position_id || ''}
-                      onChange={(e) => setEditData({ ...editData, position_id: e.target.value || undefined })}
+                      onChange={(e) => {
+                        const selectedPosition = positions.find(p => p.id === e.target.value);
+                        setEditData({ 
+                          ...editData, 
+                          position_id: e.target.value || undefined,
+                          role: selectedPosition?.role as 'super-admin' | 'director' | 'clinician' || 'clinician'
+                        });
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select a position</option>
-                      {positions.map(position => (
-                        <option key={position.id} value={position.id}>{position.position_title}</option>
+                      {/* Show only positions matching the current tab */}
+                      {(activeTab === 'director' ? getPositionsByRole('director') : 
+                        activeTab === 'clinician' ? getPositionsByRole('clinician') : 
+                        positions).map(position => (
+                        <option key={position.id} value={position.id}>
+                          {position.position_title} ({position.role})
+                        </option>
                       ))}
                     </select>
+                    {(activeTab === 'director' || activeTab === 'clinician') && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Only positions with "{activeTab}" role are shown
+                      </p>
+                    )}
                   </div>
+
+                  {editData.position_id && (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        Selected Role: <span className="font-medium">{editData.role}</span>
+                      </p>
+                    </div>
+                  )}
 
                   {/* Role-specific fields */}
                   {editData.role === 'director' && (
@@ -807,16 +888,21 @@ const PermissionManagement: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Clinician Type
                       </label>
-                      <input
-                        type="text"
-                        value={editData.clinician_info?.clinician || ''}
+                      <select
+                        value={editData.clinician_info?.type_id || ''}
                         onChange={(e) => setEditData({ 
                           ...editData, 
-                          clinician_info: { clinician: e.target.value } 
+                          clinician_info: { type_id: e.target.value } 
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter clinician type"
-                      />
+                      >
+                        <option value="">Select a type</option>
+                        {clinicianTypes.map(type => (
+                          <option key={type.id} value={type.id}>
+                            {type.title}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
 
