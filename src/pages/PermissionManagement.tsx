@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon } from 'lucide-react';
+import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import UserService, { User } from '../services/userService';
-
-
+import UserService, { User, Position } from '../services/userService';
 
 interface EditUserData {
   name: string;
   username: string;
-  role: 'director' | 'clinician';
+  role: 'super-admin' | 'director' | 'clinician';
   accept: boolean;
   password?: string;
+  position_id?: string;
+  director_info?: {
+    direction: string;
+  };
+  clinician_info?: {
+    clinician: string;
+  };
 }
 
 const PermissionManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -33,10 +39,28 @@ const PermissionManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'super-admin' | 'director' | 'clinician'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending'>('all');
+  const [activeTab, setActiveTab] = useState<'super-admin' | 'director' | 'clinician'>('super-admin');
 
   useEffect(() => {
-    fetchUsers();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [userData, positionsData] = await Promise.all([
+        UserService.getAllUsers(),
+        UserService.getAllPositions()
+      ]);
+      setUsers(userData);
+      setPositions(positionsData);
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      setError(error.message || 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter users based on search and filter criteria
   useEffect(() => {
@@ -62,21 +86,11 @@ const PermissionManagement: React.FC = () => {
       );
     }
 
-    setFilteredUsers(filtered);
-  }, [users, searchTerm, filterRole, filterStatus]);
+    // Apply tab filter - always filter by role tab
+    filtered = filtered.filter(user => user.role === activeTab);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await UserService.getAllUsers();
-      setUsers(data);
-    } catch (error: any) {
-      console.error('Error fetching users:', error);
-      setError(error.message || 'Failed to fetch users');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setFilteredUsers(filtered);
+  }, [users, searchTerm, filterRole, filterStatus, activeTab]);
 
   const handleEdit = (user: User) => {
     // Prevent editing super-admin users
@@ -91,6 +105,13 @@ const PermissionManagement: React.FC = () => {
       username: user.username,
       role: user.role,
       accept: user.accept,
+      position_id: user.position_id,
+      director_info: user.director_info ? {
+        direction: user.director_info.direction
+      } : undefined,
+      clinician_info: user.clinician_info ? {
+        clinician: user.clinician_info.clinician
+      } : undefined
     });
     setShowEditModal(true);
     setError('');
@@ -113,6 +134,7 @@ const PermissionManagement: React.FC = () => {
         username: editData.username,
         role: editData.role,
         accept: editData.accept,
+        position_id: editData.position_id
       };
 
       // Only include password if it's provided
@@ -120,12 +142,19 @@ const PermissionManagement: React.FC = () => {
         updateData.password = editData.password;
       }
 
+      // Add role-specific information
+      if (editData.role === 'director' && editData.director_info) {
+        updateData.director_info = editData.director_info;
+      } else if (editData.role === 'clinician' && editData.clinician_info) {
+        updateData.clinician_info = editData.clinician_info;
+      }
+
       await UserService.updateUser(editingUser.id, updateData);
 
       setSuccess('User updated successfully');
       setShowEditModal(false);
       setEditingUser(null);
-      fetchUsers();
+      fetchData();
     } catch (error: any) {
       console.error('Error updating user:', error);
       setError(error.message || 'Failed to update user');
@@ -159,7 +188,7 @@ const PermissionManagement: React.FC = () => {
       setSuccess('User deleted successfully');
       setShowDeleteModal(false);
       setUserToDelete(null);
-      fetchUsers();
+      fetchData();
     } catch (error: any) {
       console.error('Error deleting user:', error);
       setError(error.message || 'Failed to delete user');
@@ -176,7 +205,7 @@ const PermissionManagement: React.FC = () => {
       
       await UserService.toggleUserAcceptance(user.id, !user.accept);
       setSuccess(`User ${!user.accept ? 'approved' : 'rejected'} successfully`);
-      fetchUsers();
+      fetchData();
     } catch (error: any) {
       console.error('Error updating user acceptance:', error);
       setError(error.message || 'Failed to update user status');
@@ -262,6 +291,42 @@ const PermissionManagement: React.FC = () => {
           </div>
         )}
 
+        {/* Role Tabs */}
+        <div className="mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('super-admin')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'super-admin'
+                  ? 'border-b-2 border-purple-500 text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Super Admins
+            </button>
+            <button
+              onClick={() => setActiveTab('director')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'director'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Directors
+            </button>
+            <button
+              onClick={() => setActiveTab('clinician')}
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'clinician'
+                  ? 'border-b-2 border-green-500 text-green-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Clinicians
+            </button>
+          </div>
+        </div>
+
         {/* Search and Filter Section */}
         <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
@@ -310,99 +375,202 @@ const PermissionManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
+            {activeTab === 'super-admin' && (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center">
-                        <Users className="w-12 h-12 text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-                        <p className="text-gray-500">
-                          {searchTerm || filterRole !== 'all' || filterStatus !== 'all' 
-                            ? 'Try adjusting your search or filter criteria'
-                            : 'No users have been created yet'
-                          }
-                        </p>
-                      </div>
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Position Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created At
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500">@{user.username}</div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <Users className="w-12 h-12 text-gray-400 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No super admins found</h3>
+                          <p className="text-gray-500">
+                            {searchTerm || filterStatus !== 'all'
+                              ? 'Try adjusting your search or filter criteria'
+                              : 'No super admins have been created yet'
+                            }
+                          </p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                          {React.createElement(getRoleIcon(user.role), { className: "w-3 h-3 mr-1" })}
-                          {user.role.replace('-', ' ').toUpperCase()}
-                        </span>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.position_name ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <Briefcase className="w-3 h-3 mr-1" />
+                              {user.position_name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                            {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                            {user.accept ? 'APPROVED' : 'PENDING'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => toggleUserAcceptance(user)}
+                              className="p-2 text-gray-400 cursor-not-allowed rounded-lg transition-colors"
+                              title="Super Admin status cannot be changed"
+                              disabled={true}
+                            >
+                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="p-2 text-gray-400 cursor-not-allowed rounded-lg transition-colors"
+                              title="Super Admin users cannot be edited"
+                              disabled={true}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {activeTab === 'director' && (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Direction
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Position Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created At
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <Users className="w-12 h-12 text-gray-400 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No directors found</h3>
+                          <p className="text-gray-500">
+                            {searchTerm || filterStatus !== 'all'
+                              ? 'Try adjusting your search or filter criteria'
+                              : 'No directors have been created yet'
+                            }
+                          </p>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
-                          {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
-                          {user.accept ? 'APPROVED' : 'PENDING'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => toggleUserAcceptance(user)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              user.role === 'super-admin'
-                                ? 'text-gray-400 cursor-not-allowed'
-                                : user.accept
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.director_info ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                              <Building className="w-3 h-3 mr-1" />
+                              {user.director_info.direction}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.position_name ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <Briefcase className="w-3 h-3 mr-1" />
+                              {user.position_name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                            {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                            {user.accept ? 'APPROVED' : 'PENDING'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => toggleUserAcceptance(user)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                user.accept
                                   ? 'text-red-600 hover:bg-red-50'
                                   : 'text-green-600 hover:bg-green-50'
-                            }`}
-                            title={
-                              user.role === 'super-admin'
-                                ? 'Super Admin status cannot be changed'
-                                : user.accept ? 'Reject User' : 'Approve User'
-                            }
-                            disabled={user.role === 'super-admin'}
-                          >
-                            {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleEdit(user)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              user.role === 'super-admin' 
-                                ? 'text-gray-400 cursor-not-allowed' 
-                                : 'text-blue-600 hover:bg-blue-50'
-                            }`}
-                            title={user.role === 'super-admin' ? 'Super Admin users cannot be edited' : 'Edit User'}
-                            disabled={user.role === 'super-admin'}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          {user.role !== 'super-admin' && (
+                              }`}
+                              title={user.accept ? 'Reject User' : 'Approve User'}
+                            >
+                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit User"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => handleDelete(user)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -411,14 +579,132 @@ const PermissionManagement: React.FC = () => {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {activeTab === 'clinician' && (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Clinician Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Position Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created At
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <Users className="w-12 h-12 text-gray-400 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
+                          <p className="text-gray-500">
+                            {searchTerm || filterStatus !== 'all'
+                              ? 'Try adjusting your search or filter criteria'
+                              : 'No clinicians have been created yet'
+                            }
+                          </p>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.clinician_info ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                              <UserIcon className="w-3 h-3 mr-1" />
+                              {user.clinician_info.clinician}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.position_name ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <Briefcase className="w-3 h-3 mr-1" />
+                              {user.position_name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                            {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                            {user.accept ? 'APPROVED' : 'PENDING'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => toggleUserAcceptance(user)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                user.accept
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-green-600 hover:bg-green-50'
+                              }`}
+                              title={user.accept ? 'Reject User' : 'Approve User'}
+                            >
+                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit User"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete User"
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
@@ -473,13 +759,66 @@ const PermissionManagement: React.FC = () => {
                     </label>
                     <select
                       value={editData.role}
-                      onChange={(e) => setEditData({ ...editData, role: e.target.value as 'director' | 'clinician' })}
+                      onChange={(e) => setEditData({ ...editData, role: e.target.value as 'super-admin' | 'director' | 'clinician' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="director">Director</option>
                       <option value="clinician">Clinician</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Position
+                    </label>
+                    <select
+                      value={editData.position_id || ''}
+                      onChange={(e) => setEditData({ ...editData, position_id: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a position</option>
+                      {positions.map(position => (
+                        <option key={position.id} value={position.id}>{position.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Role-specific fields */}
+                  {editData.role === 'director' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Direction
+                      </label>
+                      <input
+                        type="text"
+                        value={editData.director_info?.direction || ''}
+                        onChange={(e) => setEditData({ 
+                          ...editData, 
+                          director_info: { direction: e.target.value } 
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter direction"
+                      />
+                    </div>
+                  )}
+
+                  {editData.role === 'clinician' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Clinician Type
+                      </label>
+                      <input
+                        type="text"
+                        value={editData.clinician_info?.clinician || ''}
+                        onChange={(e) => setEditData({ 
+                          ...editData, 
+                          clinician_info: { clinician: e.target.value } 
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter clinician type"
+                      />
+                    </div>
+                  )}
 
                   <div className="flex items-center">
                     <input

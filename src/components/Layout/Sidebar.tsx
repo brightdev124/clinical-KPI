@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
-  Tag
+  Tag,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
@@ -34,6 +35,7 @@ const Sidebar: React.FC = () => {
       { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Clinician Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
+      { name: 'Positions', href: '/positions', icon: Briefcase, roles: ['super-admin'] },
       { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
       { name: 'Permissions', href: '/permissions', icon: Shield, roles: ['super-admin'] },
     ];
