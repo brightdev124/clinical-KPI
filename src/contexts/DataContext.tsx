@@ -61,6 +61,13 @@ interface Profile {
     id: string;
     direction: string;
   };
+  clinician_info?: {
+    id: string;
+    type: string;
+    type_info?: {
+      title: string;
+    };
+  };
 }
 
 interface DataContextType {
@@ -275,6 +282,13 @@ const ProfileService = {
         director_info:director(
           id,
           direction
+        ),
+        clinician_info:clician(
+          id,
+          type,
+          type_info:types(
+            title
+          )
         )
       `)
       .eq('accept', true)
