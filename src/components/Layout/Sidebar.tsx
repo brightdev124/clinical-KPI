@@ -36,7 +36,7 @@ const Sidebar: React.FC = () => {
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Clinician Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
       { name: 'Positions', href: '/positions', icon: Briefcase, roles: ['super-admin'] },
-      { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin', 'director'] },
+      { name: 'Analytics', href: '/analytics', icon: TrendingUp, roles: ['super-admin'] },
       { name: 'Permissions', href: '/permissions', icon: Shield, roles: ['super-admin'] },
     ];
   };
