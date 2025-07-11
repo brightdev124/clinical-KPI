@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { ReviewService } from '../services/reviewService';
 import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download } from 'lucide-react';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
@@ -17,14 +18,15 @@ interface ReviewFormData {
 const MonthlyReview: React.FC = () => {
   const { clinicianId } = useParams<{ clinicianId: string }>();
   const navigate = useNavigate();
-  const { clinicians, kpis, submitReview } = useData();
+  const { profiles, kpis, loading, error } = useData();
   
-  const clinician = clinicians.find(c => c.id === clinicianId);
+  const clinician = profiles.find(c => c.id === clinicianId);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [reviewData, setReviewData] = useState<ReviewFormData>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!clinician) {
     return (
@@ -144,28 +146,33 @@ const MonthlyReview: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     
     try {
-      // Submit each KPI review
-      Object.entries(reviewData).forEach(([kpiId, data]) => {
+      // Submit each KPI review using the database service
+      for (const [kpiId, data] of Object.entries(reviewData)) {
         if (data.met !== null && data.met !== undefined) {
-          submitReview({
-            clinicianId: clinician.id,
-            kpiId,
-            month: selectedMonth,
-            year: selectedYear,
-            met: data.met,
-            reviewDate: data.reviewDate || undefined,
-            notes: data.notes || undefined,
-            plan: data.plan || undefined,
+          const kpi = kpis.find(k => k.id === kpiId);
+          if (!kpi) continue;
+          
+          const score = data.met ? kpi.weight : 0;
+          
+          await ReviewService.createReviewItem({
+            clinician: clinician.id,
+            kpi: kpiId,
+            met_check: data.met,
+            notes: data.met ? undefined : data.notes,
+            plan: data.met ? undefined : data.plan,
+            score: score
           });
         }
-      });
+      }
       
-      // Navigate back to clinician profile
-      navigate(`/clinician/${clinician.id}`);
+      // Navigate back to clinician management page
+      navigate('/clinicians');
     } catch (error) {
       console.error('Error submitting review:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to submit review');
     } finally {
       setIsSubmitting(false);
     }
@@ -185,9 +192,9 @@ const MonthlyReview: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-900">Monthly KPI Review</h2>
             <p className="text-gray-600 mt-1">Conducting performance review for {clinician.name}</p>
             <div className="flex items-center space-x-4 mt-2">
-              <span className="text-sm text-gray-500">{clinician.position}</span>
+              <span className="text-sm text-gray-500">{clinician.position_info?.position_title || 'Clinician'}</span>
               <span className="text-sm text-gray-500">•</span>
-              <span className="text-sm text-gray-500">{clinician.department}</span>
+              <span className="text-sm text-gray-500">{clinician.clinician_info?.type_info?.title || 'General'}</span>
             </div>
           </div>
           
@@ -457,6 +464,15 @@ const MonthlyReview: React.FC = () => {
             </button>
           </div>
         </div>
+        
+        {submitError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-sm text-red-700">{submitError}</span>
+            </div>
+          </div>
+        )}
         
         {completedKPIs !== totalKPIs && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

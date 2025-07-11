@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { KPI, KPIService } from '../services/kpiService';
+import { ReviewItem, ReviewService } from '../services/reviewService';
 import { supabase } from '../lib/supabase';
 
 interface KPIContextType {
@@ -75,6 +76,7 @@ interface DataContextType {
   removedKPIs: KPI[];
   clinicians: Clinician[];
   reviews: ReviewEntry[];
+  reviewItems: ReviewItem[];
   assignments: Assignment[];
   profiles: Profile[];
   loading: boolean;
@@ -89,9 +91,11 @@ interface DataContextType {
   updateClinician: (clinician: Clinician) => void;
   addClinician: (clinician: Omit<Clinician, 'id'>) => void;
   deleteClinician: (id: string) => void;
-  submitReview: (review: Omit<ReviewEntry, 'id'>) => void;
+  submitReview: (review: Omit<ReviewEntry, 'id'>) => Promise<void>;
+  submitKPIReview: (clinicianId: string, kpiId: string, met: boolean, notes?: string, plan?: string) => Promise<void>;
   getClinicianReviews: (clinicianId: string) => ReviewEntry[];
   getClinicianScore: (clinicianId: string, month: string, year: number) => number;
+  refreshReviewItems: () => Promise<void>;
   // Assignment functions
   assignClinician: (clinicianId: string, directorId: string) => Promise<void>;
   unassignClinician: (clinicianId: string, directorId: string) => Promise<void>;
