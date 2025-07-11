@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
-import { ReviewService } from '../services/reviewService';
-import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download } from 'lucide-react';
+import { ReviewService, ReviewItem } from '../services/reviewService';
+import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus } from 'lucide-react';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
 interface ReviewFormData {
@@ -12,8 +12,56 @@ interface ReviewFormData {
     notes?: string;
     plan?: string;
     files?: File[];
+    existingReviewId?: string; // Track existing review ID for updates
   };
 }
+
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (action: 'update' | 'create') => void;
+  existingReviewsCount: number;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, existingReviewsCount }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Existing Reviews Found
+        </h3>
+        <p className="text-gray-600 mb-6">
+          Found {existingReviewsCount} existing review{existingReviewsCount > 1 ? 's' : ''} for this period. 
+          Would you like to update the existing review{existingReviewsCount > 1 ? 's' : ''} or create new one{existingReviewsCount > 1 ? 's' : ''}?
+        </p>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => onConfirm('update')}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Update Existing</span>
+          </button>
+          <button
+            onClick={() => onConfirm('create')}
+            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New</span>
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MonthlyReview: React.FC = () => {
   const { clinicianId } = useParams<{ clinicianId: string }>();
@@ -27,6 +75,105 @@ const MonthlyReview: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [existingReviews, setExistingReviews] = useState<ReviewItem[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
+
+  // Load existing reviews for the selected period
+  const loadReviewsForPeriod = async (month: string, year: number) => {
+    if (!clinicianId) return;
+    
+    setIsLoading(true);
+    try {
+      const monthNumber = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+      const reviews = await ReviewService.getReviewsByPeriod(clinicianId, monthNumber, year);
+      setExistingReviews(reviews);
+      
+      // Load existing review data into form
+      const formData: ReviewFormData = {};
+      reviews.forEach(review => {
+        formData[review.kpi] = {
+          met: review.met_check,
+          reviewDate: review.date ? new Date(review.date).toISOString().split('T')[0] : undefined,
+          notes: review.notes || undefined,
+          plan: review.plan || undefined,
+          files: [],
+          existingReviewId: review.id
+        };
+      });
+      
+      setReviewData(formData);
+      setHasLoadedData(true);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setSubmitError('Failed to load existing reviews');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load most recent review data as defaults
+  const loadMostRecentReviews = async () => {
+    if (!clinicianId || hasLoadedData) return;
+    
+    setIsLoading(true);
+    try {
+      const allReviews = await ReviewService.getClinicianReviews(clinicianId);
+      if (allReviews.length === 0) {
+        setHasLoadedData(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Group reviews by KPI and get the most recent for each
+      const recentReviewsByKPI: { [kpiId: string]: ReviewItem } = {};
+      allReviews.forEach(review => {
+        if (!recentReviewsByKPI[review.kpi] || 
+            new Date(review.date) > new Date(recentReviewsByKPI[review.kpi].date)) {
+          recentReviewsByKPI[review.kpi] = review;
+        }
+      });
+
+      // Load most recent data as defaults (without existing review IDs)
+      const formData: ReviewFormData = {};
+      Object.values(recentReviewsByKPI).forEach(review => {
+        formData[review.kpi] = {
+          met: review.met_check,
+          reviewDate: review.date ? new Date(review.date).toISOString().split('T')[0] : undefined,
+          notes: review.notes || undefined,
+          plan: review.plan || undefined,
+          files: []
+          // Note: no existingReviewId since these are defaults, not current period reviews
+        };
+      });
+      
+      setReviewData(formData);
+      setHasLoadedData(true);
+    } catch (error) {
+      console.error('Error loading recent reviews:', error);
+      setSubmitError('Failed to load recent review data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load data when month/year changes
+  useEffect(() => {
+    if (clinicianId && kpis.length > 0) {
+      setHasLoadedData(false);
+      setReviewData({});
+      setExistingReviews([]);
+      loadReviewsForPeriod(selectedMonth, selectedYear);
+    }
+  }, [selectedMonth, selectedYear, clinicianId, kpis.length]);
+
+  // Load most recent data as defaults if no existing reviews found
+  useEffect(() => {
+    if (hasLoadedData && existingReviews.length === 0 && Object.keys(reviewData).length === 0) {
+      loadMostRecentReviews();
+    }
+  }, [hasLoadedData, existingReviews.length, Object.keys(reviewData).length]);
 
   if (!clinician) {
     return (
@@ -75,35 +222,46 @@ const MonthlyReview: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     const today = new Date().toISOString().split('T')[0];
+    let completedKPIsCount = 0;
 
     kpis.forEach(kpi => {
       const kpiData = reviewData[kpi.id];
       
-      // Check if KPI status is selected
-      if (kpiData?.met === null || kpiData?.met === undefined) {
-        newErrors[kpi.id] = 'Please select whether this KPI was met or not';
-        return;
+      // Count completed KPIs
+      if (kpiData?.met !== null && kpiData?.met !== undefined) {
+        completedKPIsCount++;
       }
 
-      // If KPI was not met, validate required fields
-      if (kpiData.met === false) {
-        if (!kpiData.reviewDate) {
-          newErrors[kpi.id] = 'Review date is required when KPI is not met';
-        } else if (kpiData.reviewDate > today) {
-          newErrors[kpi.id] = 'Review date cannot be in the future';
-        }
+      // If KPI status is selected, validate additional fields
+      if (kpiData?.met !== null && kpiData?.met !== undefined) {
+        // If KPI was not met, validate required fields
+        if (kpiData.met === false) {
+          if (!kpiData.reviewDate) {
+            newErrors[kpi.id] = 'Review date is required when KPI is not met';
+          } else if (kpiData.reviewDate > today) {
+            newErrors[kpi.id] = 'Review date cannot be in the future';
+          }
 
-        if (!kpiData.notes?.trim()) {
-          newErrors[kpi.id] = 'Performance notes are required when KPI is not met';
-        }
+          if (!kpiData.notes?.trim()) {
+            newErrors[kpi.id] = 'Performance notes are required when KPI is not met';
+          }
 
-        if (!kpiData.plan?.trim()) {
-          newErrors[kpi.id] = 'Improvement plan is required when KPI is not met';
+          if (!kpiData.plan?.trim()) {
+            newErrors[kpi.id] = 'Improvement plan is required when KPI is not met';
+          }
         }
       }
     });
 
+    // Check if at least one KPI is completed
+    if (completedKPIsCount === 0) {
+      setSubmitError('Please complete at least one KPI review before saving');
+      setErrors(newErrors);
+      return false;
+    }
+
     setErrors(newErrors);
+    setSubmitError(null);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -145,11 +303,32 @@ const MonthlyReview: React.FC = () => {
       return;
     }
 
+    // Check if there are existing reviews that would conflict
+    const completedKPIs = Object.entries(reviewData).filter(([_, data]) => 
+      data.met !== null && data.met !== undefined
+    );
+    
+    const existingReviewsForCompletedKPIs = completedKPIs.filter(([kpiId, data]) => 
+      data.existingReviewId
+    );
+
+    // If there are existing reviews, show confirmation modal
+    if (existingReviewsForCompletedKPIs.length > 0) {
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // No existing reviews, proceed with creation
+    await submitReviews('create');
+  };
+
+  const submitReviews = async (action: 'update' | 'create') => {
     setIsSubmitting(true);
     setSubmitError(null);
+    setShowConfirmModal(false);
     
     try {
-      // Submit each KPI review using the database service
+      // Submit each completed KPI review
       for (const [kpiId, data] of Object.entries(reviewData)) {
         if (data.met !== null && data.met !== undefined) {
           const kpi = kpis.find(k => k.id === kpiId);
@@ -157,14 +336,25 @@ const MonthlyReview: React.FC = () => {
           
           const score = data.met ? kpi.weight : 0;
           
-          await ReviewService.createReviewItem({
-            clinician: clinician.id,
-            kpi: kpiId,
-            met_check: data.met,
-            notes: data.met ? undefined : data.notes,
-            plan: data.met ? undefined : data.plan,
-            score: score
-          });
+          if (action === 'update' && data.existingReviewId) {
+            // Update existing review
+            await ReviewService.updateReviewItem(data.existingReviewId, {
+              met_check: data.met,
+              notes: data.met ? undefined : data.notes,
+              plan: data.met ? undefined : data.plan,
+              score: score
+            });
+          } else {
+            // Create new review
+            await ReviewService.createReviewItem({
+              clinician: clinician.id,
+              kpi: kpiId,
+              met_check: data.met,
+              notes: data.met ? undefined : data.notes,
+              plan: data.met ? undefined : data.plan,
+              score: score
+            });
+          }
         }
       }
       
@@ -189,12 +379,28 @@ const MonthlyReview: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Monthly KPI Review</h2>
+            <div className="flex items-center space-x-3">
+              <h2 className="text-2xl font-bold text-gray-900">Monthly KPI Review</h2>
+              {isLoading && (
+                <div className="flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                  <span className="text-sm text-blue-600">Loading...</span>
+                </div>
+              )}
+            </div>
             <p className="text-gray-600 mt-1">Conducting performance review for {clinician.name}</p>
             <div className="flex items-center space-x-4 mt-2">
               <span className="text-sm text-gray-500">{clinician.position_info?.position_title || 'Clinician'}</span>
               <span className="text-sm text-gray-500">•</span>
               <span className="text-sm text-gray-500">{clinician.clinician_info?.type_info?.title || 'General'}</span>
+              {existingReviews.length > 0 && (
+                <>
+                  <span className="text-sm text-gray-500">•</span>
+                  <span className="text-sm text-green-600 font-medium">
+                    {existingReviews.length} existing review{existingReviews.length > 1 ? 's' : ''} found
+                  </span>
+                </>
+              )}
             </div>
           </div>
           
@@ -456,11 +662,11 @@ const MonthlyReview: React.FC = () => {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || completedKPIs !== totalKPIs}
+              disabled={isSubmitting || completedKPIs === 0}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
-              <span>{isSubmitting ? 'Saving Review...' : 'Save Review'}</span>
+              <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>
             </button>
           </div>
         </div>
@@ -474,17 +680,36 @@ const MonthlyReview: React.FC = () => {
           </div>
         )}
         
-        {completedKPIs !== totalKPIs && (
+        {completedKPIs === 0 && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-yellow-600" />
               <span className="text-sm text-yellow-700">
-                Please complete all {totalKPIs} KPI reviews before submitting.
+                Please complete at least one KPI review before saving changes.
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {completedKPIs > 0 && completedKPIs < totalKPIs && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-blue-600" />
+              <span className="text-sm text-blue-700">
+                You can save changes with {completedKPIs} of {totalKPIs} KPIs completed. Remaining KPIs can be completed later.
               </span>
             </div>
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={submitReviews}
+        existingReviewsCount={Object.values(reviewData).filter(data => data.existingReviewId).length}
+      />
     </div>
   );
 };
