@@ -145,14 +145,14 @@ const ClinicianManagement: React.FC = () => {
               <div className="space-y-3">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{clinician.name}</h3>
-                  <p className="text-sm text-gray-600">{clinician.position_info?.position_title || 'Clinician'}</p>
-                  <p className="text-sm text-gray-600">{clinician.clinician_info?.type_info?.title || 'General'}</p>
+                  <p className="text-sm text-gray-600">{'General'}</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{clinician.username}@clinic.com</span>
+                  <User className="w-4 h-4 text-gray-400" />
+                  <p className="text-sm text-gray-600">{clinician.clinician_info?.type_info?.title || 'General'}</p>
                 </div>
+                               
                 
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
