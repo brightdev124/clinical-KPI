@@ -429,13 +429,26 @@ const MonthlyReview: React.FC = () => {
           
           const score = data.met ? kpi.weight : 0;
           
+          // Determine file URL to save
+          let fileUrl: string | undefined;
+          if (!data.met) { // Only save file URL if KPI was not met
+            if (data.uploadedFiles && data.uploadedFiles.length > 0) {
+              // Use the first uploaded file URL (you could modify this to handle multiple files)
+              fileUrl = data.uploadedFiles[0].url;
+            } else if (data.existingFileUrl) {
+              // Keep existing file URL if no new files uploaded
+              fileUrl = data.existingFileUrl;
+            }
+          }
+          
           if (action === 'update' && data.existingReviewId) {
             // Update existing review
             await ReviewService.updateReviewItem(data.existingReviewId, {
               met_check: data.met,
               notes: data.met ? undefined : data.notes,
               plan: data.met ? undefined : data.plan,
-              score: score
+              score: score,
+              file_url: fileUrl
             });
           } else {
             // Create new review
@@ -445,7 +458,8 @@ const MonthlyReview: React.FC = () => {
               met_check: data.met,
               notes: data.met ? undefined : data.notes,
               plan: data.met ? undefined : data.plan,
-              score: score
+              score: score,
+              file_url: fileUrl
             });
           }
         }
@@ -673,17 +687,104 @@ const MonthlyReview: React.FC = () => {
                           <Upload className="w-4 h-4 inline mr-1" />
                           Supporting Files
                         </label>
+                        
+                        {/* File Upload Input */}
                         <input
                           type="file"
                           multiple
-                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
                           onChange={(e) => handleFileUpload(kpi.id, e.target.files)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          disabled={uploadingFiles[kpi.id]}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Upload PDFs, screenshots, or other supporting documents</p>
-                        {kpiData.files && kpiData.files.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Upload PDFs, screenshots, or other supporting documents (Max 10MB per file)
+                        </p>
+                        
+                        {/* Upload Progress */}
+                        {uploadingFiles[kpi.id] && (
+                          <div className="mt-2 flex items-center space-x-2">
+                            <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                            <span className="text-sm text-blue-600">Uploading files...</span>
+                          </div>
+                        )}
+                        
+                        {/* Selected Files (before upload) */}
+                        {kpiData.files && kpiData.files.length > 0 && !uploadingFiles[kpi.id] && (
                           <div className="mt-2">
-                            <p className="text-xs text-green-600">{kpiData.files.length} file(s) selected</p>
+                            <p className="text-xs text-blue-600">{kpiData.files.length} file(s) selected for upload</p>
+                          </div>
+                        )}
+                        
+                        {/* Existing File from Database */}
+                        {kpiData.existingFileUrl && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <File className="w-4 h-4 text-gray-600" />
+                                <span className="text-sm text-gray-700">
+                                  {FileUploadService.getFileInfoFromUrl(kpiData.existingFileUrl).name}
+                                </span>
+                                <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                  Existing
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(kpiData.existingFileUrl, '_blank')}
+                                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                                  title="View file"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExistingFile(kpi.id)}
+                                  className="text-red-600 hover:text-red-800 transition-colors"
+                                  title="Remove file"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Uploaded Files */}
+                        {kpiData.uploadedFiles && kpiData.uploadedFiles.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {kpiData.uploadedFiles.map((file, index) => (
+                              <div key={index} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <File className="w-4 h-4 text-green-600" />
+                                    <span className="text-sm text-green-700 font-medium">{file.name}</span>
+                                    <span className="text-xs text-green-600 bg-green-200 px-2 py-1 rounded">
+                                      {FileUploadService.formatFileSize(file.size)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => window.open(file.url, '_blank')}
+                                      className="text-green-600 hover:text-green-800 transition-colors"
+                                      title="View file"
+                                    >
+                                      <ExternalLink className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveUploadedFile(kpi.id, index)}
+                                      className="text-red-600 hover:text-red-800 transition-colors"
+                                      title="Remove file"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -748,7 +849,7 @@ const MonthlyReview: React.FC = () => {
           
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate(`/clinician/${clinician.id}`)}
+              onClick={() => navigate('/clinicians')}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -758,7 +859,11 @@ const MonthlyReview: React.FC = () => {
               disabled={isSubmitting || completedKPIs === 0}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="w-4 h-4" />
+              {isSubmitting ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
               <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>
             </button>
           </div>
