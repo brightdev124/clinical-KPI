@@ -37,8 +37,8 @@ interface ReviewEntry {
 
 interface Assignment {
   id: string;
-  clinician: number;
-  director: number;
+  clinician: string;
+  director: string;
   created_at: string;
 }
 
@@ -49,7 +49,7 @@ interface Position {
 }
 
 interface Profile {
-  id: number;
+  id: string;
   name: string;
   username: string;
   position: string; // UUID reference to position table
@@ -82,9 +82,9 @@ interface DataContextType {
   getClinicianReviews: (clinicianId: string) => ReviewEntry[];
   getClinicianScore: (clinicianId: string, month: string, year: number) => number;
   // Assignment functions
-  assignClinician: (clinicianId: number, directorId: number) => Promise<void>;
-  unassignClinician: (clinicianId: number, directorId: number) => Promise<void>;
-  getAssignedClinicians: (directorId: number) => Profile[];
+  assignClinician: (clinicianId: string, directorId: string) => Promise<void>;
+  unassignClinician: (clinicianId: string, directorId: string) => Promise<void>;
+  getAssignedClinicians: (directorId: string) => Profile[];
   getUnassignedClinicians: () => Profile[];
   getDirectors: () => Profile[];
   refreshProfiles: () => Promise<void>;
@@ -342,7 +342,7 @@ const AssignmentService = {
     return data || [];
   },
 
-  async assignClinician(clinicianId: number, directorId: number): Promise<void> {
+  async assignClinician(clinicianId: string, directorId: string): Promise<void> {
     const { error } = await supabase
       .from('assign')
       .insert({
@@ -356,7 +356,7 @@ const AssignmentService = {
     }
   },
 
-  async unassignClinician(clinicianId: number, directorId: number): Promise<void> {
+  async unassignClinician(clinicianId: string, directorId: string): Promise<void> {
     const { error } = await supabase
       .from('assign')
       .delete()
@@ -549,7 +549,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Assignment functions
-  const assignClinician = async (clinicianId: number, directorId: number) => {
+  const assignClinician = async (clinicianId: string, directorId: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -566,7 +566,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const unassignClinician = async (clinicianId: number, directorId: number) => {
+  const unassignClinician = async (clinicianId: string, directorId: string) => {
     try {
       setLoading(true);
       setError(null);
