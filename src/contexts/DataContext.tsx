@@ -405,6 +405,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [removedKPIs, setRemovedKPIs] = useState<KPI[]>([]);
   const [clinicians, setClinicians] = useState<Clinician[]>(mockClinicians);
   const [reviews, setReviews] = useState<ReviewEntry[]>(mockReviews);
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -416,6 +417,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshRemovedKPIs();
     refreshProfiles();
     refreshAssignments();
+    refreshReviewItems();
   }, []);
 
   const refreshKPIs = async () => {
@@ -552,30 +554,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getClinicianReviews = (clinicianId: string) => {
-    return reviews.filter(r => r.clinicianId === clinicianId);
+    // Convert ReviewItem[] to ReviewEntry[] format for backward compatibility
+    return reviewItems
+      .filter(r => r.clinician === clinicianId)
+      .map(r => ({
+        id: r.id,
+        clinicianId: r.clinician,
+        kpiId: r.kpi,
+        month: new Date(r.date).toLocaleString('default', { month: 'long' }),
+        year: new Date(r.date).getFullYear(),
+        met: r.met_check,
+        reviewDate: r.met_check ? undefined : r.date,
+        notes: r.notes,
+        plan: r.plan,
+        files: r.file_url ? [r.file_url] : undefined,
+      }));
   };
 
   const getClinicianScore = (clinicianId: string, month: string, year: number) => {
-    const clinicianReviews = reviews.filter(
-      r => r.clinicianId === clinicianId && r.month === month && r.year === year
-    );
+    // Filter review items for the specific clinician and period
+    const clinicianReviews = reviewItems.filter(r => {
+      const reviewDate = new Date(r.date);
+      const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+      const reviewYear = reviewDate.getFullYear();
+      return r.clinician === clinicianId && reviewMonth === month && reviewYear === year;
+    });
     
     if (clinicianReviews.length === 0) return 0;
     
     let totalWeight = 0;
-    let earnedWeight = 0;
+    let earnedScore = 0;
     
     clinicianReviews.forEach(review => {
-      const kpi = kpis.find(k => k.id === review.kpiId);
+      const kpi = kpis.find(k => k.id === review.kpi);
       if (kpi) {
         totalWeight += kpi.weight;
-        if (review.met) {
-          earnedWeight += kpi.weight;
-        }
+        earnedScore += review.score; // Use the stored score directly
       }
     });
     
-    return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+    return totalWeight > 0 ? Math.round((earnedScore / totalWeight) * 100) : 0;
   };
 
   // Assignment functions
@@ -662,12 +680,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshReviewItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedReviewItems = await ReviewService.getAllReviewsWithKPIs();
+      setReviewItems(fetchedReviewItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh review items');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       kpis,
       removedKPIs,
       clinicians,
       reviews,
+      reviewItems,
       assignments,
       profiles,
       loading,
@@ -692,6 +725,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getDirectors,
       refreshProfiles,
       refreshAssignments,
+      refreshReviewItems,
     }}>
       {children}
     </DataContext.Provider>

@@ -7,9 +7,10 @@ import { generateClinicianSummaryPDF } from '../utils/pdfGenerator';
 
 const ClinicianProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { clinicians, kpis, getClinicianScore, getClinicianReviews } = useData();
+  const { profiles, kpis, getClinicianScore, getClinicianReviews } = useData();
   
-  const clinician = clinicians.find(c => c.id === id);
+  // Find the clinician profile from the profiles array
+  const clinician = profiles.find(p => p.id === id && p.position_info?.role === 'clinician');
   const reviews = getClinicianReviews(id || '');
   
   if (!clinician) {
