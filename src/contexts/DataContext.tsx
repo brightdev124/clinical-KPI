@@ -42,14 +42,21 @@ interface Assignment {
   created_at: string;
 }
 
+interface Position {
+  id: string;
+  position_title: string;
+  role: 'super-admin' | 'director' | 'clinician';
+}
+
 interface Profile {
   id: number;
   name: string;
   username: string;
-  role: 'super-admin' | 'director' | 'clinician';
+  position: string; // UUID reference to position table
   accept: boolean;
   created_at: string;
   updated_at: string;
+  position_info?: Position; // For joined data
 }
 
 interface DataContextType {
@@ -254,7 +261,14 @@ const ProfileService = {
   async getAllProfiles(): Promise<Profile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(`
+        *,
+        position_info:position(
+          id,
+          position_title,
+          role
+        )
+      `)
       .eq('accept', true)
       .order('created_at', { ascending: false });
 
@@ -575,19 +589,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .map(a => a.clinician);
     
     return profiles.filter(p => 
-      assignedClinicianIds.includes(p.id) && p.role === 'clinician'
+      assignedClinicianIds.includes(p.id) && p.position_info?.role === 'clinician'
     );
   };
 
   const getUnassignedClinicians = (): Profile[] => {
     const assignedClinicianIds = assignments.map(a => a.clinician);
     return profiles.filter(p => 
-      !assignedClinicianIds.includes(p.id) && p.role === 'clinician'
+      !assignedClinicianIds.includes(p.id) && p.position_info?.role === 'clinician'
     );
   };
 
   const getDirectors = (): Profile[] => {
-    return profiles.filter(p => p.role === 'director');
+    return profiles.filter(p => p.position_info?.role === 'director');
   };
 
   const refreshProfiles = async () => {
