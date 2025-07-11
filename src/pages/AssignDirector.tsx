@@ -194,7 +194,7 @@ const AssignDirector: React.FC = () => {
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{director.name}</h3>
-                    <p className="text-sm text-gray-600">Clinical Director</p>
+                    <p className="text-sm text-gray-600">{director.position_info?.position_title || 'Clinical Director'}</p>
                   </div>
                   
                   <div className="flex items-center space-x-2">
