@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
         return {
           id: index,
           type: review.met ? 'kpi_met' : 'improvement_needed',
-          action: review.met ? `${kpi?.name} - Target Met` : `${kpi?.name} - Improvement Plan`,
+          action: review.met ? `${kpi?.title} - Target Met` : `${kpi?.title} - Improvement Plan`,
           time: review.reviewDate ? `Reviewed ${new Date(review.reviewDate).toLocaleDateString()}` : `${review.month} ${review.year}`,
           notes: review.notes,
           plan: review.plan
