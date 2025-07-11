@@ -57,6 +57,10 @@ interface Profile {
   created_at: string;
   updated_at: string;
   position_info?: Position; // For joined data
+  director_info?: {
+    id: string;
+    direction: string;
+  };
 }
 
 interface DataContextType {
@@ -267,6 +271,10 @@ const ProfileService = {
           id,
           position_title,
           role
+        ),
+        director_info:director(
+          id,
+          direction
         )
       `)
       .eq('accept', true)
@@ -289,6 +297,10 @@ const ProfileService = {
           id,
           position_title,
           role
+        ),
+        director_info:director(
+          id,
+          direction
         )
       `)
       .eq('position_info.role', 'director')

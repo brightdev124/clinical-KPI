@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, UserMinus, User, Mail, Calendar, Users, X, CheckCircle } from 'lucide-react';
+import { UserPlus, UserMinus, User, Mail, Calendar, Users, X, CheckCircle, Navigation } from 'lucide-react';
 
 const AssignDirector: React.FC = () => {
   const { 
@@ -198,8 +198,8 @@ const AssignDirector: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{director.username}@clinic.com</span>
+                    <Navigation className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{director.director_info?.direction || 'General'}</span>
                   </div>
                   
                   <div className="flex items-center space-x-2">
