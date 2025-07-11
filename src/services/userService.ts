@@ -426,12 +426,13 @@ export class UserService {
         }
 
         // Create new role-specific records
-        if (newRole === 'director' && userData.director_info) {
+        if (newRole === 'director') {
+          const directionValue = userData.director_info?.direction || 'General';
           const { error: directorError } = await supabase
             .from('director')
             .insert({
               profile: id,
-              direction: userData.director_info.direction
+              direction: directionValue
             });
 
           if (directorError) {
@@ -452,22 +453,50 @@ export class UserService {
       } else {
         // Role didn't change, but we might need to update role-specific info
         if (newRole === 'director' && userData.director_info) {
-          const { error: directorError } = await supabase
+          // First, try to update existing director record
+          const { data: updateResult, error: directorUpdateError } = await supabase
             .from('director')
             .update({ direction: userData.director_info.direction })
-            .eq('profile', id);
+            .eq('profile', id)
+            .select();
 
-          if (directorError) {
-            throw new Error(`Failed to update director record: ${directorError.message}`);
+          // If no rows were updated, it means the director record doesn't exist, so create it
+          if (!directorUpdateError && (!updateResult || updateResult.length === 0)) {
+            const { error: directorInsertError } = await supabase
+              .from('director')
+              .insert({
+                profile: id,
+                direction: userData.director_info.direction
+              });
+
+            if (directorInsertError) {
+              throw new Error(`Failed to create director record: ${directorInsertError.message}`);
+            }
+          } else if (directorUpdateError) {
+            throw new Error(`Failed to update director record: ${directorUpdateError.message}`);
           }
         } else if (newRole === 'clinician' && userData.clinician_info) {
-          const { error: clinicianError } = await supabase
+          // First, try to update existing clinician record
+          const { data: updateResult, error: clinicianUpdateError } = await supabase
             .from('clician')
             .update({ type: userData.clinician_info.type_id })
-            .eq('profile', id);
+            .eq('profile', id)
+            .select();
 
-          if (clinicianError) {
-            throw new Error(`Failed to update clinician record: ${clinicianError.message}`);
+          // If no rows were updated, it means the clinician record doesn't exist, so create it
+          if (!clinicianUpdateError && (!updateResult || updateResult.length === 0)) {
+            const { error: clinicianInsertError } = await supabase
+              .from('clician')
+              .insert({
+                profile: id,
+                type: userData.clinician_info.type_id
+              });
+
+            if (clinicianInsertError) {
+              throw new Error(`Failed to create clinician record: ${clinicianInsertError.message}`);
+            }
+          } else if (clinicianUpdateError) {
+            throw new Error(`Failed to update clinician record: ${clinicianUpdateError.message}`);
           }
         }
       }

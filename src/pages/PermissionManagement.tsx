@@ -235,6 +235,7 @@ const PermissionManagement: React.FC = () => {
       }
 
       console.log('Updating user with data:', updateData);
+      console.log('Current editing user:', editingUser);
       
       try {
         const updatedUser = await UserService.updateUser(editingUser.id, updateData);
@@ -243,9 +244,10 @@ const PermissionManagement: React.FC = () => {
         setSuccess('User updated successfully');
         setShowEditModal(false);
         setEditingUser(null);
-        fetchData();
+        await fetchData(); // Make sure to wait for data refresh
       } catch (updateError: any) {
         console.error('Error in updateUser:', updateError);
+        console.error('Update error details:', updateError);
         setError(updateError.message || 'Failed to update user');
       } finally {
         // Reset updating state regardless of success or failure
