@@ -9,6 +9,7 @@ export interface ReviewItem {
   plan?: string; // if not met
   score: number; // weight or 0
   date: string; // creation timestamp
+  file_url?: string; // URL to uploaded file in Supabase Storage
 }
 
 export interface CreateReviewItemData {
@@ -18,6 +19,7 @@ export interface CreateReviewItemData {
   notes?: string;
   plan?: string;
   score: number;
+  file_url?: string;
 }
 
 export interface UpdateReviewItemData {
@@ -25,6 +27,7 @@ export interface UpdateReviewItemData {
   notes?: string;
   plan?: string;
   score?: number;
+  file_url?: string;
 }
 
 export class ReviewService {
@@ -41,6 +44,7 @@ export class ReviewService {
         notes: reviewData.notes || null,
         plan: reviewData.plan || null,
         score: reviewData.score,
+        file_url: reviewData.file_url || null,
       })
       .select()
       .single();
@@ -128,6 +132,7 @@ export class ReviewService {
     if (reviewData.notes !== undefined) updateData.notes = reviewData.notes;
     if (reviewData.plan !== undefined) updateData.plan = reviewData.plan;
     if (reviewData.score !== undefined) updateData.score = reviewData.score;
+    if (reviewData.file_url !== undefined) updateData.file_url = reviewData.file_url;
 
     const { data, error } = await supabase
       .from('review_items')
@@ -216,6 +221,7 @@ export class ReviewService {
         notes: item.notes || null,
         plan: item.plan || null,
         score: item.score,
+        file_url: item.file_url || null,
       })))
       .select();
 

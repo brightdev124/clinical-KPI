@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { ReviewService, ReviewItem } from '../services/reviewService';
-import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus } from 'lucide-react';
+import { FileUploadService, UploadedFile } from '../services/fileUploadService';
+import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus, File, Trash2, ExternalLink } from 'lucide-react';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
 interface ReviewFormData {
@@ -12,6 +13,8 @@ interface ReviewFormData {
     notes?: string;
     plan?: string;
     files?: File[];
+    uploadedFiles?: UploadedFile[];
+    existingFileUrl?: string; // Track existing file URL from database
     existingReviewId?: string; // Track existing review ID for updates
   };
 }
@@ -79,6 +82,7 @@ const MonthlyReview: React.FC = () => {
   const [existingReviews, setExistingReviews] = useState<ReviewItem[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
 
   // Load existing reviews for the selected period
   const loadReviewsForPeriod = async (month: string, year: number) => {
@@ -99,6 +103,8 @@ const MonthlyReview: React.FC = () => {
           notes: review.notes || undefined,
           plan: review.plan || undefined,
           files: [],
+          uploadedFiles: [],
+          existingFileUrl: review.file_url || undefined,
           existingReviewId: review.id
         };
       });
@@ -143,7 +149,8 @@ const MonthlyReview: React.FC = () => {
           reviewDate: review.date ? new Date(review.date).toISOString().split('T')[0] : undefined,
           notes: review.notes || undefined,
           plan: review.plan || undefined,
-          files: []
+          files: [],
+          uploadedFiles: []
           // Note: no existingReviewId since these are defaults, not current period reviews
         };
       });
@@ -206,16 +213,102 @@ const MonthlyReview: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (kpiId: string, files: FileList | null) => {
-    if (files) {
-      const fileArray = Array.from(files);
+  const handleFileUpload = async (kpiId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    
+    // Update form data with selected files
+    setReviewData(prev => ({
+      ...prev,
+      [kpiId]: {
+        ...prev[kpiId],
+        files: fileArray,
+      }
+    }));
+
+    // Start upload process
+    setUploadingFiles(prev => ({ ...prev, [kpiId]: true }));
+    
+    try {
+      if (!clinicianId) throw new Error('Clinician ID not found');
+      
+      const uploadedFiles = await FileUploadService.uploadFiles(
+        fileArray,
+        clinicianId,
+        kpiId
+      );
+
+      // Update form data with uploaded file URLs
       setReviewData(prev => ({
         ...prev,
         [kpiId]: {
           ...prev[kpiId],
-          files: fileArray,
+          uploadedFiles: uploadedFiles,
+          files: [] // Clear the file input after successful upload
         }
       }));
+
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to upload files');
+      
+      // Clear files on error
+      setReviewData(prev => ({
+        ...prev,
+        [kpiId]: {
+          ...prev[kpiId],
+          files: []
+        }
+      }));
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [kpiId]: false }));
+    }
+  };
+
+  const handleRemoveUploadedFile = async (kpiId: string, fileIndex: number) => {
+    const kpiData = reviewData[kpiId];
+    if (!kpiData?.uploadedFiles) return;
+
+    const fileToRemove = kpiData.uploadedFiles[fileIndex];
+    
+    try {
+      // Delete from Supabase Storage
+      await FileUploadService.deleteFile(fileToRemove.url);
+      
+      // Remove from form data
+      setReviewData(prev => ({
+        ...prev,
+        [kpiId]: {
+          ...prev[kpiId],
+          uploadedFiles: prev[kpiId]?.uploadedFiles?.filter((_, index) => index !== fileIndex) || []
+        }
+      }));
+    } catch (error) {
+      console.error('Error removing file:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to remove file');
+    }
+  };
+
+  const handleRemoveExistingFile = async (kpiId: string) => {
+    const kpiData = reviewData[kpiId];
+    if (!kpiData?.existingFileUrl) return;
+
+    try {
+      // Delete from Supabase Storage
+      await FileUploadService.deleteFile(kpiData.existingFileUrl);
+      
+      // Remove from form data
+      setReviewData(prev => ({
+        ...prev,
+        [kpiId]: {
+          ...prev[kpiId],
+          existingFileUrl: undefined
+        }
+      }));
+    } catch (error) {
+      console.error('Error removing existing file:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to remove existing file');
     }
   };
 
