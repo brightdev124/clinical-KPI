@@ -145,7 +145,7 @@ const ClinicianManagement: React.FC = () => {
               <div className="space-y-3">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{clinician.name}</h3>
-                  <p className="text-sm text-gray-600">{'General'}</p>
+                  <p className="text-sm text-gray-600">{clinician.position_info?.position_title || 'General'}</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
