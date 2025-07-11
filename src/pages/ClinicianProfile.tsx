@@ -42,7 +42,7 @@ const ClinicianProfile: React.FC = () => {
     const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
     
     return {
-      name: kpi.title,
+      title: kpi.title,
       percentage,
       weight: kpi.weight,
       met: metCount,
@@ -159,7 +159,7 @@ const ClinicianProfile: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium text-gray-900">{kpi.name}</span>
+                  <span className="font-medium text-gray-900">{kpi.title}</span>
                   <span className="text-xs text-gray-500">Weight: {kpi.weight}</span>
                 </div>
                 <div className="text-right">
@@ -187,7 +187,7 @@ const ClinicianProfile: React.FC = () => {
             return (
               <div key={review.id} className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">{kpi?.name}</span>
+                  <span className="font-medium text-gray-900">{kpi?.title}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">{review.month} {review.year}</span>
                     <span className={`px-2 py-1 rounded-full text-xs ${
