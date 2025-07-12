@@ -62,6 +62,15 @@ const PermissionManagement: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState<string>('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newUserData, setNewUserData] = useState<EditUserData>({
+    name: '',
+    username: '',
+    role: 'clinician',
+    password: '',
+    accept: false,
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -330,6 +339,97 @@ const PermissionManagement: React.FC = () => {
     }
   };
 
+  const handleAddUser = () => {
+    setNewUserData({
+      name: '',
+      username: '',
+      role: activeTab === 'super-admin' ? 'super-admin' : activeTab === 'director' ? 'director' : 'clinician',
+      password: '',
+      accept: false,
+    });
+    setShowAddModal(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      if (!newUserData.name || !newUserData.username || !newUserData.password) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      setIsCreating(true);
+
+      // Validate role-specific requirements
+      let position_id = newUserData.position_id;
+      
+      if (!position_id) {
+        // Find a position matching the selected role
+        const matchingPosition = positions.find(p => p.role === newUserData.role);
+        if (matchingPosition) {
+          position_id = matchingPosition.id;
+        } else {
+          setError(`No position found for ${newUserData.role} role. Please create one first.`);
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      // Create the user data object
+      const createData: any = {
+        name: newUserData.name,
+        username: newUserData.username,
+        password: newUserData.password,
+        role: newUserData.role,
+        position_id: position_id,
+        accept: newUserData.accept,
+      };
+
+      // Add role-specific information
+      if (newUserData.role === 'director') {
+        if (newUserData.director_info) {
+          createData.director_info = newUserData.director_info;
+        } else {
+          createData.director_info = { direction: 'General' };
+        }
+      } else if (newUserData.role === 'clinician') {
+        if (newUserData.clinician_info && newUserData.clinician_info.type_id) {
+          createData.clinician_info = newUserData.clinician_info;
+        } else {
+          const firstType = clinicianTypes[0];
+          if (firstType) {
+            createData.clinician_info = { type_id: firstType.id };
+          } else {
+            setError('No clinician types found. Please create one first.');
+            setIsCreating(false);
+            return;
+          }
+        }
+      }
+
+      console.log('Creating user with data:', createData);
+      
+      await UserService.createUser(createData);
+      
+      setSuccess('User created successfully');
+      setShowAddModal(false);
+      setNewUserData({
+        name: '',
+        username: '',
+        role: 'clinician',
+        password: '',
+        accept: false,
+      });
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      setError(error.message || 'Failed to create user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super-admin':
@@ -379,6 +479,13 @@ const PermissionManagement: React.FC = () => {
               <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
             </div>
             <div className="flex items-center space-x-8">
+              <button
+                onClick={handleAddUser}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add New User</span>
+              </button>
               <div className="flex items-center space-x-2">
                 <Users className="w-8 h-8 text-blue-600" />
                 <span className="text-2xl font-bold text-gray-900">{users.length}</span>
@@ -1090,6 +1197,198 @@ const PermissionManagement: React.FC = () => {
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                   >
                     Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add New User Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New User</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newUserData.name}
+                      onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter full name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newUserData.username}
+                      onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={newUserData.password || ''}
+                      onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter password"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={newUserData.role}
+                      onChange={(e) => {
+                        const newRole = e.target.value as 'super-admin' | 'director' | 'clinician';
+                        const currentPosition = positions.find(p => p.id === newUserData.position_id);
+                        
+                        setNewUserData({
+                          ...newUserData,
+                          role: newRole,
+                          position_id: currentPosition && currentPosition.role === newRole 
+                            ? newUserData.position_id 
+                            : undefined
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="super-admin">Super Admin</option>
+                      <option value="director">Director</option>
+                      <option value="clinician">Clinician</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Position
+                    </label>
+                    <select
+                      value={newUserData.position_id || ''}
+                      onChange={(e) => {
+                        setNewUserData({ 
+                          ...newUserData, 
+                          position_id: e.target.value || undefined
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a position</option>
+                      {positions
+                        .filter(position => position.role === newUserData.role)
+                        .map(position => (
+                          <option key={position.id} value={position.id}>
+                            {position.position_title}
+                          </option>
+                        ))
+                      }
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Showing positions for {newUserData.role} role
+                    </p>
+                  </div>
+
+                  {/* Role-specific fields */}
+                  {newUserData.role === 'director' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Direction
+                      </label>
+                      <input
+                        type="text"
+                        value={newUserData.director_info?.direction || ''}
+                        onChange={(e) => setNewUserData({ 
+                          ...newUserData, 
+                          director_info: { direction: e.target.value } 
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter direction"
+                      />
+                    </div>
+                  )}
+
+                  {newUserData.role === 'clinician' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Clinician Type
+                      </label>
+                      <select
+                        value={newUserData.clinician_info?.type_id || ''}
+                        onChange={(e) => {
+                          setNewUserData({ 
+                            ...newUserData, 
+                            clinician_info: { type_id: e.target.value } 
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">Select a type</option>
+                        {clinicianTypes.length > 0 ? (
+                          clinicianTypes.map(type => (
+                            <option key={type.id} value={type.id}>
+                              {type.title}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No clinician types available</option>
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="newUserAccept"
+                      checked={newUserData.accept}
+                      onChange={(e) => setNewUserData({ ...newUserData, accept: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="newUserAccept" className="ml-2 block text-sm text-gray-700">
+                      Approved
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateUser}
+                    disabled={isCreating}
+                    className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg transition-colors ${isCreating ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                  >
+                    {isCreating ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        <span>Creating...</span>
+                      </div>
+                    ) : (
+                      'Create User'
+                    )}
                   </button>
                 </div>
               </div>
