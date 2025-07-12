@@ -667,6 +667,23 @@ export class UserService {
   }
 
   /**
+   * Get user's current password
+   */
+  static async getUserPassword(id: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('password')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to fetch user password: ${error.message}`);
+    }
+
+    return data?.password || '';
+  }
+
+  /**
    * Change user password
    */
   static async changePassword(id: string, newPassword: string): Promise<void> {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building } from 'lucide-react';
+import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserService, { User, Position, ClinicianType } from '../services/userService';
 
@@ -59,6 +59,9 @@ const PermissionManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending'>('all');
   const [activeTab, setActiveTab] = useState<'super-admin' | 'director' | 'clinician'>('super-admin');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -124,6 +127,22 @@ const PermissionManagement: React.FC = () => {
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterStatus, activeTab]);
 
+  const fetchCurrentPassword = async () => {
+    if (!editingUser) return;
+    
+    try {
+      setIsLoadingPassword(true);
+      const password = await UserService.getUserPassword(editingUser.id);
+      setCurrentPassword(password);
+      setEditData({ ...editData, password: password });
+    } catch (error: any) {
+      console.error('Error fetching current password:', error);
+      setError(error.message || 'Failed to fetch current password');
+    } finally {
+      setIsLoadingPassword(false);
+    }
+  };
+
   const handleEdit = (user: User) => {
     console.log('Editing user:', user);
     
@@ -146,6 +165,8 @@ const PermissionManagement: React.FC = () => {
     setEditingUser(user);
     setEditData(editDataObj);
     setShowEditModal(true);
+    setShowPassword(false); // Reset password visibility
+    setCurrentPassword(''); // Reset current password
     setError('');
     setSuccess('');
   };
@@ -846,16 +867,49 @@ const PermissionManagement: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password (leave blank to keep current)
-                    </label>
-                    <input
-                      type="password"
-                      value={editData.password || ''}
-                      onChange={(e) => setEditData({ ...editData, password: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter new password"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={fetchCurrentPassword}
+                        disabled={isLoadingPassword}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        {isLoadingPassword ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          'Show current password'
+                        )}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={editData.password || ''}
+                        onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter new password or click 'Show current password'"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Leave blank to keep current password, or click "Show current password" to see the existing value
+                    </p>
                   </div>
 
                   <div>
