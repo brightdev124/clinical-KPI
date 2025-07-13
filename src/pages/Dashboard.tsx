@@ -806,6 +806,506 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Performance Charts Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Team Performance Overview Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
+              <p className="text-sm text-gray-600">Current month performance by clinician</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <BarChart3 className="w-4 h-4" />
+              <span>Current Month</span>
+            </div>
+          </div>
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={userClinicians.map(clinician => ({
+                name: clinician.name.split(' ')[0], // First name only for space
+                fullName: clinician.name,
+                score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
+                position: clinician.position_info?.position_title || 'Clinician'
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any, name: string, props: any) => [
+                    `${value}%`, 
+                    'Performance Score'
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    const data = payload?.[0]?.payload;
+                    return data ? `${data.fullName} (${data.position})` : label;
+                  }}
+                />
+                <Bar 
+                  dataKey="score" 
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Performance Distribution Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Distribution</h3>
+              <p className="text-sm text-gray-600">Score ranges across your team</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Activity className="w-4 h-4" />
+              <span>Distribution</span>
+            </div>
+          </div>
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[
+                {
+                  range: '90-100%',
+                  label: 'Excellent',
+                  count: userClinicians.filter(c => getClinicianScore(c.id, selectedMonth, selectedYear) >= 90).length,
+                  color: '#10b981'
+                },
+                {
+                  range: '80-89%',
+                  label: 'Good',
+                  count: userClinicians.filter(c => {
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                    return score >= 80 && score < 90;
+                  }).length,
+                  color: '#3b82f6'
+                },
+                {
+                  range: '70-79%',
+                  label: 'Average',
+                  count: userClinicians.filter(c => {
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                    return score >= 70 && score < 80;
+                  }).length,
+                  color: '#f59e0b'
+                },
+                {
+                  range: '0-69%',
+                  label: 'Needs Improvement',
+                  count: userClinicians.filter(c => getClinicianScore(c.id, selectedMonth, selectedYear) < 70).length,
+                  color: '#ef4444'
+                }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="range" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any, name: string, props: any) => [
+                    `${value} clinician${value !== 1 ? 's' : ''}`, 
+                    props.payload.label
+                  ]}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Trend Analysis Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Monthly Trend Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Trend</h3>
+              <p className="text-sm text-gray-600">Average team performance over last 6 months</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <TrendingUp className="w-4 h-4" />
+              <span>6-Month Trend</span>
+            </div>
+          </div>
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={(() => {
+                const trendData = [];
+                const currentDate = new Date();
+                
+                for (let i = 5; i >= 0; i--) {
+                  const date = new Date();
+                  date.setMonth(currentDate.getMonth() - i);
+                  const month = date.toLocaleString('default', { month: 'long' });
+                  const year = date.getFullYear();
+                  
+                  const monthlyScores = userClinicians.map(c => 
+                    getClinicianScore(c.id, month, year)
+                  );
+                  const avgScore = monthlyScores.length > 0 
+                    ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
+                    : 0;
+                  
+                  trendData.push({
+                    month: date.toLocaleString('default', { month: 'short' }),
+                    fullMonth: month,
+                    year: year,
+                    avgScore: avgScore,
+                    displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
+                  });
+                }
+                
+                return trendData;
+              })()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="displayName" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any) => [`${value}%`, 'Team Average']}
+                  labelFormatter={(label, payload) => {
+                    const dataPoint = payload?.[0]?.payload;
+                    return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="avgScore" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#ffffff' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Individual Clinician Trends */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Individual Performance Trends</h3>
+              <p className="text-sm text-gray-600">Last 6 months comparison by clinician</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Users className="w-4 h-4" />
+              <span>Multi-line</span>
+            </div>
+          </div>
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={(() => {
+                const trendData = [];
+                const currentDate = new Date();
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+                
+                for (let i = 5; i >= 0; i--) {
+                  const date = new Date();
+                  date.setMonth(currentDate.getMonth() - i);
+                  const month = date.toLocaleString('default', { month: 'long' });
+                  const year = date.getFullYear();
+                  
+                  const monthData: any = {
+                    month: date.toLocaleString('default', { month: 'short' }),
+                    fullMonth: month,
+                    year: year,
+                    displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
+                  };
+                  
+                  userClinicians.slice(0, 5).forEach((clinician, index) => {
+                    const score = getClinicianScore(clinician.id, month, year);
+                    monthData[`clinician_${index}`] = score;
+                    monthData[`clinician_${index}_name`] = clinician.name.split(' ')[0];
+                  });
+                  
+                  trendData.push(monthData);
+                }
+                
+                return trendData;
+              })()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="displayName" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                {userClinicians.slice(0, 5).map((clinician, index) => {
+                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                  return (
+                    <Line 
+                      key={clinician.id}
+                      type="monotone" 
+                      dataKey={`clinician_${index}`} 
+                      stroke={colors[index]} 
+                      strokeWidth={2}
+                      dot={{ fill: colors[index], strokeWidth: 1, r: 3 }}
+                      name={clinician.name.split(' ')[0]}
+                    />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4">
+            {userClinicians.slice(0, 5).map((clinician, index) => {
+              const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+              return (
+                <div key={clinician.id} className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: colors[index] }}
+                  ></div>
+                  <span className="text-sm text-gray-600">{clinician.name.split(' ')[0]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Performance Analysis */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">KPI Performance Analysis</h3>
+            <p className="text-sm text-gray-600">How your team performs across different KPIs for {selectedMonth} {selectedYear}</p>
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <Target className="w-4 h-4" />
+            <span>By KPI</span>
+          </div>
+        </div>
+        
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={kpis.map(kpi => {
+                // Calculate how many clinicians met this KPI in the selected month
+                const kpiReviews = userClinicians.map(clinician => {
+                  const clinicianReviews = getClinicianReviews(clinician.id);
+                  return clinicianReviews.find(r => 
+                    r.kpiId === kpi.id && 
+                    r.month === selectedMonth && 
+                    r.year === selectedYear
+                  );
+                }).filter(Boolean);
+                
+                const metCount = kpiReviews.filter(r => r?.met).length;
+                const totalCount = kpiReviews.length;
+                const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+                
+                return {
+                  name: kpi.title.length > 20 ? kpi.title.substring(0, 20) + '...' : kpi.title,
+                  fullName: kpi.title,
+                  percentage: percentage,
+                  metCount: metCount,
+                  totalCount: totalCount,
+                  weight: kpi.weight
+                };
+              })}
+              layout="horizontal"
+              margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                type="number"
+                domain={[0, 100]}
+                stroke="#6b7280"
+                fontSize={12}
+                tickLine={false}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <YAxis 
+                type="category"
+                dataKey="name"
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                width={90}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+                formatter={(value: any, name: string, props: any) => [
+                  `${value}% (${props.payload.metCount}/${props.payload.totalCount} clinicians)`, 
+                  'Success Rate'
+                ]}
+                labelFormatter={(label, payload) => {
+                  const data = payload?.[0]?.payload;
+                  return data ? `${data.fullName} (Weight: ${data.weight})` : label;
+                }}
+              />
+              <Bar 
+                dataKey="percentage" 
+                fill="#3b82f6"
+                radius={[0, 4, 4, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* KPI Performance Summary */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-gray-700">High Performing KPIs</span>
+            </div>
+            <div className="text-2xl font-bold text-green-600 mt-1">
+              {kpis.filter(kpi => {
+                const kpiReviews = userClinicians.map(clinician => {
+                  const clinicianReviews = getClinicianReviews(clinician.id);
+                  return clinicianReviews.find(r => 
+                    r.kpiId === kpi.id && 
+                    r.month === selectedMonth && 
+                    r.year === selectedYear
+                  );
+                }).filter(Boolean);
+                
+                const metCount = kpiReviews.filter(r => r?.met).length;
+                const totalCount = kpiReviews.length;
+                const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+                return percentage >= 80;
+              }).length}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">≥80% success rate</div>
+          </div>
+          
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm font-medium text-gray-700">Needs Attention</span>
+            </div>
+            <div className="text-2xl font-bold text-yellow-600 mt-1">
+              {kpis.filter(kpi => {
+                const kpiReviews = userClinicians.map(clinician => {
+                  const clinicianReviews = getClinicianReviews(clinician.id);
+                  return clinicianReviews.find(r => 
+                    r.kpiId === kpi.id && 
+                    r.month === selectedMonth && 
+                    r.year === selectedYear
+                  );
+                }).filter(Boolean);
+                
+                const metCount = kpiReviews.filter(r => r?.met).length;
+                const totalCount = kpiReviews.length;
+                const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+                return percentage >= 60 && percentage < 80;
+              }).length}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">60-79% success rate</div>
+          </div>
+          
+          <div className="bg-red-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-sm font-medium text-gray-700">Critical KPIs</span>
+            </div>
+            <div className="text-2xl font-bold text-red-600 mt-1">
+              {kpis.filter(kpi => {
+                const kpiReviews = userClinicians.map(clinician => {
+                  const clinicianReviews = getClinicianReviews(clinician.id);
+                  return clinicianReviews.find(r => 
+                    r.kpiId === kpi.id && 
+                    r.month === selectedMonth && 
+                    r.year === selectedYear
+                  );
+                }).filter(Boolean);
+                
+                const metCount = kpiReviews.filter(r => r?.met).length;
+                const totalCount = kpiReviews.length;
+                const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+                return percentage < 60;
+              }).length}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">&lt;60% success rate</div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Current Month Performance */}
