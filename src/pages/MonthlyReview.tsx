@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
 import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus, File, Trash2, ExternalLink } from 'lucide-react';
@@ -70,6 +71,7 @@ const MonthlyReview: React.FC = () => {
   const { clinicianId } = useParams<{ clinicianId: string }>();
   const navigate = useNavigate();
   const { profiles, kpis, loading, error } = useData();
+  const { user } = useAuth();
   
   const clinician = profiles.find(c => c.id === clinicianId);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
@@ -448,13 +450,15 @@ const MonthlyReview: React.FC = () => {
               notes: data.met ? undefined : data.notes,
               plan: data.met ? undefined : data.plan,
               score: score,
-              file_url: fileUrl
+              file_url: fileUrl,
+              director: user?.id // Add director ID when updating
             });
           } else {
             // Create new review
             await ReviewService.createReviewItem({
               clinician: clinician.id,
               kpi: kpiId,
+              director: user?.id, // Add director ID when creating
               met_check: data.met,
               notes: data.met ? undefined : data.notes,
               plan: data.met ? undefined : data.plan,

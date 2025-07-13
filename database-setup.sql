@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS review_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   clinician UUID REFERENCES profiles(id) NOT NULL,
   kpi UUID REFERENCES kpis(id) NOT NULL,
+  director UUID REFERENCES profiles(id),
   met_check BOOLEAN NOT NULL,
   notes TEXT,
   plan TEXT,
@@ -53,5 +54,6 @@ CREATE INDEX IF NOT EXISTS idx_kpis_removed ON kpis(removed);
 CREATE INDEX IF NOT EXISTS idx_kpis_floor ON kpis(floor);
 CREATE INDEX IF NOT EXISTS idx_review_items_clinician ON review_items(clinician);
 CREATE INDEX IF NOT EXISTS idx_review_items_kpi ON review_items(kpi);
+CREATE INDEX IF NOT EXISTS idx_review_items_director ON review_items(director);
 CREATE INDEX IF NOT EXISTS idx_review_items_date ON review_items(date);
 CREATE INDEX IF NOT EXISTS idx_review_items_clinician_date ON review_items(clinician, date);

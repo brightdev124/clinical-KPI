@@ -36,6 +36,7 @@ async function setupTables() {
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           clinician UUID REFERENCES profiles(id) NOT NULL,
           kpi UUID REFERENCES kpis(id) NOT NULL,
+          director UUID REFERENCES profiles(id),
           met_check BOOLEAN NOT NULL,
           notes TEXT,
           plan TEXT,

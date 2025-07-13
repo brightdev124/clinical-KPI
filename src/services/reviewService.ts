@@ -4,6 +4,7 @@ export interface ReviewItem {
   id: string;
   clinician: string; // UUID reference to profiles(id)
   kpi: string; // UUID reference to kpis(id)
+  director?: string; // UUID reference to profiles(id) - director who created the review
   met_check: boolean; // true if KPI met
   notes?: string; // if not met
   plan?: string; // if not met
@@ -15,6 +16,7 @@ export interface ReviewItem {
 export interface CreateReviewItemData {
   clinician: string;
   kpi: string;
+  director?: string; // UUID reference to profiles(id) - director who created the review
   met_check: boolean;
   notes?: string;
   plan?: string;
@@ -28,6 +30,7 @@ export interface UpdateReviewItemData {
   plan?: string;
   score?: number;
   file_url?: string;
+  director?: string; // UUID reference to profiles(id) - director who updated the review
 }
 
 export class ReviewService {
@@ -40,6 +43,7 @@ export class ReviewService {
       .insert({
         clinician: reviewData.clinician,
         kpi: reviewData.kpi,
+        director: reviewData.director || null,
         met_check: reviewData.met_check,
         notes: reviewData.notes || null,
         plan: reviewData.plan || null,
@@ -133,6 +137,7 @@ export class ReviewService {
     if (reviewData.plan !== undefined) updateData.plan = reviewData.plan;
     if (reviewData.score !== undefined) updateData.score = reviewData.score;
     if (reviewData.file_url !== undefined) updateData.file_url = reviewData.file_url;
+    if (reviewData.director !== undefined) updateData.director = reviewData.director;
 
     const { data, error } = await supabase
       .from('review_items')
@@ -217,6 +222,7 @@ export class ReviewService {
       .insert(reviewItems.map(item => ({
         clinician: clinicianId,
         kpi: item.kpi,
+        director: item.director || null,
         met_check: item.met_check,
         notes: item.notes || null,
         plan: item.plan || null,
