@@ -21,6 +21,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ const Dashboard: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthSelector, setShowMonthSelector] = useState(false);
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const monthSelectorRef = useRef<HTMLDivElement>(null);
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
@@ -59,6 +61,47 @@ const Dashboard: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Generate monthly score data for charts
+  const generateMonthlyScoreData = (clinicianId: string) => {
+    const monthlyData = [];
+    const currentDate = new Date();
+    
+    // Get last 12 months of data
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(currentDate.getMonth() - i);
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+      const score = getClinicianScore(clinicianId, month, year);
+      
+      monthlyData.push({
+        month: date.toLocaleString('default', { month: 'short' }),
+        fullMonth: month,
+        year: year,
+        score: score,
+        displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
+      });
+    }
+    
+    return monthlyData;
+  };
+
+  // Calculate trend analysis
+  const calculateTrend = (data: any[]) => {
+    if (data.length < 2) return { direction: 'stable', percentage: 0 };
+    
+    const lastMonth = data[data.length - 1].score;
+    const previousMonth = data[data.length - 2].score;
+    const difference = lastMonth - previousMonth;
+    
+    if (Math.abs(difference) < 2) return { direction: 'stable', percentage: 0 };
+    
+    return {
+      direction: difference > 0 ? 'up' : 'down',
+      percentage: Math.abs(difference)
+    };
+  };
 
   // Show loading state
   if (loading) {
@@ -277,6 +320,172 @@ const Dashboard: React.FC = () => {
               <Download className="w-4 h-4" />
               <span>Download {selectedMonth} Data</span>
             </button>
+          </div>
+        </div>
+
+        {/* Monthly Performance Chart */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Trend</h3>
+              <p className="text-sm text-gray-600">Your monthly performance scores over the last 12 months</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              {/* Chart Type Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setChartType('line')}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    chartType === 'line'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Activity className="w-4 h-4" />
+                  <span>Line</span>
+                </button>
+                <button
+                  onClick={() => setChartType('bar')}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    chartType === 'bar'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Bar</span>
+                </button>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <span>12-Month View</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'line' ? (
+                <LineChart data={generateMonthlyScoreData(user.id)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="displayName" 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
+                    labelFormatter={(label) => {
+                      const dataPoint = generateMonthlyScoreData(user.id).find(d => d.displayName === label);
+                      return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#ffffff' }}
+                  />
+                </LineChart>
+              ) : (
+                <BarChart data={generateMonthlyScoreData(user.id)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="displayName" 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
+                    labelFormatter={(label) => {
+                      const dataPoint = generateMonthlyScoreData(user.id).find(d => d.displayName === label);
+                      return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                    }}
+                  />
+                  <Bar 
+                    dataKey="score" 
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Chart Legend/Summary */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">Current Month</span>
+              </div>
+              <div className="text-2xl font-bold text-blue-600 mt-1">{myScore}%</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-gray-700">12-Month Average</span>
+              </div>
+              <div className="text-2xl font-bold text-green-600 mt-1">
+                {Math.round(generateMonthlyScoreData(user.id).reduce((sum, data) => sum + data.score, 0) / 12)}%
+              </div>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <Award className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-gray-700">Best Month</span>
+              </div>
+              <div className="text-2xl font-bold text-purple-600 mt-1">
+                {Math.max(...generateMonthlyScoreData(user.id).map(d => d.score))}%
+              </div>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                {(() => {
+                  const trend = calculateTrend(generateMonthlyScoreData(user.id));
+                  const TrendIcon = trend.direction === 'up' ? ArrowUp : trend.direction === 'down' ? ArrowDown : Activity;
+                  const trendColor = trend.direction === 'up' ? 'text-green-600' : trend.direction === 'down' ? 'text-red-600' : 'text-orange-600';
+                  return <TrendIcon className={`w-4 h-4 ${trendColor}`} />;
+                })()}
+                <span className="text-sm font-medium text-gray-700">Monthly Trend</span>
+              </div>
+              <div className="text-2xl font-bold text-orange-600 mt-1">
+                {(() => {
+                  const trend = calculateTrend(generateMonthlyScoreData(user.id));
+                  if (trend.direction === 'stable') return 'Stable';
+                  return `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`;
+                })()}
+              </div>
+            </div>
           </div>
         </div>
 

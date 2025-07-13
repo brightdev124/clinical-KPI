@@ -691,18 +691,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (clinicianReviews.length === 0) return 0;
     
-    let totalWeight = 0;
-    let earnedScore = 0;
+    let totalPossibleWeight = 0;
+    let earnedWeight = 0;
     
     clinicianReviews.forEach(review => {
       const kpi = kpis.find(k => k.id === review.kpi);
       if (kpi) {
-        totalWeight += kpi.weight;
-        earnedScore += review.score; // Use the stored score directly
+        totalPossibleWeight += kpi.weight;
+        // Add the KPI weight to earned score only if met_check is true
+        if (review.met_check) {
+          earnedWeight += kpi.weight;
+        }
+        // If met_check is false, add 0 (no weight earned)
       }
     });
     
-    return totalWeight > 0 ? Math.round((earnedScore / totalWeight) * 100) : 0;
+    // Calculate percentage: (earned weight / total possible weight) * 100
+    return totalPossibleWeight > 0 ? Math.round((earnedWeight / totalPossibleWeight) * 100) : 0;
   };
 
   // Assignment functions
