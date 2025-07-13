@@ -199,7 +199,8 @@ export class ReviewService {
       .select(`
         *,
         kpis!inner(id, title, description, weight),
-        profiles!inner(id, name, username)
+        clinician_profile:profiles!clinician(id, name, username),
+        director_profile:profiles!director(id, name, username)
       `)
       .order('date', { ascending: false });
 

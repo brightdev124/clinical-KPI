@@ -21,7 +21,7 @@ import {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, loading, error } = useData();
+  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, loading, error } = useData();
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
@@ -140,6 +140,7 @@ const Dashboard: React.FC = () => {
     const myScore = getClinicianScore(user.id, currentMonth, currentYear);
     const myReviews = getClinicianReviews(user.id);
     const myData = profiles.find(p => p.id === user.id);
+    const myDirector = getClinicianDirector(user.id);
 
     return (
       <div className="space-y-8">
@@ -159,6 +160,64 @@ const Dashboard: React.FC = () => {
               <div className="text-green-100 text-sm">Your Score</div>
             </div>
           </div>
+        </div>
+
+        {/* Director Information */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          {myDirector ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
+                  <Users className="w-8 h-8 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Your Director</h3>
+                  <p className="text-2xl font-bold text-gray-900">{myDirector.name}</p>
+                  <p className="text-sm text-gray-600">
+                    {myDirector.position_info?.position_title || 'Clinical Director'}
+                  </p>
+                  {myDirector.director_info?.direction && (
+                    <p className="text-sm text-blue-600 mt-1">
+                      {myDirector.director_info.direction}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Assigned
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Contact for performance discussions
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-gray-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Director Assignment</h3>
+                  <p className="text-xl font-medium text-gray-600">No director assigned</p>
+                  <p className="text-sm text-gray-500">
+                    Please contact administration for assignment
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+                  <Clock className="w-4 h-4 mr-1" />
+                  Pending
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Assignment needed
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Personal Stats */}
