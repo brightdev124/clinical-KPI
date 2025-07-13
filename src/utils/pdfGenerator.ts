@@ -274,3 +274,234 @@ export const generateClinicianSummaryPDF = (
   // Download the PDF
   doc.save(filename);
 };
+
+export const generateMonthlyDataPDF = (
+  clinician: any,
+  kpis: any[],
+  reviewsOrTeamData: any,
+  month: string,
+  year: number,
+  score: number
+) => {
+  console.log('generateMonthlyDataPDF called with:', { clinician, kpis, reviewsOrTeamData, month, year, score });
+  
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(59, 130, 246);
+    
+    if (clinician) {
+      // Individual clinician report
+      doc.text('Monthly Performance Report', margin, 30);
+      
+      // Clinician Information
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Clinician Information', margin, 50);
+      
+      doc.setFontSize(11);
+      const clinicianInfo = [
+        `Name: ${clinician.name || 'Unknown'}`,
+        `Position: ${clinician.position_info?.position_title || 'Clinician'}`,
+        `Department: ${clinician.clinician_info?.type_info?.title || 'General'}`,
+        `Report Period: ${month} ${year}`,
+        `Performance Score: ${score}%`
+      ];
+
+      let infoYPosition = 65;
+      clinicianInfo.forEach((info) => {
+        const lines = doc.splitTextToSize(info, pageWidth - margin * 2);
+        doc.text(lines, margin, infoYPosition);
+        infoYPosition += lines.length * 6 + 2;
+      });
+
+      // Score Summary Box
+      doc.setFillColor(59, 130, 246, 0.1);
+      doc.rect(margin, 115, pageWidth - (margin * 2), 25, 'F');
+      doc.setFontSize(12);
+      doc.setTextColor(59, 130, 246);
+      doc.text(`Performance Score: ${score}%`, margin + 10, 130);
+      
+      const scoreLabel = score >= 90 ? 'Excellent' : score >= 80 ? 'Good' : score >= 70 ? 'Average' : 'Needs Improvement';
+      doc.text(`Rating: ${scoreLabel}`, margin + 10, 137);
+
+      // Reviews section
+      let yPosition = 155;
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`KPI Reviews for ${month} ${year}`, margin, yPosition);
+
+      if (reviewsOrTeamData && reviewsOrTeamData.length > 0) {
+        yPosition += 20;
+        
+        reviewsOrTeamData.forEach((review: any, index: number) => {
+          // Check if we need a new page (with more buffer space)
+          if (yPosition > doc.internal.pageSize.height - 100) {
+            doc.addPage();
+            yPosition = 30;
+            
+            // Add header on new page
+            doc.setFontSize(14);
+            doc.setTextColor(59, 130, 246);
+            doc.text(`KPI Reviews for ${month} ${year} (continued)`, margin, yPosition);
+            yPosition += 20;
+          }
+          
+          const kpi = kpis.find(k => k.id === review.kpiId);
+          
+          // Add a light separator line between reviews (except for first one)
+          if (index > 0) {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+          }
+          
+          // KPI Title (bold style)
+          doc.setFontSize(11);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`${index + 1}. ${kpi?.title || 'Unknown KPI'}`, margin, yPosition);
+          yPosition += 12;
+          
+          // Status with color coding
+          doc.setFontSize(10);
+          if (review.met) {
+            doc.setTextColor(0, 128, 0); // Green for met
+            doc.text(`✓ Status: Met`, margin + 10, yPosition);
+          } else {
+            doc.setTextColor(200, 0, 0); // Red for not met
+            doc.text(`✗ Status: Not Met`, margin + 10, yPosition);
+          }
+          doc.setTextColor(0, 0, 0); // Reset to black
+          yPosition += 12;
+          
+          // Notes with text wrapping
+          if (review.notes && review.notes.trim()) {
+            doc.setFontSize(9);
+            doc.setTextColor(60, 60, 60);
+            const notesLines = doc.splitTextToSize(`Notes: ${review.notes}`, pageWidth - margin * 2 - 10);
+            doc.text(notesLines, margin + 10, yPosition);
+            yPosition += notesLines.length * 4 + 8;
+          }
+          
+          // Plan with text wrapping
+          if (review.plan && review.plan.trim()) {
+            doc.setFontSize(9);
+            doc.setTextColor(60, 60, 60);
+            const planLines = doc.splitTextToSize(`Improvement Plan: ${review.plan}`, pageWidth - margin * 2 - 10);
+            doc.text(planLines, margin + 10, yPosition);
+            yPosition += planLines.length * 4 + 8;
+          }
+          
+          yPosition += 15; // Extra spacing between reviews
+        });
+      } else {
+        doc.setFontSize(11);
+        doc.setTextColor(128, 128, 128);
+        doc.text(`No reviews found for ${month} ${year}`, margin, yPosition + 20);
+      }
+
+      // Generate filename
+      const filename = `${clinician.name.replace(/\s+/g, '_')}_${month}_${year}_Report.pdf`;
+      doc.save(filename);
+      
+    } else {
+      // Team summary report
+      doc.text('Team Performance Summary', margin, 30);
+      
+      // Summary Information
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Team Summary', margin, 50);
+      
+      doc.setFontSize(11);
+      const summaryInfo = [
+        `Report Period: ${month} ${year}`,
+        `Team Average Score: ${score}%`,
+        `Total Team Members: ${reviewsOrTeamData.length}`,
+        `Generated: ${new Date().toLocaleDateString()}`
+      ];
+
+      let summaryYPosition = 65;
+      summaryInfo.forEach((info) => {
+        const lines = doc.splitTextToSize(info, pageWidth - margin * 2);
+        doc.text(lines, margin, summaryYPosition);
+        summaryYPosition += lines.length * 6 + 2;
+      });
+
+      // Team Performance List
+      let yPosition = 110;
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Team Performance for ${month} ${year}`, margin, yPosition);
+
+      if (reviewsOrTeamData && reviewsOrTeamData.length > 0) {
+        yPosition += 20;
+        
+        reviewsOrTeamData.forEach((member: any, index: number) => {
+          // Check if we need a new page
+          if (yPosition > doc.internal.pageSize.height - 80) {
+            doc.addPage();
+            yPosition = 30;
+          }
+          
+          const reviewCount = member.reviews ? member.reviews.length : 0;
+          const metCount = member.reviews ? member.reviews.filter((r: any) => r.met).length : 0;
+          const rating = member.score >= 90 ? 'Excellent' : member.score >= 80 ? 'Good' : member.score >= 70 ? 'Average' : 'Needs Improvement';
+          
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+          
+          // Member name
+          doc.text(`${index + 1}. ${member.clinician.name}`, margin, yPosition);
+          yPosition += 10;
+          
+          // Position with text wrapping
+          const positionText = `Position: ${member.clinician.position_info?.position_title || 'Clinician'}`;
+          const positionLines = doc.splitTextToSize(positionText, pageWidth - margin * 2 - 10);
+          doc.text(positionLines, margin + 10, yPosition);
+          yPosition += positionLines.length * 5 + 5;
+          
+          // Score and metrics
+          const metricsText = `Score: ${member.score}% | KPIs Met: ${metCount}/${reviewCount} | Rating: ${rating}`;
+          const metricsLines = doc.splitTextToSize(metricsText, pageWidth - margin * 2 - 10);
+          doc.text(metricsLines, margin + 10, yPosition);
+          yPosition += metricsLines.length * 5 + 15; // Extra spacing between members
+        });
+      } else {
+        doc.setFontSize(11);
+        doc.setTextColor(128, 128, 128);
+        doc.text(`No team data found for ${month} ${year}`, margin, yPosition + 20);
+      }
+
+      // Generate filename
+      const filename = `Team_Performance_${month}_${year}.pdf`;
+      doc.save(filename);
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      doc.text(
+        `Generated on ${new Date().toLocaleDateString()} | Page ${i} of ${pageCount}`,
+        margin,
+        doc.internal.pageSize.height - 10
+      );
+      doc.text(
+        'Clinical KPI Tracking System',
+        pageWidth - margin - 50,
+        doc.internal.pageSize.height - 10
+      );
+    }
+    
+    console.log('PDF generation completed successfully');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Error generating PDF. Please check the console for details.');
+  }
+};

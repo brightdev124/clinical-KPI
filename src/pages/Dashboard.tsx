@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Link } from 'react-router-dom';
@@ -16,15 +16,49 @@ import {
   ArrowUp,
   ArrowDown,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Download,
+  ChevronDown
 } from 'lucide-react';
+import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, loading, error } = useData();
 
+  // Month selector state
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showMonthSelector, setShowMonthSelector] = useState(false);
+  const monthSelectorRef = useRef<HTMLDivElement>(null);
+
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
+
+  // Generate available months (last 12 months)
+  const availableMonths = Array.from({ length: 12 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    return {
+      month: date.toLocaleString('default', { month: 'long' }),
+      year: date.getFullYear(),
+      value: `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`
+    };
+  });
+
+  // Click outside handler for month selector
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (monthSelectorRef.current && !monthSelectorRef.current.contains(event.target as Node)) {
+        setShowMonthSelector(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Show loading state
   if (loading) {
@@ -55,21 +89,21 @@ const Dashboard: React.FC = () => {
     ? getAssignedClinicians(user.id)
     : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
 
-  // Calculate stats
+  // Calculate stats for selected month
   const totalClinicians = userClinicians.length;
   const totalKPIs = kpis.length;
   const avgScore = userClinicians.length > 0 
-    ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, currentMonth, currentYear), 0) / userClinicians.length)
+    ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / userClinicians.length)
     : 0;
 
   // Get clinicians needing attention (score < 70)
   const cliniciansNeedingAttention = userClinicians.filter(c => 
-    getClinicianScore(c.id, currentMonth, currentYear) < 70
+    getClinicianScore(c.id, selectedMonth, selectedYear) < 70
   );
 
   // Top performers (score >= 90)
   const topPerformers = userClinicians.filter(c => 
-    getClinicianScore(c.id, currentMonth, currentYear) >= 90
+    getClinicianScore(c.id, selectedMonth, selectedYear) >= 90
   );
 
   // Recent activity based on user role
@@ -135,9 +169,46 @@ const Dashboard: React.FC = () => {
     return 'border-red-200';
   };
 
+  // Helper function to handle month selection
+  const handleMonthSelect = (month: string, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    setShowMonthSelector(false);
+  };
+
+  // Helper function to download monthly data as PDF
+  const handleDownloadMonthlyData = () => {
+    try {
+      if (user?.role === 'clinician') {
+        const myReviews = getClinicianReviews(user.id);
+        const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
+        const clinician = profiles.find(p => p.id === user.id);
+        const score = getClinicianScore(user.id, selectedMonth, selectedYear);
+        
+        if (clinician) {
+          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score);
+        } else {
+          alert('Error: Clinician profile not found');
+        }
+      } else {
+        // For directors/admins, generate team summary
+        const teamData = userClinicians.map(clinician => ({
+          clinician,
+          score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
+          reviews: getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear)
+        }));
+        
+        generateMonthlyDataPDF(null, kpis, teamData, selectedMonth, selectedYear, avgScore);
+      }
+    } catch (error) {
+      console.error('Error in handleDownloadMonthlyData:', error);
+      alert('Error generating PDF. Please check the console for details.');
+    }
+  };
+
   // Clinician-specific dashboard
   if (user?.role === 'clinician') {
-    const myScore = getClinicianScore(user.id, currentMonth, currentYear);
+    const myScore = getClinicianScore(user.id, selectedMonth, selectedYear);
     const myReviews = getClinicianReviews(user.id);
     const myData = profiles.find(p => p.id === user.id);
     const myDirector = getClinicianDirector(user.id);
@@ -152,13 +223,60 @@ const Dashboard: React.FC = () => {
                 Welcome, {user?.name?.split(' ')[0]}! 👩‍⚕️
               </h1>
               <p className="text-green-100 text-lg">
-                Your performance overview for {currentMonth} {currentYear}
+                Your performance overview for {selectedMonth} {selectedYear}
               </p>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold">{myScore}%</div>
               <div className="text-green-100 text-sm">Your Score</div>
             </div>
+          </div>
+        </div>
+
+        {/* Month Selector and Download Controls */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h3 className="text-lg font-semibold text-gray-900">View Data By Month</h3>
+              <div className="relative" ref={monthSelectorRef}>
+                <button
+                  onClick={() => setShowMonthSelector(!showMonthSelector)}
+                  className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>{selectedMonth} {selectedYear}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                
+                {showMonthSelector && (
+                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                    <div className="p-2 max-h-60 overflow-y-auto">
+                      {availableMonths.map((monthData, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleMonthSelect(monthData.month, monthData.year)}
+                          className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
+                            selectedMonth === monthData.month && selectedYear === monthData.year
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'text-gray-700'
+                          }`}
+                        >
+                          {monthData.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <button
+              onClick={handleDownloadMonthlyData}
+              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download {selectedMonth} Data</span>
+            </button>
           </div>
         </div>
 
@@ -273,10 +391,10 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* KPI Performance */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">My KPI Performance</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">My KPI Performance - {selectedMonth} {selectedYear}</h3>
             <div className="space-y-4">
               {kpis.map(kpi => {
-                const kpiReviews = myReviews.filter(r => r.kpiId === kpi.id);
+                const kpiReviews = myReviews.filter(r => r.kpiId === kpi.id && r.month === selectedMonth && r.year === selectedYear);
                 const metCount = kpiReviews.filter(r => r.met).length;
                 const percentage = kpiReviews.length > 0 ? Math.round((metCount / kpiReviews.length) * 100) : 0;
                 
@@ -300,30 +418,39 @@ const Dashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reviews for {selectedMonth} {selectedYear}</h3>
             <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    activity.type === 'kpi_met' ? 'bg-green-100' : 'bg-yellow-100'
-                  }`}>
-                    {activity.type === 'kpi_met' ? 
-                      <CheckCircle className="w-4 h-4 text-green-600" /> : 
-                      <Clock className="w-4 h-4 text-yellow-600" />
-                    }
+              {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).slice(0, 5).map((review) => {
+                const kpi = kpis.find(k => k.id === review.kpiId);
+                return (
+                  <div key={review.id} className="flex items-start space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      review.met ? 'bg-green-100' : 'bg-yellow-100'
+                    }`}>
+                      {review.met ? 
+                        <CheckCircle className="w-4 h-4 text-green-600" /> : 
+                        <Clock className="w-4 h-4 text-yellow-600" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{kpi?.title} - {review.met ? 'Target Met' : 'Improvement Plan'}</p>
+                      <p className="text-xs text-gray-500">{review.reviewDate ? `Reviewed ${new Date(review.reviewDate).toLocaleDateString()}` : `${review.month} ${review.year}`}</p>
+                      {review.notes && (
+                        <p className="text-xs text-gray-600 mt-1">{review.notes}</p>
+                      )}
+                      {review.plan && (
+                        <p className="text-xs text-blue-600 mt-1"><strong>Plan:</strong> {review.plan}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
-                    {activity.notes && (
-                      <p className="text-xs text-gray-600 mt-1">{activity.notes}</p>
-                    )}
-                    {activity.plan && (
-                      <p className="text-xs text-blue-600 mt-1"><strong>Plan:</strong> {activity.plan}</p>
-                    )}
-                  </div>
+                );
+              })}
+              {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No reviews found for {selectedMonth} {selectedYear}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -342,7 +469,7 @@ const Dashboard: React.FC = () => {
               Welcome back, {user?.name?.split(' ')[0]}! 👋
             </h1>
             <p className="text-blue-100 text-lg">
-              Here's your team performance overview for {currentMonth} {currentYear}
+              Here's your team performance overview for {selectedMonth} {selectedYear}
             </p>
           </div>
           <div className="hidden md:flex items-center space-x-4">
@@ -356,6 +483,53 @@ const Dashboard: React.FC = () => {
               <div className="text-blue-100 text-sm">Top Performers</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Month Selector and Download Controls for Directors/Admins */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h3 className="text-lg font-semibold text-gray-900">View Team Data By Month</h3>
+            <div className="relative" ref={monthSelectorRef}>
+              <button
+                onClick={() => setShowMonthSelector(!showMonthSelector)}
+                className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>{selectedMonth} {selectedYear}</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              
+              {showMonthSelector && (
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                  <div className="p-2 max-h-60 overflow-y-auto">
+                    {availableMonths.map((monthData, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleMonthSelect(monthData.month, monthData.year)}
+                        className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
+                          selectedMonth === monthData.month && selectedYear === monthData.year
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {monthData.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <button
+            onClick={handleDownloadMonthlyData}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download {selectedMonth} Team Data</span>
+          </button>
         </div>
       </div>
 
@@ -432,7 +606,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Calendar className="w-5 h-5 text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {currentMonth} {currentYear} Performance
+                  {selectedMonth} {selectedYear} Performance
                 </h3>
               </div>
               <Link
@@ -448,7 +622,7 @@ const Dashboard: React.FC = () => {
           <div className="p-6">
             <div className="space-y-4">
               {userClinicians.map((clinician) => {
-                const score = getClinicianScore(clinician.id, currentMonth, currentYear);
+                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const scoreColorClass = getScoreColor(score);
                 const borderColorClass = getScoreBorderColor(score);
                 
