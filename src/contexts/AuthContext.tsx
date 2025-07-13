@@ -10,6 +10,7 @@ interface User {
   accept?: boolean;
   created_at?: string;
   updated_at?: string;
+  assignedClinicians?: string[]; // Array of clinician IDs assigned to this director
 }
 
 interface AuthContextType {
@@ -145,6 +146,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Get assigned clinicians if user is a director
+      let assignedClinicians: string[] = [];
+      if (userRole === 'director') {
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('assign')
+          .select('clinician')
+          .eq('director', data.id);
+        
+        if (!assignmentError && assignmentData) {
+          assignedClinicians = assignmentData.map(a => a.clinician);
+        }
+      }
+
       const userProfile: User = {
         id: data.id,
         name: data.name,
@@ -154,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         accept: true,
         created_at: data.created_at,
         updated_at: data.updated_at,
+        assignedClinicians: assignedClinicians.length > 0 ? assignedClinicians : undefined,
       };
 
       // User is accepted - authenticate and redirect to appropriate page

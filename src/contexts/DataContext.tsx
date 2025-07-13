@@ -631,7 +631,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const getAssignedClinicians = (directorId: number): Profile[] => {
+  const getAssignedClinicians = (directorId: string): Profile[] => {
     const assignedClinicianIds = assignments
       .filter(a => a.director === directorId)
       .map(a => a.clinician);

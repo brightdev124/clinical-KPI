@@ -21,17 +21,39 @@ import {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { clinicians, kpis, getClinicianScore, getClinicianReviews } = useData();
+  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, loading, error } = useData();
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
 
-  // Filter clinicians based on user role
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter clinicians based on user role - use profiles data instead of mock clinicians
   const userClinicians = user?.role === 'super-admin' 
-    ? clinicians 
+    ? profiles.filter(p => p.position_info?.role === 'clinician')
     : user?.role === 'director'
-    ? clinicians.filter(c => user?.assignedClinicians?.includes(c.id))
-    : clinicians.filter(c => c.id === user?.id);
+    ? getAssignedClinicians(user.id)
+    : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
 
   // Calculate stats
   const totalClinicians = userClinicians.length;
@@ -117,7 +139,7 @@ const Dashboard: React.FC = () => {
   if (user?.role === 'clinician') {
     const myScore = getClinicianScore(user.id, currentMonth, currentYear);
     const myReviews = getClinicianReviews(user.id);
-    const myData = clinicians.find(c => c.id === user.id);
+    const myData = profiles.find(p => p.id === user.id);
 
     return (
       <div className="space-y-8">
@@ -381,7 +403,10 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{clinician.name}</p>
-                        <p className="text-sm text-gray-600">{clinician.position} • {clinician.department}</p>
+                        <p className="text-sm text-gray-600">
+                          {clinician.position_info?.position_title || 'Clinician'} • 
+                          {clinician.clinician_info?.type_info?.title || 'General'}
+                        </p>
                       </div>
                     </div>
                     
