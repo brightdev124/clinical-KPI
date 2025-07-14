@@ -1231,11 +1231,11 @@ const Dashboard: React.FC = () => {
                   }}
                   formatter={(value: any, name: string, props: any) => [
                     `${value}%`, 
-                    'Performance Score'
+                    'Team Average Score'
                   ]}
                   labelFormatter={(label, payload) => {
                     const data = payload?.[0]?.payload;
-                    return data ? `#${data.rank} ${data.fullName} (${data.position}) - ${data.assignedCount} clinicians` : label;
+                    return data ? `#${data.rank} ${data.fullName} (${data.position}) - Managing ${data.assignedCount} clinicians` : label;
                   }}
                 />
                 <Bar 

@@ -681,6 +681,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getClinicianScore = (clinicianId: string, month: string, year: number) => {
+    // Check if the ID belongs to a director
+    const profile = profiles.find(p => p.id === clinicianId);
+    
+    // If this is a director, calculate the average score of their assigned clinicians
+    if (profile?.position_info?.role === 'director') {
+      const assignedClinicians = getAssignedClinicians(clinicianId);
+      
+      if (assignedClinicians.length === 0) return 0;
+      
+      // Calculate the average score of all assigned clinicians
+      const totalScore = assignedClinicians.reduce((sum, clinician) => {
+        // Use the regular clinician scoring method for each assigned clinician
+        const clinicianScore = getClinicianScoreInternal(clinician.id, month, year);
+        return sum + clinicianScore;
+      }, 0);
+      
+      return Math.round(totalScore / assignedClinicians.length);
+    }
+    
+    // For regular clinicians, use the standard scoring method
+    return getClinicianScoreInternal(clinicianId, month, year);
+  };
+  
+  // Internal function to calculate individual clinician scores
+  const getClinicianScoreInternal = (clinicianId: string, month: string, year: number) => {
     // Filter review items for the specific clinician and period
     const clinicianReviews = reviewItems.filter(r => {
       const reviewDate = new Date(r.date);
