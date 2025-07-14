@@ -127,13 +127,13 @@ const Dashboard: React.FC = () => {
 
   // Filter clinicians based on user role - use profiles data instead of mock clinicians
   const userClinicians = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.position_info?.role === 'clinician')
+    ? profiles.filter(p => p.position_info?.role === 'clinician' || p.position_info?.role === 'director')
     : user?.role === 'director'
     ? getAssignedClinicians(user.id)
     : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
 
   // Calculate stats for selected month
-  const totalClinicians = userClinicians.length;
+  const totalTeamMembers = userClinicians.length;
   const totalKPIs = kpis.length;
   const avgScore = userClinicians.length > 0 
     ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / userClinicians.length)
@@ -747,8 +747,10 @@ const Dashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Clinicians</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{totalClinicians}</p>
+              <p className="text-sm font-medium text-gray-600">
+                {user?.role === 'super-admin' ? 'Total Team Members' : 'Total Clinicians'}
+              </p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{totalTeamMembers}</p>
               <p className="text-sm text-green-600 mt-1 flex items-center">
                 <ArrowUp className="w-4 h-4 mr-1" />
                 Active team members
@@ -1040,109 +1042,107 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Individual Clinician Trends */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
+
+      </div>
+
+
+
+      {/* Top Performers Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+              <Award className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Individual Performance Trends</h3>
-              <p className="text-sm text-gray-600">Last 6 months comparison by clinician</p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Users className="w-4 h-4" />
-              <span>Multi-line</span>
+              <h3 className="text-xl font-bold text-gray-900">Top Performers</h3>
+              <p className="text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
             </div>
           </div>
-          
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={(() => {
-                const trendData = [];
-                const currentDate = new Date();
-                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-                
-                for (let i = 5; i >= 0; i--) {
-                  const date = new Date();
-                  date.setMonth(currentDate.getMonth() - i);
-                  const month = date.toLocaleString('default', { month: 'long' });
-                  const year = date.getFullYear();
-                  
-                  const monthData: any = {
-                    month: date.toLocaleString('default', { month: 'short' }),
-                    fullMonth: month,
-                    year: year,
-                    displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
-                  };
-                  
-                  userClinicians.slice(0, 5).forEach((clinician, index) => {
-                    const score = getClinicianScore(clinician.id, month, year);
-                    monthData[`clinician_${index}`] = score;
-                    monthData[`clinician_${index}_name`] = clinician.name.split(' ')[0];
-                  });
-                  
-                  trendData.push(monthData);
-                }
-                
-                return trendData;
-              })()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="displayName" 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                />
-                {userClinicians.slice(0, 5).map((clinician, index) => {
-                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                  return (
-                    <Line 
-                      key={clinician.id}
-                      type="monotone" 
-                      dataKey={`clinician_${index}`} 
-                      stroke={colors[index]} 
-                      strokeWidth={2}
-                      dot={{ fill: colors[index], strokeWidth: 1, r: 3 }}
-                      name={clinician.name.split(' ')[0]}
-                    />
-                  );
-                })}
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{topPerformers.length}</div>
+              <div className="text-xs text-gray-500">Top Performers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {topPerformers.length > 0 
+                  ? Math.round(topPerformers.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / topPerformers.length)
+                  : 0}%
+              </div>
+              <div className="text-xs text-gray-500">Avg Score</div>
+            </div>
           </div>
-          
-          {/* Legend */}
-          <div className="mt-4 flex flex-wrap gap-4">
-            {userClinicians.slice(0, 5).map((clinician, index) => {
-              const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        </div>
+
+        {topPerformers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topPerformers.slice(0, 6).map((clinician) => {
+              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+              const monthlyData = generateMonthlyScoreData(clinician.id);
+              const trend = calculateTrend(monthlyData);
+              
               return (
-                <div key={clinician.id} className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: colors[index] }}
-                  ></div>
-                  <span className="text-sm text-gray-600">{clinician.name.split(' ')[0]}</span>
+                <div key={clinician.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {clinician.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      <span className="text-lg font-bold text-green-600">{score}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
+                    <p className="text-xs text-gray-600">
+                      {clinician.position_info?.position_title || 'Clinician'} • 
+                      {clinician.clinician_info?.type_info?.title || 'General'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-1 text-xs">
+                    {trend.direction === 'up' ? (
+                      <ArrowUp className="w-3 h-3 text-green-600" />
+                    ) : trend.direction === 'down' ? (
+                      <ArrowDown className="w-3 h-3 text-red-600" />
+                    ) : (
+                      <Activity className="w-3 h-3 text-gray-600" />
+                    )}
+                    <span className={`font-medium ${
+                      trend.direction === 'up' ? 'text-green-600' : 
+                      trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No top performers (≥90%) found for {selectedMonth} {selectedYear}</p>
+            <p className="text-sm mt-1">Encourage your team to reach excellence!</p>
+          </div>
+        )}
+
+        {topPerformers.length > 6 && (
+          <div className="mt-4 text-center">
+            <Link
+              to="/performance-analytics"
+              className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors"
+            >
+              <span>View All Top Performers</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
       </div>
-
-
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1191,12 +1191,6 @@ const Dashboard: React.FC = () => {
                         </span>
                       </div>
                       {score >= 90 && <Award className="w-5 h-5 text-yellow-500" />}
-                      <Link
-                        to={`/clinician/${clinician.id}`}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </Link>
                     </div>
                   </div>
                 );
@@ -1245,6 +1239,110 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Bottom Performers Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
+              <p className="text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{cliniciansNeedingAttention.length}</div>
+              <div className="text-xs text-gray-500">Need Attention</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {cliniciansNeedingAttention.length > 0 
+                  ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / cliniciansNeedingAttention.length)
+                  : 0}%
+              </div>
+              <div className="text-xs text-gray-500">Avg Score</div>
+            </div>
+          </div>
+        </div>
+
+        {cliniciansNeedingAttention.length > 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cliniciansNeedingAttention.slice(0, 4).map((clinician) => {
+                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                const monthlyData = generateMonthlyScoreData(clinician.id);
+                const trend = calculateTrend(monthlyData);
+                const reviews = getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear);
+                const unmetKPIs = reviews.filter(r => !r.met).length;
+                const totalKPIsForMonth = kpis.length;
+                
+                return (
+                  <div key={clinician.id} className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-200 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {clinician.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-lg font-bold text-red-600">{score}%</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
+                      <p className="text-xs text-gray-600">
+                        {clinician.position_info?.position_title || 'Clinician'} • 
+                        {clinician.clinician_info?.type_info?.title || 'General'}
+                      </p>
+                    </div>
+                    
+                    <div className="mb-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">Unmet KPIs:</span>
+                        <span className="font-medium text-red-600">{unmetKPIs} of {totalKPIsForMonth}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">Trend:</span>
+                        <div className="flex items-center space-x-1">
+                          {trend.direction === 'up' ? (
+                            <ArrowUp className="w-3 h-3 text-green-600" />
+                          ) : trend.direction === 'down' ? (
+                            <ArrowDown className="w-3 h-3 text-red-600" />
+                          ) : (
+                            <Activity className="w-3 h-3 text-gray-600" />
+                          )}
+                          <span className={`font-medium ${
+                            trend.direction === 'up' ? 'text-green-600' : 
+                            trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
+            <p className="text-lg font-medium text-gray-700">Excellent Team Performance!</p>
+            <p className="text-sm mt-1">All team members are performing above 70% for {selectedMonth} {selectedYear}</p>
+            <div className="mt-4 inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+              <Award className="w-4 h-4" />
+              <span className="font-medium">Keep up the great work!</span>
+            </div>
+          </div>
+        )}
+      </div>
 
     </div>
   );
