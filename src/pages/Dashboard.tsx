@@ -34,6 +34,9 @@ const Dashboard: React.FC = () => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const monthSelectorRef = useRef<HTMLDivElement>(null);
 
+  // View mode state for admin dashboard
+  const [viewMode, setViewMode] = useState<'overview' | 'all-clinicians' | 'all-directors'>('overview');
+
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
 
@@ -247,6 +250,15 @@ const Dashboard: React.FC = () => {
       console.error('Error in handleDownloadMonthlyData:', error);
       alert('Error generating PDF. Please check the console for details.');
     }
+  };
+
+  // Helper functions to get all clinicians and directors
+  const getAllClinicians = () => {
+    return profiles.filter(p => p.position_info?.role === 'clinician');
+  };
+
+  const getAllDirectors = () => {
+    return profiles.filter(p => p.position_info?.role === 'director');
   };
 
   // Clinician-specific dashboard
@@ -808,10 +820,230 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Performance Charts Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Team Performance Overview Chart */}
+      {/* View All Buttons - Only show for super-admin */}
+      {user?.role === 'super-admin' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">View All Users</h3>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Users className="w-4 h-4" />
+              <span>Admin Controls</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => setViewMode(viewMode === 'all-clinicians' ? 'overview' : 'all-clinicians')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                viewMode === 'all-clinicians'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span>
+                {viewMode === 'all-clinicians' ? 'Hide All Clinicians' : 'View All Clinicians'}
+              </span>
+              <span className="bg-white/20 text-xs px-2 py-1 rounded-full">
+                {getAllClinicians().length}
+              </span>
+            </button>
+            
+            <button
+              onClick={() => setViewMode(viewMode === 'all-directors' ? 'overview' : 'all-directors')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                viewMode === 'all-directors'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              <Target className="w-5 h-5" />
+              <span>
+                {viewMode === 'all-directors' ? 'Hide All Directors' : 'View All Directors'}
+              </span>
+              <span className="bg-white/20 text-xs px-2 py-1 rounded-full">
+                {getAllDirectors().length}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* All Clinicians View */}
+      {viewMode === 'all-clinicians' && user?.role === 'super-admin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">All Clinicians</h3>
+                <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{getAllClinicians().length}</div>
+              <div className="text-xs text-gray-500">Total Clinicians</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getAllClinicians().map((clinician) => {
+              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+              const scoreColorClass = getScoreColor(score);
+              const borderColorClass = getScoreBorderColor(score);
+              const monthlyData = generateMonthlyScoreData(clinician.id);
+              const trend = calculateTrend(monthlyData);
+              
+              return (
+                <div key={clinician.id} className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {clinician.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
+                      <span className="text-sm font-medium">{score}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
+                    <p className="text-xs text-gray-600">
+                      {clinician.position_info?.position_title || 'Clinician'} • 
+                      {clinician.clinician_info?.type_info?.title || 'General'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-1">
+                      {trend.direction === 'up' ? (
+                        <ArrowUp className="w-3 h-3 text-green-600" />
+                      ) : trend.direction === 'down' ? (
+                        <ArrowDown className="w-3 h-3 text-red-600" />
+                      ) : (
+                        <Activity className="w-3 h-3 text-gray-600" />
+                      )}
+                      <span className={`font-medium ${
+                        trend.direction === 'up' ? 'text-green-600' : 
+                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                      </span>
+                    </div>
+                    {score >= 90 && <Award className="w-4 h-4 text-yellow-500" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {getAllClinicians().length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No clinicians found in the system</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* All Directors View */}
+      {viewMode === 'all-directors' && user?.role === 'super-admin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">All Directors</h3>
+                <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{getAllDirectors().length}</div>
+              <div className="text-xs text-gray-500">Total Directors</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getAllDirectors().map((director) => {
+              const score = getClinicianScore(director.id, selectedMonth, selectedYear);
+              const scoreColorClass = getScoreColor(score);
+              const borderColorClass = getScoreBorderColor(score);
+              const monthlyData = generateMonthlyScoreData(director.id);
+              const trend = calculateTrend(monthlyData);
+              const assignedClinicians = getAssignedClinicians(director.id);
+              
+              return (
+                <div key={director.id} className={`bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-violet-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {director.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
+                      <span className="text-sm font-medium">{score}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-gray-900 text-sm">{director.name}</h4>
+                    <p className="text-xs text-gray-600">
+                      {director.position_info?.position_title || 'Director'}
+                    </p>
+                    {director.director_info?.direction && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        {director.director_info.direction}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-1">
+                      {trend.direction === 'up' ? (
+                        <ArrowUp className="w-3 h-3 text-green-600" />
+                      ) : trend.direction === 'down' ? (
+                        <ArrowDown className="w-3 h-3 text-red-600" />
+                      ) : (
+                        <Activity className="w-3 h-3 text-gray-600" />
+                      )}
+                      <span className={`font-medium ${
+                        trend.direction === 'up' ? 'text-green-600' : 
+                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-3 h-3 text-gray-500" />
+                      <span className="text-gray-600">{assignedClinicians.length}</span>
+                      {score >= 90 && <Award className="w-4 h-4 text-yellow-500" />}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {getAllDirectors().length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Target className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No directors found in the system</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Performance Charts Section - Only show in overview mode */}
+      {viewMode === 'overview' && (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* Team Performance Overview Chart */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
@@ -1040,43 +1272,39 @@ const Dashboard: React.FC = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-
-      </div>
-
-
-
-      {/* Top Performers Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <Award className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Top Performers</h3>
-              <p className="text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{topPerformers.length}</div>
-              <div className="text-xs text-gray-500">Top Performers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {topPerformers.length > 0 
-                  ? Math.round(topPerformers.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / topPerformers.length)
-                  : 0}%
+
+          {/* Top Performers Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Top Performers</h3>
+                  <p className="text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Avg Score</div>
+              <div className="flex items-center space-x-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{topPerformers.length}</div>
+                  <div className="text-xs text-gray-500">Top Performers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {topPerformers.length > 0 
+                      ? Math.round(topPerformers.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / topPerformers.length)
+                      : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500">Avg Score</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {topPerformers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topPerformers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {topPerformers.slice(0, 6).map((clinician) => {
               const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
@@ -1122,32 +1350,32 @@ const Dashboard: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No top performers (≥90%) found for {selectedMonth} {selectedYear}</p>
-            <p className="text-sm mt-1">Encourage your team to reach excellence!</p>
-          </div>
-        )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No top performers (≥90%) found for {selectedMonth} {selectedYear}</p>
+                <p className="text-sm mt-1">Encourage your team to reach excellence!</p>
+              </div>
+            )}
 
-        {topPerformers.length > 6 && (
-          <div className="mt-4 text-center">
-            <Link
-              to="/performance-analytics"
-              className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors"
-            >
-              <span>View All Top Performers</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+            {topPerformers.length > 6 && (
+              <div className="mt-4 text-center">
+                <Link
+                  to="/performance-analytics"
+                  className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors"
+                >
+                  <span>View All Top Performers</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Current Month Performance */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Current Month Performance */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -1236,40 +1464,40 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Performers Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
-              <p className="text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{cliniciansNeedingAttention.length}</div>
-              <div className="text-xs text-gray-500">Need Attention</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {cliniciansNeedingAttention.length > 0 
-                  ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / cliniciansNeedingAttention.length)
-                  : 0}%
+
+          {/* Bottom Performers Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
+                  <p className="text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Avg Score</div>
+              <div className="flex items-center space-x-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{cliniciansNeedingAttention.length}</div>
+                  <div className="text-xs text-gray-500">Need Attention</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {cliniciansNeedingAttention.length > 0 
+                      ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / cliniciansNeedingAttention.length)
+                      : 0}%
+                  </div>
+                  <div className="text-xs text-gray-500">Avg Score</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {cliniciansNeedingAttention.length > 0 ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {cliniciansNeedingAttention.length > 0 ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cliniciansNeedingAttention.slice(0, 4).map((clinician) => {
                 const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
@@ -1329,20 +1557,22 @@ const Dashboard: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
+                <p className="text-lg font-medium text-gray-700">Excellent Team Performance!</p>
+                <p className="text-sm mt-1">All team members are performing above 70% for {selectedMonth} {selectedYear}</p>
+                <div className="mt-4 inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                  <Award className="w-4 h-4" />
+                  <span className="font-medium">Keep up the great work!</span>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
-            <p className="text-lg font-medium text-gray-700">Excellent Team Performance!</p>
-            <p className="text-sm mt-1">All team members are performing above 70% for {selectedMonth} {selectedYear}</p>
-            <div className="mt-4 inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
-              <Award className="w-4 h-4" />
-              <span className="font-medium">Keep up the great work!</span>
-            </div>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
     </div>
   );
