@@ -836,7 +836,10 @@ const Dashboard: React.FC = () => {
       {user?.role === 'super-admin' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">View All Users</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">View All Users</h3>
+              <p className="text-sm text-gray-600">Data for {selectedMonth} {selectedYear}</p>
+            </div>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <Users className="w-4 h-4" />
               <span>Admin Controls</span>
@@ -920,6 +923,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-gray-900">All Clinicians</h3>
                 <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
+                <p className="text-xs text-blue-600 font-medium">Sorted by highest score first</p>
               </div>
             </div>
             <div className="text-center">
@@ -929,15 +933,21 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {getAllClinicians().map((clinician) => {
+            {getAllClinicians().map((clinician, index) => {
               const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const scoreColorClass = getScoreColor(score);
               const borderColorClass = getScoreBorderColor(score);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
+              const rank = index + 1;
               
               return (
-                <div key={clinician.id} className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all`}>
+                <div key={clinician.id} className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all relative`}>
+                  {/* Ranking Badge */}
+                  <div className="absolute -top-2 -left-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
+                    #{rank}
+                  </div>
+                  
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
@@ -1000,6 +1010,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-gray-900">All Directors</h3>
                 <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
+                <p className="text-xs text-purple-600 font-medium">Sorted by highest score first</p>
               </div>
             </div>
             <div className="text-center">
@@ -1009,16 +1020,22 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {getAllDirectors().map((director) => {
+            {getAllDirectors().map((director, index) => {
               const score = getClinicianScore(director.id, selectedMonth, selectedYear);
               const scoreColorClass = getScoreColor(score);
               const borderColorClass = getScoreBorderColor(score);
               const monthlyData = generateMonthlyScoreData(director.id);
               const trend = calculateTrend(monthlyData);
               const assignedClinicians = getAssignedClinicians(director.id);
+              const rank = index + 1;
               
               return (
-                <div key={director.id} className={`bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all`}>
+                <div key={director.id} className={`bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all relative`}>
+                  {/* Ranking Badge */}
+                  <div className="absolute -top-2 -left-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
+                    #{rank}
+                  </div>
+                  
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-violet-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
@@ -1089,6 +1106,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Clinicians Performance Chart</h3>
                 <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
+                <p className="text-xs text-green-600 font-medium">Sorted by highest score first</p>
               </div>
             </div>
             <div className="text-center">
@@ -1168,6 +1186,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Directors Performance Chart</h3>
                 <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
+                <p className="text-xs text-orange-600 font-medium">Sorted by highest score first</p>
               </div>
             </div>
             <div className="text-center">
