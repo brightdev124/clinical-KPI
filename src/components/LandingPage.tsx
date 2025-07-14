@@ -16,8 +16,8 @@ const LandingPage: React.FC = () => {
     },
     {
       icon: BarChart3,
-      title: 'Performance Analytics',
-      description: 'Real-time dashboards with 12-month trend analysis and predictive insights',
+      title: 'Performance Tracking',
+      description: 'Real-time dashboards with monthly tracking and performance insights',
       color: 'bg-green-500'
     },
     {

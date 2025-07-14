@@ -188,13 +188,7 @@ const ClinicianManagement: React.FC = () => {
                       <ClipboardList className="w-4 h-4 mr-1" />
                       Review
                     </Link>
-                    <Link
-                      to="/analytics"
-                      className="flex-1 bg-gray-50 text-gray-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center"
-                    >
-                      <TrendingUp className="w-4 h-4 mr-1" />
-                      Analytics
-                    </Link>
+
                   </div>
                 )}
               </div>

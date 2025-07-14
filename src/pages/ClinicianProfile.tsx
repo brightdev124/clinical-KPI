@@ -114,13 +114,7 @@ const ClinicianProfile: React.FC = () => {
           <ClipboardList className="w-4 h-4" />
           <span>New Review</span>
         </Link>
-        <Link
-          to="/analytics"
-          className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>View Analytics</span>
-        </Link>
+
         <button
           onClick={handleDownloadSummary}
           className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
