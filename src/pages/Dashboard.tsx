@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
   const monthSelectorRef = useRef<HTMLDivElement>(null);
 
   // View mode state for admin dashboard
-  const [viewMode, setViewMode] = useState<'overview' | 'all-clinicians' | 'all-directors'>('overview');
+  const [viewMode, setViewMode] = useState<'overview' | 'all-clinicians' | 'all-directors' | 'clinicians-chart' | 'directors-chart'>('overview');
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
@@ -252,13 +252,25 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Helper functions to get all clinicians and directors
+  // Helper functions to get all clinicians and directors sorted by highest score
   const getAllClinicians = () => {
-    return profiles.filter(p => p.position_info?.role === 'clinician');
+    return profiles
+      .filter(p => p.position_info?.role === 'clinician')
+      .sort((a, b) => {
+        const scoreA = getClinicianScore(a.id, selectedMonth, selectedYear);
+        const scoreB = getClinicianScore(b.id, selectedMonth, selectedYear);
+        return scoreB - scoreA; // Sort by highest score first
+      });
   };
 
   const getAllDirectors = () => {
-    return profiles.filter(p => p.position_info?.role === 'director');
+    return profiles
+      .filter(p => p.position_info?.role === 'director')
+      .sort((a, b) => {
+        const scoreA = getClinicianScore(a.id, selectedMonth, selectedYear);
+        const scoreB = getClinicianScore(b.id, selectedMonth, selectedYear);
+        return scoreB - scoreA; // Sort by highest score first
+      });
   };
 
   // Clinician-specific dashboard
@@ -865,6 +877,34 @@ const Dashboard: React.FC = () => {
                 {getAllDirectors().length}
               </span>
             </button>
+            
+            <button
+              onClick={() => setViewMode(viewMode === 'clinicians-chart' ? 'overview' : 'clinicians-chart')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                viewMode === 'clinicians-chart'
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span>
+                {viewMode === 'clinicians-chart' ? 'Hide Clinicians Chart' : 'Clinicians With Chart'}
+              </span>
+            </button>
+            
+            <button
+              onClick={() => setViewMode(viewMode === 'directors-chart' ? 'overview' : 'directors-chart')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                viewMode === 'directors-chart'
+                  ? 'bg-orange-600 text-white shadow-lg'
+                  : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span>
+                {viewMode === 'directors-chart' ? 'Hide Directors Chart' : 'Directors With Chart'}
+              </span>
+            </button>
           </div>
         </div>
       )}
@@ -1032,6 +1072,165 @@ const Dashboard: React.FC = () => {
           {getAllDirectors().length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Target className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No directors found in the system</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Clinicians Chart View */}
+      {viewMode === 'clinicians-chart' && user?.role === 'super-admin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Clinicians Performance Chart</h3>
+                <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{getAllClinicians().length}</div>
+              <div className="text-xs text-gray-500">Total Clinicians</div>
+            </div>
+          </div>
+
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={getAllClinicians().map((clinician, index) => ({
+                name: clinician.name.split(' ')[0], // First name only for space
+                fullName: clinician.name,
+                score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
+                position: clinician.position_info?.position_title || 'Clinician',
+                rank: index + 1
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any, name: string, props: any) => [
+                    `${value}%`, 
+                    'Performance Score'
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    const data = payload?.[0]?.payload;
+                    return data ? `#${data.rank} ${data.fullName} (${data.position})` : label;
+                  }}
+                />
+                <Bar 
+                  dataKey="score" 
+                  fill="#10b981"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {getAllClinicians().length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No clinicians found in the system</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Directors Chart View */}
+      {viewMode === 'directors-chart' && user?.role === 'super-admin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Directors Performance Chart</h3>
+                <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{getAllDirectors().length}</div>
+              <div className="text-xs text-gray-500">Total Directors</div>
+            </div>
+          </div>
+
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={getAllDirectors().map((director, index) => ({
+                name: director.name.split(' ')[0], // First name only for space
+                fullName: director.name,
+                score: getClinicianScore(director.id, selectedMonth, selectedYear),
+                position: director.position_info?.position_title || 'Director',
+                rank: index + 1,
+                assignedCount: getAssignedClinicians(director.id).length
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: any, name: string, props: any) => [
+                    `${value}%`, 
+                    'Performance Score'
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    const data = payload?.[0]?.payload;
+                    return data ? `#${data.rank} ${data.fullName} (${data.position}) - ${data.assignedCount} clinicians` : label;
+                  }}
+                />
+                <Bar 
+                  dataKey="score" 
+                  fill="#f97316"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {getAllDirectors().length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>No directors found in the system</p>
             </div>
           )}
