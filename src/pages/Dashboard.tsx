@@ -354,34 +354,34 @@ const Dashboard: React.FC = () => {
     const myDirector = getClinicianDirector(user.id);
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Welcome Header for Clinician */}
-        <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-8 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">
+        <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-4 sm:p-8 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">
                 Welcome, {user?.name?.split(' ')[0]}! 👩‍⚕️
               </h1>
-              <p className="text-green-100 text-lg">
+              <p className="text-green-100 text-base sm:text-lg">
                 Your performance overview for {selectedMonth} {selectedYear}
               </p>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold">{myScore}%</div>
+            <div className="text-center sm:text-right">
+              <div className="text-3xl sm:text-4xl font-bold">{myScore}%</div>
               <div className="text-green-100 text-sm">Your Score</div>
             </div>
           </div>
         </div>
 
         {/* Month Selector and Download Controls */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               <h3 className="text-lg font-semibold text-gray-900">View Data By Month</h3>
               <div className="relative" ref={monthSelectorRef}>
                 <button
                   onClick={() => setShowMonthSelector(!showMonthSelector)}
-                  className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-3 sm:py-2 rounded-lg hover:bg-blue-100 transition-colors w-full sm:w-auto justify-center sm:justify-start text-sm sm:text-base"
                 >
                   <Calendar className="w-4 h-4" />
                   <span>{selectedMonth} {selectedYear}</span>
@@ -389,13 +389,13 @@ const Dashboard: React.FC = () => {
                 </button>
                 
                 {showMonthSelector && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px] w-full sm:w-auto">
                     <div className="p-2 max-h-60 overflow-y-auto">
                       {availableMonths.map((monthData, index) => (
                         <button
                           key={index}
                           onClick={() => handleMonthSelect(monthData.month, monthData.year)}
-                          className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
+                          className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-sm sm:text-base ${
                             selectedMonth === monthData.month && selectedYear === monthData.year
                               ? 'bg-blue-50 text-blue-700'
                               : 'text-gray-700'
@@ -412,27 +412,28 @@ const Dashboard: React.FC = () => {
             
             <button
               onClick={handleDownloadMonthlyData}
-              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-sm sm:text-base"
             >
               <Download className="w-4 h-4" />
-              <span>Download {selectedMonth} Data</span>
+              <span className="hidden sm:inline">Download {selectedMonth} Data</span>
+              <span className="sm:hidden">Download Data</span>
             </button>
           </div>
         </div>
 
         {/* Monthly Performance Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+            <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Trend</h3>
               <p className="text-sm text-gray-600">Your monthly performance scores over the last 12 months</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               {/* Chart Type Toggle */}
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setChartType('line')}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center justify-center space-x-1 px-3 py-2 sm:py-1 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none ${
                     chartType === 'line'
                       ? 'bg-white text-blue-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
@@ -443,7 +444,7 @@ const Dashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setChartType('bar')}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center justify-center space-x-1 px-3 py-2 sm:py-1 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none ${
                     chartType === 'bar'
                       ? 'bg-white text-blue-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
@@ -453,13 +454,13 @@ const Dashboard: React.FC = () => {
                   <span>Bar</span>
                 </button>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
                 <span>12-Month View</span>
               </div>
             </div>
           </div>
           
-          <div className="h-80">
+          <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
                 <LineChart data={generateMonthlyScoreData(user.id)}>
@@ -539,33 +540,33 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* Chart Legend/Summary */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">Current Month</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Current Month</span>
               </div>
-              <div className="text-2xl font-bold text-blue-600 mt-1">{myScore}%</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{myScore}%</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-green-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-700">12-Month Average</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">12-Month Average</span>
               </div>
-              <div className="text-2xl font-bold text-green-600 mt-1">
+              <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
                 {Math.round(generateMonthlyScoreData(user.id).reduce((sum, data) => sum + data.score, 0) / 12)}%
               </div>
             </div>
-            <div className="bg-purple-50 rounded-lg p-4">
+            <div className="bg-purple-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <Award className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-gray-700">Best Month</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Best Month</span>
               </div>
-              <div className="text-2xl font-bold text-purple-600 mt-1">
+              <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
                 {Math.max(...generateMonthlyScoreData(user.id).map(d => d.score))}%
               </div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-4">
+            <div className="bg-orange-50 rounded-lg p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center space-x-2">
                 {(() => {
                   const trend = calculateTrend(generateMonthlyScoreData(user.id));
@@ -573,9 +574,9 @@ const Dashboard: React.FC = () => {
                   const trendColor = trend.direction === 'up' ? 'text-green-600' : trend.direction === 'down' ? 'text-red-600' : 'text-orange-600';
                   return <TrendIcon className={`w-4 h-4 ${trendColor}`} />;
                 })()}
-                <span className="text-sm font-medium text-gray-700">Monthly Trend</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Monthly Trend</span>
               </div>
-              <div className="text-2xl font-bold text-orange-600 mt-1">
+              <div className="text-xl sm:text-2xl font-bold text-orange-600 mt-1">
                 {(() => {
                   const trend = calculateTrend(generateMonthlyScoreData(user.id));
                   if (trend.direction === 'stable') return 'Stable';
@@ -587,28 +588,28 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Director Information */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
           {myDirector ? (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
-                  <Users className="w-8 h-8 text-purple-600" />
+                <div className="w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Users className="w-6 sm:w-8 h-6 sm:h-8 text-purple-600" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Your Director</h3>
-                  <p className="text-2xl font-bold text-gray-900">{myDirector.name}</p>
-                  <p className="text-sm text-gray-600">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Your Director</h3>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{myDirector.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {myDirector.position_info?.position_title || 'Clinical Director'}
                   </p>
                   {myDirector.director_info?.direction && (
-                    <p className="text-sm text-blue-600 mt-1">
+                    <p className="text-xs sm:text-sm text-blue-600 mt-1">
                       {myDirector.director_info.direction}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+              <div className="text-left sm:text-right">
+                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-xs sm:text-sm font-medium rounded-full">
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Assigned
                 </div>
@@ -618,21 +619,21 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-gray-500" />
+                <div className="w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 sm:w-8 h-6 sm:h-8 text-gray-500" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Director Assignment</h3>
-                  <p className="text-xl font-medium text-gray-600">No director assigned</p>
-                  <p className="text-sm text-gray-500">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Director Assignment</h3>
+                  <p className="text-lg sm:text-xl font-medium text-gray-600">No director assigned</p>
+                  <p className="text-xs sm:text-sm text-gray-500">
                     Please contact administration for assignment
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+              <div className="text-left sm:text-right">
+                <div className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-xs sm:text-sm font-medium rounded-full">
                   <Clock className="w-4 h-4 mr-1" />
                   Pending
                 </div>
@@ -645,61 +646,61 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Personal Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Current Score</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{myScore}%</p>
-                <p className="text-sm text-green-600 mt-1 flex items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Current Score</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{myScore}%</p>
+                <p className="text-xs sm:text-sm text-green-600 mt-1 flex items-center">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   Performance tracking
                 </p>
               </div>
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Target className="w-7 h-7 text-blue-600" />
+              <div className="w-12 sm:w-14 h-12 sm:h-14 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Target className="w-6 sm:w-7 h-6 sm:h-7 text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Reviews Completed</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{myReviews.length}</p>
-                <p className="text-sm text-gray-500 mt-1">Total reviews</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Reviews Completed</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{myReviews.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Total reviews</p>
               </div>
-              <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-7 h-7 text-green-600" />
+              <div className="w-12 sm:w-14 h-12 sm:h-14 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <FileText className="w-6 sm:w-7 h-6 sm:h-7 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">KPIs Met</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">KPIs Met</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
                   {myReviews.filter(r => r.met).length}
                 </p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-xs sm:text-sm text-green-600 mt-1">
                   of {myReviews.length} total
                 </p>
               </div>
-              <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-7 h-7 text-purple-600" />
+              <div className="w-12 sm:w-14 h-12 sm:h-14 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-6 sm:w-7 h-6 sm:h-7 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
         {/* My Performance and Recent Reviews */}
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8">
           {/* Enhanced KPI Performance */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
               <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {selectedMonth} {selectedYear}</h3>
-              <div className="text-sm text-gray-600">
+              <div className="text-xs sm:text-sm text-gray-600">
                 {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of {kpis.length} KPIs reviewed
               </div>
             </div>
@@ -712,38 +713,38 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={kpi.id} className="border border-gray-200 rounded-lg">
                     {/* KPI Header */}
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <Target className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium text-gray-900">{kpi.title}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    <div className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                          <Target className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <span className="font-medium text-gray-900 text-sm sm:text-base truncate">{kpi.title}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
                             Weight: {kpi.weight}
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-between sm:justify-end space-x-3">
                           {hasData ? (
                             <>
                               {review?.met_check ? (
                                 <div className="flex items-center space-x-1 text-green-600">
                                   <Check className="w-4 h-4" />
-                                  <span className="text-sm font-medium">Met</span>
+                                  <span className="text-xs sm:text-sm font-medium">Met</span>
                                 </div>
                               ) : (
                                 <div className="flex items-center space-x-1 text-red-600">
                                   <X className="w-4 h-4" />
-                                  <span className="text-sm font-medium">Not Met</span>
+                                  <span className="text-xs sm:text-sm font-medium">Not Met</span>
                                 </div>
                               )}
-                              <span className="text-sm font-semibold text-gray-900">
+                              <span className="text-xs sm:text-sm font-semibold text-gray-900">
                                 {score}/{kpi.weight}
                               </span>
                             </>
                           ) : (
                             <div className="flex items-center space-x-1 text-gray-400">
                               <AlertCircle className="w-4 h-4" />
-                              <span className="text-sm">No review</span>
+                              <span className="text-xs sm:text-sm">No review</span>
                             </div>
                           )}
                           
@@ -762,7 +763,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       
-                      <p className="text-sm text-gray-600 mb-3">{kpi.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3">{kpi.description}</p>
                       
                       {/* Progress Bar */}
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -783,16 +784,16 @@ const Dashboard: React.FC = () => {
 
                     {/* Expandable Details */}
                     {isExpanded && hasData && (
-                      <div className="border-t border-gray-200 bg-gray-50 p-4">
+                      <div className="border-t border-gray-200 bg-gray-50 p-3 sm:p-4">
                         {!review?.met_check && (
                           <div className="space-y-4">
                             {review?.notes && (
                               <div>
                                 <div className="flex items-center space-x-1 mb-2">
                                   <FileText className="w-4 h-4 text-orange-600" />
-                                  <span className="text-sm font-medium text-gray-700">Notes:</span>
+                                  <span className="text-xs sm:text-sm font-medium text-gray-700">Notes:</span>
                                 </div>
-                                <p className="text-sm text-gray-600 bg-orange-50 p-3 rounded border-l-4 border-orange-200">
+                                <p className="text-xs sm:text-sm text-gray-600 bg-orange-50 p-3 rounded border-l-4 border-orange-200">
                                   {review.notes}
                                 </p>
                               </div>
@@ -802,9 +803,9 @@ const Dashboard: React.FC = () => {
                               <div>
                                 <div className="flex items-center space-x-1 mb-2">
                                   <TrendingUp className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-gray-700">Action Plan:</span>
+                                  <span className="text-xs sm:text-sm font-medium text-gray-700">Action Plan:</span>
                                 </div>
-                                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded border-l-4 border-blue-200">
+                                <p className="text-xs sm:text-sm text-gray-600 bg-blue-50 p-3 rounded border-l-4 border-blue-200">
                                   {review.plan}
                                 </p>
                               </div>
@@ -814,20 +815,20 @@ const Dashboard: React.FC = () => {
                               <div>
                                 <div className="flex items-center space-x-1 mb-2">
                                   <Download className="w-4 h-4 text-green-600" />
-                                  <span className="text-sm font-medium text-gray-700">Attached File:</span>
+                                  <span className="text-xs sm:text-sm font-medium text-gray-700">Attached File:</span>
                                 </div>
                                 <div className="flex items-center space-x-2 bg-green-50 p-3 rounded border border-green-200">
-                                  <FileText className="w-4 h-4 text-green-600" />
-                                  <span className="text-sm text-green-700 flex-1">
+                                  <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  <span className="text-xs sm:text-sm text-green-700 flex-1 truncate">
                                     {getFileNameFromUrl(review.file_url)}
                                   </span>
                                   <button
                                     onClick={() => window.open(review.file_url, '_blank')}
-                                    className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1"
+                                    className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1 flex-shrink-0"
                                     title="Download file"
                                   >
                                     <ExternalLink className="w-4 h-4" />
-                                    <span className="text-xs">Open</span>
+                                    <span className="text-xs hidden sm:inline">Open</span>
                                   </button>
                                 </div>
                               </div>
@@ -837,8 +838,8 @@ const Dashboard: React.FC = () => {
                         
                         {review?.met_check && (
                           <div className="flex items-center space-x-2 text-green-600">
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="text-sm font-medium">
+                            <CheckCircle className="w-4 sm:w-5 h-4 sm:h-5" />
+                            <span className="text-xs sm:text-sm font-medium">
                               Great job! You successfully met this KPI target.
                             </span>
                           </div>
@@ -852,14 +853,14 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Reviews for {selectedMonth} {selectedYear}</h3>
             <div className="space-y-4">
               {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).slice(0, 5).map((review) => {
                 const kpi = kpis.find(k => k.id === review.kpiId);
                 return (
                   <div key={review.id} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       review.met ? 'bg-green-100' : 'bg-yellow-100'
                     }`}>
                       {review.met ? 
@@ -868,13 +869,13 @@ const Dashboard: React.FC = () => {
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{kpi?.title} - {review.met ? 'Target Met' : 'Improvement Plan'}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-900">{kpi?.title} - {review.met ? 'Target Met' : 'Improvement Plan'}</p>
                       <p className="text-xs text-gray-500">{review.reviewDate ? `Reviewed ${new Date(review.reviewDate).toLocaleDateString()}` : `${review.month} ${review.year}`}</p>
                       {review.notes && (
-                        <p className="text-xs text-gray-600 mt-1">{review.notes}</p>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{review.notes}</p>
                       )}
                       {review.plan && (
-                        <p className="text-xs text-blue-600 mt-1"><strong>Plan:</strong> {review.plan}</p>
+                        <p className="text-xs text-blue-600 mt-1 line-clamp-2"><strong>Plan:</strong> {review.plan}</p>
                       )}
                     </div>
                   </div>
@@ -883,7 +884,7 @@ const Dashboard: React.FC = () => {
               {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No reviews found for {selectedMonth} {selectedYear}</p>
+                  <p className="text-sm sm:text-base">No reviews found for {selectedMonth} {selectedYear}</p>
                 </div>
               )}
             </div>
