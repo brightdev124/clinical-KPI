@@ -35,8 +35,7 @@ const Dashboard: React.FC = () => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const monthSelectorRef = useRef<HTMLDivElement>(null);
 
-  // View mode state for admin dashboard
-  const [viewMode, setViewMode] = useState<'overview' | 'all-clinicians' | 'all-directors' | 'clinicians-chart' | 'directors-chart'>('overview');
+
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
@@ -833,433 +832,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* View All Buttons - Only show for super-admin */}
-      {user?.role === 'super-admin' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">View All Users</h3>
-              <p className="text-sm text-gray-600">Data for {selectedMonth} {selectedYear}</p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Users className="w-4 h-4" />
-              <span>Admin Controls</span>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => setViewMode(viewMode === 'all-clinicians' ? 'overview' : 'all-clinicians')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                viewMode === 'all-clinicians'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-              }`}
-            >
-              <Users className="w-5 h-5" />
-              <span>
-                {viewMode === 'all-clinicians' ? 'Hide All Clinicians' : 'View All Clinicians'}
-              </span>
-              <span className="bg-white/20 text-xs px-2 py-1 rounded-full">
-                {getAllClinicians().length}
-              </span>
-            </button>
-            
-            <button
-              onClick={() => setViewMode(viewMode === 'all-directors' ? 'overview' : 'all-directors')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                viewMode === 'all-directors'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              <Target className="w-5 h-5" />
-              <span>
-                {viewMode === 'all-directors' ? 'Hide All Directors' : 'View All Directors'}
-              </span>
-              <span className="bg-white/20 text-xs px-2 py-1 rounded-full">
-                {getAllDirectors().length}
-              </span>
-            </button>
-            
-            <button
-              onClick={() => setViewMode(viewMode === 'clinicians-chart' ? 'overview' : 'clinicians-chart')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                viewMode === 'clinicians-chart'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'bg-green-50 text-green-700 hover:bg-green-100'
-              }`}
-            >
-              <BarChart3 className="w-5 h-5" />
-              <span>
-                {viewMode === 'clinicians-chart' ? 'Hide Clinicians Chart' : 'Clinicians With Chart'}
-              </span>
-            </button>
-            
-            <button
-              onClick={() => setViewMode(viewMode === 'directors-chart' ? 'overview' : 'directors-chart')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                viewMode === 'directors-chart'
-                  ? 'bg-orange-600 text-white shadow-lg'
-                  : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
-              }`}
-            >
-              <BarChart3 className="w-5 h-5" />
-              <span>
-                {viewMode === 'directors-chart' ? 'Hide Directors Chart' : 'Directors With Chart'}
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* All Clinicians View */}
-      {viewMode === 'all-clinicians' && user?.role === 'super-admin' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">All Clinicians</h3>
-                <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
-                <p className="text-xs text-blue-600 font-medium">Sorted by highest score first</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{getAllClinicians().length}</div>
-              <div className="text-xs text-gray-500">Total Clinicians</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {getAllClinicians().map((clinician, index) => {
-              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
-              const scoreColorClass = getScoreColor(score);
-              const borderColorClass = getScoreBorderColor(score);
-              const monthlyData = generateMonthlyScoreData(clinician.id);
-              const trend = calculateTrend(monthlyData);
-              const rank = index + 1;
-              
-              return (
-                <div key={clinician.id} className={`bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all relative`}>
-                  {/* Ranking Badge */}
-                  <div className="absolute -top-2 -left-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
-                    #{rank}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {clinician.name.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
-                      <span className="text-sm font-medium">{score}%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
-                    <p className="text-xs text-gray-600">
-                      {clinician.position_info?.position_title || 'Clinician'} • 
-                      {clinician.clinician_info?.type_info?.title || 'General'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-1">
-                      {trend.direction === 'up' ? (
-                        <ArrowUp className="w-3 h-3 text-green-600" />
-                      ) : trend.direction === 'down' ? (
-                        <ArrowDown className="w-3 h-3 text-red-600" />
-                      ) : (
-                        <Activity className="w-3 h-3 text-gray-600" />
-                      )}
-                      <span className={`font-medium ${
-                        trend.direction === 'up' ? 'text-green-600' : 
-                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
-                      </span>
-                    </div>
-                    {score >= 90 && <Award className="w-4 h-4 text-yellow-500" />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          {getAllClinicians().length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No clinicians found in the system</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* All Directors View */}
-      {viewMode === 'all-directors' && user?.role === 'super-admin' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Target className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">All Directors</h3>
-                <p className="text-sm text-gray-600">Performance scores for {selectedMonth} {selectedYear}</p>
-                <p className="text-xs text-purple-600 font-medium">Sorted by highest score first</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{getAllDirectors().length}</div>
-              <div className="text-xs text-gray-500">Total Directors</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {getAllDirectors().map((director, index) => {
-              const score = getClinicianScore(director.id, selectedMonth, selectedYear);
-              const scoreColorClass = getScoreColor(score);
-              const borderColorClass = getScoreBorderColor(score);
-              const monthlyData = generateMonthlyScoreData(director.id);
-              const trend = calculateTrend(monthlyData);
-              const assignedClinicians = getAssignedClinicians(director.id);
-              const rank = index + 1;
-              
-              return (
-                <div key={director.id} className={`bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border ${borderColorClass} hover:shadow-md transition-all relative`}>
-                  {/* Ranking Badge */}
-                  <div className="absolute -top-2 -left-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
-                    #{rank}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-violet-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {director.name.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
-                      <span className="text-sm font-medium">{score}%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-sm">{director.name}</h4>
-                    <p className="text-xs text-gray-600">
-                      {director.position_info?.position_title || 'Director'}
-                    </p>
-                    {director.director_info?.direction && (
-                      <p className="text-xs text-purple-600 mt-1">
-                        {director.director_info.direction}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-1">
-                      {trend.direction === 'up' ? (
-                        <ArrowUp className="w-3 h-3 text-green-600" />
-                      ) : trend.direction === 'down' ? (
-                        <ArrowDown className="w-3 h-3 text-red-600" />
-                      ) : (
-                        <Activity className="w-3 h-3 text-gray-600" />
-                      )}
-                      <span className={`font-medium ${
-                        trend.direction === 'up' ? 'text-green-600' : 
-                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="w-3 h-3 text-gray-500" />
-                      <span className="text-gray-600">{assignedClinicians.length}</span>
-                      {score >= 90 && <Award className="w-4 h-4 text-yellow-500" />}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          {getAllDirectors().length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Target className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No directors found in the system</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Clinicians Chart View */}
-      {viewMode === 'clinicians-chart' && user?.role === 'super-admin' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Clinicians Performance Chart</h3>
-                <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
-                <p className="text-xs text-green-600 font-medium">Sorted by highest score first</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{getAllClinicians().length}</div>
-              <div className="text-xs text-gray-500">Total Clinicians</div>
-            </div>
-          </div>
-
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getAllClinicians().map((clinician, index) => ({
-                name: clinician.name.split(' ')[0], // First name only for space
-                fullName: clinician.name,
-                score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
-                position: clinician.position_info?.position_title || 'Clinician',
-                rank: index + 1
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value: any, name: string, props: any) => [
-                    `${value}%`, 
-                    'Performance Score'
-                  ]}
-                  labelFormatter={(label, payload) => {
-                    const data = payload?.[0]?.payload;
-                    return data ? `#${data.rank} ${data.fullName} (${data.position})` : label;
-                  }}
-                />
-                <Bar 
-                  dataKey="score" 
-                  fill="#10b981"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {getAllClinicians().length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No clinicians found in the system</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Directors Chart View */}
-      {viewMode === 'directors-chart' && user?.role === 'super-admin' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Directors Performance Chart</h3>
-                <p className="text-sm text-gray-600">Rankings by performance scores for {selectedMonth} {selectedYear}</p>
-                <p className="text-xs text-orange-600 font-medium">Sorted by highest score first</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{getAllDirectors().length}</div>
-              <div className="text-xs text-gray-500">Total Directors</div>
-            </div>
-          </div>
-
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getAllDirectors().map((director, index) => ({
-                name: director.name.split(' ')[0], // First name only for space
-                fullName: director.name,
-                score: getClinicianScore(director.id, selectedMonth, selectedYear),
-                position: director.position_info?.position_title || 'Director',
-                rank: index + 1,
-                assignedCount: getAssignedClinicians(director.id).length
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickLine={false}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value: any, name: string, props: any) => [
-                    `${value}%`, 
-                    'Team Average Score'
-                  ]}
-                  labelFormatter={(label, payload) => {
-                    const data = payload?.[0]?.payload;
-                    return data ? `#${data.rank} ${data.fullName} (${data.position}) - Managing ${data.assignedCount} clinicians` : label;
-                  }}
-                />
-                <Bar 
-                  dataKey="score" 
-                  fill="#f97316"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {getAllDirectors().length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No directors found in the system</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Performance Charts Section - Only show in overview mode */}
-      {viewMode === 'overview' && (
-        <>
+      {/* Performance Charts Section */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* Team Performance Overview Chart */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -1590,102 +1164,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Current Month Performance */}
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {selectedMonth} {selectedYear} Performance
-                </h3>
-              </div>
-
-            </div>
-          </div>
           
-          <div className="p-6">
-            <div className="space-y-4">
-              {userClinicians.map((clinician) => {
-                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
-                const scoreColorClass = getScoreColor(score);
-                const borderColorClass = getScoreBorderColor(score);
-                
-                return (
-                  <div key={clinician.id} className={`flex items-center justify-between p-4 bg-gray-50 rounded-xl border ${borderColorClass} hover:shadow-sm transition-all`}>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {clinician.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{clinician.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {clinician.position_info?.position_title || 'Clinician'} • 
-                          {clinician.clinician_info?.type_info?.title || 'General'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4">
-                      <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
-                        <span className="text-sm font-medium">
-                          {score}%
-                        </span>
-                      </div>
-                      {score >= 90 && <Award className="w-5 h-5 text-yellow-500" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center space-x-2">
-              <Activity className="w-5 h-5 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-            </div>
-          </div>
-          
-          <div className="p-6">
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    activity.type === 'review_completed' ? 'bg-green-100' :
-                    activity.type === 'kpi_updated' ? 'bg-blue-100' : 'bg-yellow-100'
-                  }`}>
-                    {activity.type === 'review_completed' && <BarChart3 className="w-4 h-4 text-green-600" />}
-                    {activity.type === 'kpi_updated' && <Target className="w-4 h-4 text-blue-600" />}
-                    {activity.type === 'improvement_plan' && <Clock className="w-4 h-4 text-yellow-600" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.clinician}</p>
-                    <p className="text-sm text-gray-600">{activity.action}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                      {activity.score && (
-                        <span className={`text-xs px-2 py-1 rounded-full ${getScoreColor(activity.score)}`}>
-                          {activity.score}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-            </div>
-          </div>
-
           {/* Bottom Performers Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-6">
@@ -1790,8 +1269,103 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-        </>
-      )}
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Current Month Performance */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {selectedMonth} {selectedYear} Performance
+                </h3>
+              </div>
+
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="space-y-4">
+              {userClinicians.map((clinician) => {
+                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                const scoreColorClass = getScoreColor(score);
+                const borderColorClass = getScoreBorderColor(score);
+                
+                return (
+                  <div key={clinician.id} className={`flex items-center justify-between p-4 bg-gray-50 rounded-xl border ${borderColorClass} hover:shadow-sm transition-all`}>
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {clinician.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{clinician.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {clinician.position_info?.position_title || 'Clinician'} • 
+                          {clinician.clinician_info?.type_info?.title || 'General'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
+                        <span className="text-sm font-medium">
+                          {score}%
+                        </span>
+                      </div>
+                      {score >= 90 && <Award className="w-5 h-5 text-yellow-500" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center space-x-2">
+              <Activity className="w-5 h-5 text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="space-y-4">
+              {recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    activity.type === 'review_completed' ? 'bg-green-100' :
+                    activity.type === 'kpi_updated' ? 'bg-blue-100' : 'bg-yellow-100'
+                  }`}>
+                    {activity.type === 'review_completed' && <BarChart3 className="w-4 h-4 text-green-600" />}
+                    {activity.type === 'kpi_updated' && <Target className="w-4 h-4 text-blue-600" />}
+                    {activity.type === 'improvement_plan' && <Clock className="w-4 h-4 text-yellow-600" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{activity.clinician}</p>
+                    <p className="text-sm text-gray-600">{activity.action}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-500">{activity.time}</p>
+                      {activity.score && (
+                        <span className={`text-xs px-2 py-1 rounded-full ${getScoreColor(activity.score)}`}>
+                          {activity.score}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+            </div>
+          </div>
+
+
 
       {/* Admin Analytics Component - Only for super-admin */}
       {user?.role === 'super-admin' && (
