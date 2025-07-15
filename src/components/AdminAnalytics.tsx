@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronLeft
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -34,6 +35,10 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [expandedDirectors, setExpandedDirectors] = useState<Set<string>>(new Set());
+  
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Initialize months
   useEffect(() => {
@@ -252,6 +257,28 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
   const chartData = generateChartData();
   const tableData = generateTableData();
+
+  // Pagination logic
+  const totalItems = tableData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTableData = tableData.slice(startIndex, endIndex);
+
+  // Reset to first page when data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedUsers, startMonth, endMonth]);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   // Generate colors for chart lines
   const getLineColor = (index: number) => {
@@ -506,46 +533,143 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
             </div>
           ) : viewType === 'table' ? (
             // Table View
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    {chartData.map(monthData => (
-                      <th key={monthData.month} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {monthData.month}
+            <div className="space-y-4">
+              {/* Table Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-700">
+                    Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm text-gray-700">Show:</label>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                      className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <label className="text-sm text-gray-700">entries</label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {tableData.map((row, index) => (
-                    <tr key={row.user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{row.user.name}</div>
-                        <div className="text-sm text-gray-500">{row.user.username}</div>
-                      </td>
-                      {chartData.map(monthData => {
-                        const score = row[monthData.month] || 0;
-                        return (
-                          <td key={monthData.month} className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              score >= 90 ? 'bg-green-100 text-green-800' :
-                              score >= 80 ? 'bg-blue-100 text-blue-800' :
-                              score >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {score}%
-                            </span>
-                          </td>
-                        );
-                      })}
+                      {chartData.map(monthData => (
+                        <th key={monthData.month} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {monthData.month}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedTableData.map((row, index) => (
+                      <tr key={row.user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{row.user.name}</div>
+                          <div className="text-sm text-gray-500">{row.user.username}</div>
+                        </td>
+                        {chartData.map(monthData => {
+                          const score = row[monthData.month] || 0;
+                          return (
+                            <td key={monthData.month} className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                score >= 90 ? 'bg-green-100 text-green-800' :
+                                score >= 80 ? 'bg-blue-100 text-blue-800' :
+                                score >= 70 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {score}%
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      // Show first page, last page, current page, and pages around current page
+                      const showPage = 
+                        page === 1 || 
+                        page === totalPages || 
+                        (page >= currentPage - 1 && page <= currentPage + 1);
+                      
+                      if (!showPage) {
+                        // Show ellipsis for gaps
+                        if (page === currentPage - 2 || page === currentPage + 2) {
+                          return (
+                            <span key={page} className="px-3 py-2 text-sm text-gray-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 rounded-md text-sm font-medium ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // Chart View
