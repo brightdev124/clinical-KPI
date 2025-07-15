@@ -169,33 +169,52 @@ const Dashboard: React.FC = () => {
         };
       });
     } else {
-      // For directors and admins, show team activity
-      return [
-        {
-          id: 1,
-          type: 'review_completed',
-          clinician: 'Dr. Emily Rodriguez',
-          action: 'Monthly review completed',
-          time: '2 hours ago',
-          score: 85
-        },
-        {
-          id: 2,
-          type: 'kpi_updated',
-          clinician: 'Dr. James Wilson',
-          action: 'KPI target achieved',
-          time: '4 hours ago',
-          score: 92
-        },
-        {
-          id: 3,
-          type: 'improvement_plan',
-          clinician: 'Dr. Lisa Thompson',
-          action: 'Improvement plan created',
-          time: '1 day ago',
-          score: 68
-        }
-      ];
+      // For directors and admins, show team activity based on real data
+      const recentActivities: any[] = [];
+      
+      // Get recent reviews from all assigned clinicians
+      userClinicians.forEach(clinician => {
+        const reviews = getClinicianReviews(clinician.id);
+        const recentReviews = reviews
+          .filter(review => review.reviewDate) // Only reviews with actual review dates
+          .sort((a, b) => new Date(b.reviewDate!).getTime() - new Date(a.reviewDate!).getTime())
+          .slice(0, 2); // Get 2 most recent reviews per clinician
+        
+        recentReviews.forEach((review, index) => {
+          const kpi = kpis.find(k => k.id === review.kpiId);
+          const reviewDate = new Date(review.reviewDate!);
+          const now = new Date();
+          const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          let timeText = '';
+          if (diffDays === 1) {
+            timeText = '1 day ago';
+          } else if (diffDays < 7) {
+            timeText = `${diffDays} days ago`;
+          } else if (diffDays < 30) {
+            const weeks = Math.floor(diffDays / 7);
+            timeText = weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+          } else {
+            timeText = reviewDate.toLocaleDateString();
+          }
+          
+          recentActivities.push({
+            id: `${clinician.id}-${review.id}-${index}`,
+            type: review.met ? 'kpi_updated' : 'improvement_plan',
+            clinician: clinician.name,
+            action: review.met ? `${kpi?.title} - Target achieved` : `${kpi?.title} - Improvement plan created`,
+            time: timeText,
+            score: getClinicianScore(clinician.id, review.month, review.year),
+            reviewDate: reviewDate
+          });
+        });
+      });
+      
+      // Sort all activities by review date (most recent first) and take top 5
+      return recentActivities
+        .sort((a, b) => b.reviewDate.getTime() - a.reviewDate.getTime())
+        .slice(0, 5);
     }
   };
 
@@ -1336,30 +1355,38 @@ const Dashboard: React.FC = () => {
           
           <div className="p-6">
             <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    activity.type === 'review_completed' ? 'bg-green-100' :
-                    activity.type === 'kpi_updated' ? 'bg-blue-100' : 'bg-yellow-100'
-                  }`}>
-                    {activity.type === 'review_completed' && <BarChart3 className="w-4 h-4 text-green-600" />}
-                    {activity.type === 'kpi_updated' && <Target className="w-4 h-4 text-blue-600" />}
-                    {activity.type === 'improvement_plan' && <Clock className="w-4 h-4 text-yellow-600" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.clinician}</p>
-                    <p className="text-sm text-gray-600">{activity.action}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                      {activity.score && (
-                        <span className={`text-xs px-2 py-1 rounded-full ${getScoreColor(activity.score)}`}>
-                          {activity.score}%
-                        </span>
-                      )}
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      activity.type === 'review_completed' ? 'bg-green-100' :
+                      activity.type === 'kpi_updated' ? 'bg-blue-100' : 'bg-yellow-100'
+                    }`}>
+                      {activity.type === 'review_completed' && <BarChart3 className="w-4 h-4 text-green-600" />}
+                      {activity.type === 'kpi_updated' && <Target className="w-4 h-4 text-blue-600" />}
+                      {activity.type === 'improvement_plan' && <Clock className="w-4 h-4 text-yellow-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.clinician}</p>
+                      <p className="text-sm text-gray-600">{activity.action}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-gray-500">{activity.time}</p>
+                        {activity.score && (
+                          <span className={`text-xs px-2 py-1 rounded-full ${getScoreColor(activity.score)}`}>
+                            {activity.score}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No recent activity found</p>
+                  <p className="text-gray-400 text-xs mt-1">Activity will appear here when clinicians complete reviews</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
             </div>
