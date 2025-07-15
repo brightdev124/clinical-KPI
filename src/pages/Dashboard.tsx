@@ -922,28 +922,28 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Month Selector and Download Controls for Directors/Admins */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h3 className="text-lg font-semibold text-gray-900">View Team Data By Month</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">View Team Data By Month</h3>
             <div className="relative" ref={monthSelectorRef}>
               <button
                 onClick={() => setShowMonthSelector(!showMonthSelector)}
-                className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center sm:justify-start"
               >
                 <Calendar className="w-4 h-4" />
-                <span>{selectedMonth} {selectedYear}</span>
+                <span className="truncate">{selectedMonth} {selectedYear}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               
               {showMonthSelector && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px] max-w-[280px] w-full sm:w-auto">
                   <div className="p-2 max-h-60 overflow-y-auto">
                     {availableMonths.map((monthData, index) => (
                       <button
                         key={index}
                         onClick={() => handleMonthSelect(monthData.month, monthData.year)}
-                        className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-sm ${
                           selectedMonth === monthData.month && selectedYear === monthData.year
                             ? 'bg-blue-50 text-blue-700'
                             : 'text-gray-700'
@@ -960,75 +960,76 @@ const Dashboard: React.FC = () => {
           
           <button
             onClick={handleDownloadMonthlyData}
-            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Download className="w-4 h-4" />
-            <span>Download {selectedMonth} Team Data</span>
+            <span className="hidden sm:inline">Download {selectedMonth} Team Data</span>
+            <span className="sm:hidden">Download Data</span>
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
                 {user?.role === 'super-admin' ? 'Total Team Members' : 'Total Clinicians'}
               </p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{totalTeamMembers}</p>
-              <p className="text-sm text-green-600 mt-1 flex items-center">
-                <ArrowUp className="w-4 h-4 mr-1" />
-                Active team members
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{totalTeamMembers}</p>
+              <p className="text-xs sm:text-sm text-green-600 mt-1 flex items-center">
+                <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="truncate">Active team members</span>
               </p>
             </div>
-            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Users className="w-7 h-7 text-blue-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+              <Users className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active KPIs</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{totalKPIs}</p>
-              <p className="text-sm text-gray-500 mt-1">Across all categories</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Active KPIs</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{totalKPIs}</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">Across all categories</p>
             </div>
-            <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
-              <Target className="w-7 h-7 text-green-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+              <Target className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Average Score</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{avgScore}%</p>
-              <p className="text-sm text-green-600 mt-1 flex items-center">
-                <ArrowUp className="w-4 h-4 mr-1" />
-                Team performance
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Average Score</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{avgScore}%</p>
+              <p className="text-xs sm:text-sm text-green-600 mt-1 flex items-center">
+                <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="truncate">Team performance</span>
               </p>
             </div>
-            <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-7 h-7 text-purple-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Need Attention</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{cliniciansNeedingAttention.length}</p>
-              <p className="text-sm text-red-600 mt-1 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                Requires review
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Need Attention</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{cliniciansNeedingAttention.length}</p>
+              <p className="text-xs sm:text-sm text-red-600 mt-1 flex items-center">
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="truncate">Requires review</span>
               </p>
             </div>
-            <div className="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-7 h-7 text-red-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 ml-3">
+              <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
             </div>
           </div>
         </div>
@@ -1037,19 +1038,19 @@ const Dashboard: React.FC = () => {
 
       {/* Performance Charts Section */}
       {/* Team Performance Overview Chart - Full Width */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
-              <p className="text-sm text-gray-600">Current month performance by clinician</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Current month performance by clinician</p>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <BarChart3 className="w-4 h-4" />
               <span>Current Month</span>
             </div>
           </div>
           
-          <div className="h-80">
+          <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={userClinicians.map(clinician => ({
                 name: clinician.name.split(' ')[0], // First name only for space
@@ -1061,25 +1062,28 @@ const Dashboard: React.FC = () => {
                 <XAxis 
                   dataKey="name" 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={50}
+                  interval={0}
                 />
                 <YAxis 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   domain={[0, 100]}
                   tickFormatter={(value) => `${value}%`}
+                  width={35}
                 />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    fontSize: '12px'
                   }}
                   formatter={(value: any, name: string, props: any) => [
                     `${value}%`, 
@@ -1103,21 +1107,21 @@ const Dashboard: React.FC = () => {
       
 
       {/* Trend Analysis Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
 {/* Performance Distribution Chart */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Distribution</h3>
-              <p className="text-sm text-gray-600">Score ranges across your team</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Performance Distribution</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Score ranges across your team</p>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <Activity className="w-4 h-4" />
               <span>Distribution</span>
             </div>
           </div>
           
-          <div className="h-80">
+          <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
                 {
@@ -1155,21 +1159,26 @@ const Dashboard: React.FC = () => {
                 <XAxis 
                   dataKey="range" 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   allowDecimals={false}
+                  width={30}
                 />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    fontSize: '12px'
                   }}
                   formatter={(value: any, name: string, props: any) => [
                     `${value} clinician${value !== 1 ? 's' : ''}`, 
@@ -1186,19 +1195,20 @@ const Dashboard: React.FC = () => {
           </div>
       </div>
         {/* Monthly Trend Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Trend</h3>
-              <p className="text-sm text-gray-600">Average team performance over last 6 months</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Trend</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Average team performance over last 6 months</p>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <TrendingUp className="w-4 h-4" />
-              <span>6-Month Trend</span>
+              <span className="hidden sm:inline">6-Month Trend</span>
+              <span className="sm:hidden">6M Trend</span>
             </div>
           </div>
           
-          <div className="h-80">
+          <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={(() => {
                 const trendData = [];
@@ -1232,22 +1242,27 @@ const Dashboard: React.FC = () => {
                 <XAxis 
                   dataKey="displayName" 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
                 />
                 <YAxis 
                   stroke="#6b7280"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   domain={[0, 100]}
                   tickFormatter={(value) => `${value}%`}
+                  width={35}
                 />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    fontSize: '12px'
                   }}
                   formatter={(value: any) => [`${value}%`, 'Team Average']}
                   labelFormatter={(label, payload) => {
@@ -1259,9 +1274,9 @@ const Dashboard: React.FC = () => {
                   type="monotone" 
                   dataKey="avgScore" 
                   stroke="#3b82f6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: '#ffffff' }}
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#ffffff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -1270,24 +1285,24 @@ const Dashboard: React.FC = () => {
       </div>
 
           {/* Top Performers Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                  <Award className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Top Performers</h3>
-                  <p className="text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Top Performers</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-center sm:justify-end space-x-6 sm:space-x-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{topPerformers.length}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-green-600">{topPerformers.length}</div>
                   <div className="text-xs text-gray-500">Top Performers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {topPerformers.length > 0 
                       ? Math.round(topPerformers.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / topPerformers.length)
                       : 0}%
@@ -1298,29 +1313,29 @@ const Dashboard: React.FC = () => {
             </div>
 
             {topPerformers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {topPerformers.slice(0, 6).map((clinician) => {
               const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
               return (
-                <div key={clinician.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 hover:shadow-md transition-all">
+                <div key={clinician.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 sm:p-4 border border-green-200 hover:shadow-md transition-all">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs sm:text-sm font-medium">
                         {clinician.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Award className="w-4 h-4 text-yellow-500" />
-                      <span className="text-lg font-bold text-green-600">{score}%</span>
+                      <Award className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
+                      <span className="text-base sm:text-lg font-bold text-green-600">{score}%</span>
                     </div>
                   </div>
                   
                   <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
-                    <p className="text-xs text-gray-600">
+                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
+                    <p className="text-xs text-gray-600 truncate">
                       {clinician.position_info?.position_title || 'Clinician'} • 
                       {clinician.clinician_info?.type_info?.title || 'General'}
                     </p>
@@ -1334,7 +1349,7 @@ const Dashboard: React.FC = () => {
                     ) : (
                       <Activity className="w-3 h-3 text-gray-600" />
                     )}
-                    <span className={`font-medium ${
+                    <span className={`font-medium truncate ${
                       trend.direction === 'up' ? 'text-green-600' : 
                       trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
                     }`}>
@@ -1367,24 +1382,24 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* Bottom Performers Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
-                  <p className="text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-center sm:justify-end space-x-6 sm:space-x-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{cliniciansNeedingAttention.length}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-red-600">{cliniciansNeedingAttention.length}</div>
                   <div className="text-xs text-gray-500">Need Attention</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {cliniciansNeedingAttention.length > 0 
                       ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / cliniciansNeedingAttention.length)
                       : 0}%
@@ -1396,7 +1411,7 @@ const Dashboard: React.FC = () => {
 
             {cliniciansNeedingAttention.length > 0 ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {cliniciansNeedingAttention.slice(0, 4).map((clinician) => {
                 const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
@@ -1406,22 +1421,22 @@ const Dashboard: React.FC = () => {
                 const totalKPIsForMonth = kpis.length;
                 
                 return (
-                  <div key={clinician.id} className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-200 hover:shadow-md transition-all">
+                  <div key={clinician.id} className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-3 sm:p-4 border border-red-200 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs sm:text-sm font-medium">
                           {clinician.name.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-lg font-bold text-red-600">{score}%</span>
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />
+                        <span className="text-base sm:text-lg font-bold text-red-600">{score}%</span>
                       </div>
                     </div>
                     
                     <div className="mb-3">
-                      <h4 className="font-semibold text-gray-900 text-sm">{clinician.name}</h4>
-                      <p className="text-xs text-gray-600">
+                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
+                      <p className="text-xs text-gray-600 truncate">
                         {clinician.position_info?.position_title || 'Clinician'} • 
                         {clinician.clinician_info?.type_info?.title || 'General'}
                       </p>
@@ -1442,7 +1457,7 @@ const Dashboard: React.FC = () => {
                           ) : (
                             <Activity className="w-3 h-3 text-gray-600" />
                           )}
-                          <span className={`font-medium ${
+                          <span className={`font-medium truncate ${
                             trend.direction === 'up' ? 'text-green-600' : 
                             trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
                           }`}>
@@ -1472,14 +1487,14 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Current Month Performance */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                   {selectedMonth} {selectedYear} Performance
                 </h3>
               </div>
@@ -1487,25 +1502,25 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* KPI Analysis Overview */}
             <div className="mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-blue-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <Target className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-700">Total KPIs</span>
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Total KPIs</span>
                   </div>
-                  <div className="text-2xl font-bold text-blue-600">{kpis.length}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{kpis.length}</div>
                   <div className="text-xs text-gray-600">Active indicators</div>
                 </div>
                 
-                <div className="bg-green-50 rounded-lg p-4">
+                <div className="bg-green-50 rounded-lg p-3 sm:p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium text-gray-700">Avg Met Rate</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Avg Met Rate</span>
                   </div>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-xl sm:text-2xl font-bold text-green-600">
                     {kpis.length > 0 ? Math.round(
                       kpis.reduce((acc, kpi) => {
                         const kpiReviews = reviewItems.filter(review => {
@@ -1524,12 +1539,12 @@ const Dashboard: React.FC = () => {
                   <div className="text-xs text-gray-600">Across all KPIs</div>
                 </div>
                 
-                <div className="bg-orange-50 rounded-lg p-4">
+                <div className="bg-orange-50 rounded-lg p-3 sm:p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                    <span className="text-sm font-medium text-gray-700">Needs Attention</span>
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Needs Attention</span>
                   </div>
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {kpis.filter(kpi => {
                       const kpiReviews = reviewItems.filter(review => {
                         const reviewDate = new Date(review.date);
@@ -1550,8 +1565,8 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Individual KPI Analysis */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-gray-900 mb-4">KPI Performance Breakdown</h4>
+            <div className="space-y-3 sm:space-y-4">
+              <h4 className="text-sm sm:text-md font-semibold text-gray-900 mb-3 sm:mb-4">KPI Performance Breakdown</h4>
               {kpis.map((kpi) => {
                 // Get all reviews for this KPI in the selected month
                 const kpiReviews = reviewItems.filter(review => {
@@ -1580,21 +1595,23 @@ const Dashboard: React.FC = () => {
                 const performanceColor = metPercentage >= 90 ? 'green' : metPercentage >= 70 ? 'blue' : metPercentage >= 50 ? 'yellow' : 'red';
                 
                 return (
-                  <div key={kpi.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
+                  <div key={kpi.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 space-y-2 sm:space-y-0">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <Target className="w-4 h-4 text-blue-600" />
-                          <h5 className="font-medium text-gray-900">{kpi.title}</h5>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mb-1">
+                          <div className="flex items-center space-x-2">
+                            <Target className="w-4 h-4 text-blue-600" />
+                            <h5 className="font-medium text-gray-900 text-sm sm:text-base">{kpi.title}</h5>
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded w-fit">
                             Weight: {kpi.weight}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{kpi.description}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">{kpi.description}</p>
                       </div>
                       
-                      <div className="flex items-center space-x-3 ml-4">
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      <div className="flex items-center justify-between sm:justify-end space-x-3 sm:ml-4">
+                        <div className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
                           performanceColor === 'green' ? 'bg-green-100 text-green-800' :
                           performanceColor === 'blue' ? 'bg-blue-100 text-blue-800' :
                           performanceColor === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
@@ -1625,53 +1642,53 @@ const Dashboard: React.FC = () => {
                     </div>
                     
                     {/* Performance Stats */}
-                    <div className="grid grid-cols-3 gap-4 mb-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">{metCount}</div>
+                        <div className="text-base sm:text-lg font-bold text-green-600">{metCount}</div>
                         <div className="text-xs text-gray-600">Met</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-red-600">{notMetCount}</div>
+                        <div className="text-base sm:text-lg font-bold text-red-600">{notMetCount}</div>
                         <div className="text-xs text-gray-600">Not Met</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-gray-900">{totalReviews}</div>
+                        <div className="text-base sm:text-lg font-bold text-gray-900">{totalReviews}</div>
                         <div className="text-xs text-gray-600">Total Reviews</div>
                       </div>
                     </div>
                     
                     {/* Clinicians who didn't meet this KPI */}
                     {cliniciansNotMet.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-gray-100">
+                      <div className="mt-3 sm:mt-4 pt-3 border-t border-gray-100">
                         <div className="flex items-center space-x-1 mb-2">
                           <AlertCircle className="w-4 h-4 text-orange-600" />
-                          <span className="text-sm font-medium text-gray-700">Needs Attention:</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Needs Attention:</span>
                         </div>
                         <div className="space-y-2">
                           {cliniciansNotMet.slice(0, 3).map(({ clinician, review }) => (
                             <div key={clinician.id} className="flex items-center justify-between bg-orange-50 rounded-lg p-2">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-orange-800 text-xs font-medium">
                                     {clinician.name.split(' ').map(n => n[0]).join('')}
                                   </span>
                                 </div>
-                                <span className="text-sm text-gray-900">{clinician.name}</span>
+                                <span className="text-xs sm:text-sm text-gray-900 truncate">{clinician.name}</span>
                               </div>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                                 {review.notes && (
-                                  <div className="w-4 h-4 bg-blue-200 rounded-full flex items-center justify-center" title="Has notes">
-                                    <FileText className="w-2 h-2 text-blue-600" />
+                                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-200 rounded-full flex items-center justify-center" title="Has notes">
+                                    <FileText className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-blue-600" />
                                   </div>
                                 )}
                                 {review.plan && (
-                                  <div className="w-4 h-4 bg-green-200 rounded-full flex items-center justify-center" title="Has action plan">
-                                    <TrendingUp className="w-2 h-2 text-green-600" />
+                                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-200 rounded-full flex items-center justify-center" title="Has action plan">
+                                    <TrendingUp className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-green-600" />
                                   </div>
                                 )}
                                 {review.file_url && (
-                                  <div className="w-4 h-4 bg-purple-200 rounded-full flex items-center justify-center" title="Has attached file">
-                                    <Download className="w-2 h-2 text-purple-600" />
+                                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-200 rounded-full flex items-center justify-center" title="Has attached file">
+                                    <Download className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-purple-600" />
                                   </div>
                                 )}
                               </div>
