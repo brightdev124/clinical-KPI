@@ -1488,37 +1488,210 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="p-6">
+            {/* KPI Analysis Overview */}
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Target className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700">Total KPIs</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">{kpis.length}</div>
+                  <div className="text-xs text-gray-600">Active indicators</div>
+                </div>
+                
+                <div className="bg-green-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-medium text-gray-700">Avg Met Rate</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {kpis.length > 0 ? Math.round(
+                      kpis.reduce((acc, kpi) => {
+                        const kpiReviews = reviewItems.filter(review => {
+                          const reviewDate = new Date(review.date);
+                          const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+                          const reviewYear = reviewDate.getFullYear();
+                          return review.kpi === kpi.id && 
+                                 reviewMonth === selectedMonth && 
+                                 reviewYear === selectedYear;
+                        });
+                        const metCount = kpiReviews.filter(r => r.met_check).length;
+                        return acc + (kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0);
+                      }, 0) / kpis.length
+                    ) : 0}%
+                  </div>
+                  <div className="text-xs text-gray-600">Across all KPIs</div>
+                </div>
+                
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertCircle className="w-5 h-5 text-orange-600" />
+                    <span className="text-sm font-medium text-gray-700">Needs Attention</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {kpis.filter(kpi => {
+                      const kpiReviews = reviewItems.filter(review => {
+                        const reviewDate = new Date(review.date);
+                        const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+                        const reviewYear = reviewDate.getFullYear();
+                        return review.kpi === kpi.id && 
+                               reviewMonth === selectedMonth && 
+                               reviewYear === selectedYear;
+                      });
+                      const metCount = kpiReviews.filter(r => r.met_check).length;
+                      const metRate = kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0;
+                      return metRate < 70;
+                    }).length}
+                  </div>
+                  <div className="text-xs text-gray-600">KPIs below 70%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Individual KPI Analysis */}
             <div className="space-y-4">
-              {userClinicians.map((clinician) => {
-                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
-                const scoreColorClass = getScoreColor(score);
-                const borderColorClass = getScoreBorderColor(score);
+              <h4 className="text-md font-semibold text-gray-900 mb-4">KPI Performance Breakdown</h4>
+              {kpis.map((kpi) => {
+                // Get all reviews for this KPI in the selected month
+                const kpiReviews = reviewItems.filter(review => {
+                  const reviewDate = new Date(review.date);
+                  const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+                  const reviewYear = reviewDate.getFullYear();
+                  return review.kpi === kpi.id && 
+                         reviewMonth === selectedMonth && 
+                         reviewYear === selectedYear;
+                });
+                
+                const totalReviews = kpiReviews.length;
+                const metCount = kpiReviews.filter(r => r.met_check).length;
+                const notMetCount = totalReviews - metCount;
+                const metPercentage = totalReviews > 0 ? Math.round((metCount / totalReviews) * 100) : 0;
+                
+                // Get clinicians who didn't meet this KPI
+                const cliniciansNotMet = kpiReviews
+                  .filter(r => !r.met_check)
+                  .map(r => {
+                    const clinician = userClinicians.find(c => c.id === r.clinician);
+                    return clinician ? { clinician, review: r } : null;
+                  })
+                  .filter(Boolean);
+
+                const performanceColor = metPercentage >= 90 ? 'green' : metPercentage >= 70 ? 'blue' : metPercentage >= 50 ? 'yellow' : 'red';
                 
                 return (
-                  <div key={clinician.id} className={`flex items-center justify-between p-4 bg-gray-50 rounded-xl border ${borderColorClass} hover:shadow-sm transition-all`}>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {clinician.name.split(' ').map(n => n[0]).join('')}
-                        </span>
+                  <div key={kpi.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Target className="w-4 h-4 text-blue-600" />
+                          <h5 className="font-medium text-gray-900">{kpi.title}</h5>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Weight: {kpi.weight}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{kpi.description}</p>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{clinician.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {clinician.position_info?.position_title || 'Clinician'} • 
-                          {clinician.clinician_info?.type_info?.title || 'General'}
-                        </p>
+                      
+                      <div className="flex items-center space-x-3 ml-4">
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          performanceColor === 'green' ? 'bg-green-100 text-green-800' :
+                          performanceColor === 'blue' ? 'bg-blue-100 text-blue-800' :
+                          performanceColor === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {metPercentage}%
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {metCount}/{totalReviews}
+                          </div>
+                          <div className="text-xs text-gray-500">met/total</div>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-4">
-                      <div className={`px-3 py-1 rounded-full ${scoreColorClass}`}>
-                        <span className="text-sm font-medium">
-                          {score}%
-                        </span>
-                      </div>
-                      {score >= 90 && <Award className="w-5 h-5 text-yellow-500" />}
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          performanceColor === 'green' ? 'bg-green-600' :
+                          performanceColor === 'blue' ? 'bg-blue-600' :
+                          performanceColor === 'yellow' ? 'bg-yellow-600' :
+                          'bg-red-600'
+                        }`}
+                        style={{ width: `${metPercentage}%` }}
+                      />
                     </div>
+                    
+                    {/* Performance Stats */}
+                    <div className="grid grid-cols-3 gap-4 mb-3">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-600">{metCount}</div>
+                        <div className="text-xs text-gray-600">Met</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-600">{notMetCount}</div>
+                        <div className="text-xs text-gray-600">Not Met</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-gray-900">{totalReviews}</div>
+                        <div className="text-xs text-gray-600">Total Reviews</div>
+                      </div>
+                    </div>
+                    
+                    {/* Clinicians who didn't meet this KPI */}
+                    {cliniciansNotMet.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-100">
+                        <div className="flex items-center space-x-1 mb-2">
+                          <AlertCircle className="w-4 h-4 text-orange-600" />
+                          <span className="text-sm font-medium text-gray-700">Needs Attention:</span>
+                        </div>
+                        <div className="space-y-2">
+                          {cliniciansNotMet.slice(0, 3).map(({ clinician, review }) => (
+                            <div key={clinician.id} className="flex items-center justify-between bg-orange-50 rounded-lg p-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center">
+                                  <span className="text-orange-800 text-xs font-medium">
+                                    {clinician.name.split(' ').map(n => n[0]).join('')}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-gray-900">{clinician.name}</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {review.notes && (
+                                  <div className="w-4 h-4 bg-blue-200 rounded-full flex items-center justify-center" title="Has notes">
+                                    <FileText className="w-2 h-2 text-blue-600" />
+                                  </div>
+                                )}
+                                {review.plan && (
+                                  <div className="w-4 h-4 bg-green-200 rounded-full flex items-center justify-center" title="Has action plan">
+                                    <TrendingUp className="w-2 h-2 text-green-600" />
+                                  </div>
+                                )}
+                                {review.file_url && (
+                                  <div className="w-4 h-4 bg-purple-200 rounded-full flex items-center justify-center" title="Has attached file">
+                                    <Download className="w-2 h-2 text-purple-600" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {cliniciansNotMet.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center">
+                              +{cliniciansNotMet.length - 3} more clinicians
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {totalReviews === 0 && (
+                      <div className="text-center py-4 text-gray-500">
+                        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">No reviews completed for this KPI in {selectedMonth} {selectedYear}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
