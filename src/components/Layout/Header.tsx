@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, ChevronDown, LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 
@@ -32,10 +32,6 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="p-2 text-gray-400 hover:text-gray-500 transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">
@@ -44,7 +40,6 @@ const Header: React.FC = () => {
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium text-gray-700">{user?.name}</span>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
           </div>
           
