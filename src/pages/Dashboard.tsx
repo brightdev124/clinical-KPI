@@ -853,9 +853,8 @@ const Dashboard: React.FC = () => {
 
 
       {/* Performance Charts Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {/* Team Performance Overview Chart */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      {/* Team Performance Overview Chart - Full Width */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
@@ -918,8 +917,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Performance Distribution Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      
+
+      {/* Trend Analysis Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+{/* Performance Distribution Chart */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Distribution</h3>
@@ -998,11 +1001,7 @@ const Dashboard: React.FC = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
       </div>
-
-      {/* Trend Analysis Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Monthly Trend Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
@@ -1084,8 +1083,8 @@ const Dashboard: React.FC = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
           {/* Top Performers Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

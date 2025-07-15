@@ -13,7 +13,9 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  ChevronLeft
+  ChevronLeft,
+  ChevronUp,
+  ArrowUpDown
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -39,6 +41,10 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // State for sorting
+  const [sortColumn, setSortColumn] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Initialize months
   useEffect(() => {
@@ -211,6 +217,32 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     return data;
   };
 
+  // Sort table data
+  const sortTableData = (data: any[]) => {
+    if (!sortColumn) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue, bValue;
+
+      if (sortColumn === 'user') {
+        aValue = a.user.name.toLowerCase();
+        bValue = b.user.name.toLowerCase();
+      } else {
+        // Sorting by month column
+        aValue = a[sortColumn] || 0;
+        bValue = b[sortColumn] || 0;
+      }
+
+      if (aValue < bValue) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   // Generate table data for selected users
   const generateTableData = () => {
     if (!startMonth || !endMonth || selectedUsers.size === 0) return [];
@@ -257,17 +289,20 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
   const chartData = generateChartData();
   const tableData = generateTableData();
+  const sortedTableData = sortTableData(tableData);
 
   // Pagination logic
-  const totalItems = tableData.length;
+  const totalItems = sortedTableData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedTableData = tableData.slice(startIndex, endIndex);
+  const paginatedTableData = sortedTableData.slice(startIndex, endIndex);
 
-  // Reset to first page when data changes
+  // Reset to first page and clear sorting when data changes
   useEffect(() => {
     setCurrentPage(1);
+    setSortColumn('');
+    setSortDirection('asc');
   }, [selectedUsers, startMonth, endMonth]);
 
   // Pagination handlers
@@ -280,10 +315,31 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setCurrentPage(1);
   };
 
+  // Sorting handlers
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
   // Generate colors for chart lines
   const getLineColor = (index: number) => {
     const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
     return colors[index % colors.length];
+  };
+
+  // Render sort icon
+  const renderSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="w-4 h-4 text-blue-600" /> : 
+      <ChevronDown className="w-4 h-4 text-blue-600" />;
   };
 
   if (loading) {
@@ -563,11 +619,23 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User
+                        <button
+                          onClick={() => handleSort('user')}
+                          className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
+                        >
+                          <span>User</span>
+                          {renderSortIcon('user')}
+                        </button>
                       </th>
                       {chartData.map(monthData => (
                         <th key={monthData.month} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {monthData.month}
+                          <button
+                            onClick={() => handleSort(monthData.month)}
+                            className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
+                          >
+                            <span>{monthData.month}</span>
+                            {renderSortIcon(monthData.month)}
+                          </button>
                         </th>
                       ))}
                     </tr>
