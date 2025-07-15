@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { EnhancedSelect } from '../components/UI';
 import { useAuth } from '../contexts/AuthContext';
 import UserService, { User, Position, ClinicianType } from '../services/userService';
 
@@ -574,17 +575,20 @@ const PermissionManagement: React.FC = () => {
             </div>
             
             <div className="flex items-center">
-              <div className="flex items-center space-x-2">
-                <Filter className="text-gray-400 w-4 h-4" />
-                <select
+              <div className="min-w-[140px]">
+                <EnhancedSelect
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Status</option>
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                </select>
+                  onChange={(value) => setFilterStatus(value as any)}
+                  options={[
+                    { value: 'all', label: 'All Status' },
+                    { value: 'approved', label: 'Approved' },
+                    { value: 'pending', label: 'Pending' }
+                  ]}
+                  icon={<Filter className="w-4 h-4" />}
+                  variant="filled"
+                  size="sm"
+                  placeholder="Filter by status..."
+                />
               </div>
             </div>
           </div>
@@ -1020,14 +1024,11 @@ const PermissionManagement: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Role
-                    </label>
-                    <select
+                    <EnhancedSelect
                       value={editData.role}
-                      onChange={(e) => {
+                      onChange={(value) => {
                         // When role changes, clear the position if it doesn't match
-                        const newRole = e.target.value as 'super-admin' | 'director' | 'clinician';
+                        const newRole = value as 'super-admin' | 'director' | 'clinician';
                         const currentPosition = positions.find(p => p.id === editData.position_id);
                         
                         setEditData({
@@ -1039,42 +1040,45 @@ const PermissionManagement: React.FC = () => {
                             : undefined
                         });
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="super-admin">Super Admin</option>
-                      <option value="director">Director</option>
-                      <option value="clinician">Clinician</option>
-                    </select>
+                      options={[
+                        { value: 'super-admin', label: 'Super Admin' },
+                        { value: 'director', label: 'Director' },
+                        { value: 'clinician', label: 'Clinician' }
+                      ]}
+                      icon={<Shield className="w-4 h-4" />}
+                      label="Role"
+                      variant="gradient"
+                      size="md"
+                      required
+                      placeholder="Select a role..."
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Position
-                    </label>
-                    <select
+                    <EnhancedSelect
                       value={editData.position_id || ''}
-                      onChange={(e) => {
+                      onChange={(value) => {
                         setEditData({ 
                           ...editData, 
-                          position_id: e.target.value || undefined
+                          position_id: value as string || undefined
                         });
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select a position</option>
-                      {/* Filter positions by selected role */}
-                      {positions
-                        .filter(position => position.role === editData.role)
-                        .map(position => (
-                          <option key={position.id} value={position.id}>
-                            {position.position_title}
-                          </option>
-                        ))
-                      }
-                    </select>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Showing positions for {editData.role} role
-                    </p>
+                      options={[
+                        { value: '', label: 'Select a position' },
+                        ...positions
+                          .filter(position => position.role === editData.role)
+                          .map(position => ({
+                            value: position.id,
+                            label: position.position_title
+                          }))
+                      ]}
+                      icon={<Briefcase className="w-4 h-4" />}
+                      label="Position"
+                      variant="filled"
+                      size="md"
+                      placeholder="Select a position..."
+                      description={`Showing positions for ${editData.role} role`}
+                    />
                   </div>
 
                   {/* Role-specific fields */}
@@ -1098,38 +1102,37 @@ const PermissionManagement: React.FC = () => {
 
                   {editData.role === 'clinician' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Clinician Type
-                      </label>
-                      <select
+                      <EnhancedSelect
                         value={editData.clinician_info?.type_id || ''}
-                        onChange={(e) => {
-                          console.log('Selected clinician type:', e.target.value);
+                        onChange={(value) => {
+                          console.log('Selected clinician type:', value);
                           console.log('Available types:', clinicianTypes);
                           setEditData({ 
                             ...editData, 
-                            clinician_info: { type_id: e.target.value } 
+                            clinician_info: { type_id: value as string } 
                           });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Select a type</option>
-                        {clinicianTypes.length > 0 ? (
-                          clinicianTypes.map(type => (
-                            <option key={type.id} value={type.id}>
-                              {type.title}
-                            </option>
-                          ))
-                        ) : (
-                          <option value="" disabled>No clinician types available</option>
-                        )}
-                        {/* Add debugging info */}
-                        {editData.clinician_info?.type_id && !clinicianTypes.some(t => t.id === editData.clinician_info?.type_id) && (
-                          <option value={editData.clinician_info.type_id}>
-                            Current Type (ID: {editData.clinician_info.type_id})
-                          </option>
-                        )}
-                      </select>
+                        options={[
+                          { value: '', label: 'Select a type' },
+                          ...(clinicianTypes.length > 0 
+                            ? clinicianTypes.map(type => ({
+                                value: type.id,
+                                label: type.title
+                              }))
+                            : [{ value: '', label: 'No clinician types available', disabled: true }]
+                          ),
+                          // Add debugging option if needed
+                          ...(editData.clinician_info?.type_id && !clinicianTypes.some(t => t.id === editData.clinician_info?.type_id)
+                            ? [{ value: editData.clinician_info.type_id, label: `Current Type (ID: ${editData.clinician_info.type_id})` }]
+                            : []
+                          )
+                        ]}
+                        icon={<UserIcon className="w-4 h-4" />}
+                        label="Clinician Type"
+                        variant="default"
+                        size="md"
+                        placeholder="Select a clinician type..."
+                      />
                     </div>
                   )}
 

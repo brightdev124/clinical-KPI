@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Select Components Demo - KPI Brain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animations and styles */
+        .select-container {
+            transition: all 0.3s ease;
+        }
+        
+        .select-container:hover {
+            transform: translateY(-2px);
+        }
+        
+        .gradient-border {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #06b6d4);
+            padding: 2px;
+            border-radius: 16px;
+        }
+        
+        .gradient-border select {
+            background: white;
+            border-radius: 14px;
+        }
+        
+        .floating-label {
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            background: white;
+            padding: 0 8px;
+            font-size: 14px;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        
+        .floating-label.active {
+            top: -8px;
+            font-size: 12px;
+            color: #3b82f6;
+        }
+        
+        select:focus + .floating-label {
+            color: #3b82f6;
+        }
+        
+        /* Custom scrollbar for options */
+        select option {
+            padding: 8px 12px;
+        }
+        
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0,-8px,0);
+            }
+            70% {
+                transform: translate3d(0,-4px,0);
+            }
+            90% {
+                transform: translate3d(0,-2px,0);
+            }
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+    <div class="container mx-auto px-6 py-12 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+                Enhanced Select Components
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Beautiful, accessible, and feature-rich select components with modern styling and smooth animations
+            </p>
+            <div class="mt-6 flex justify-center">
+                <span class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    React + TypeScript + Tailwind CSS
+                </span>
+            </div>
+        </div>
+
+        <!-- Variants Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Default Variant -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    Default Variant
+                </h3>
+                <p class="text-gray-600 mb-6">Clean and professional design with subtle hover effects</p>
+                
+                <div class="space-y-4">
+                    <div class="select-container">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Department</label>
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            <select class="w-full pl-10 pr-10 py-3 bg-white border-2 border-gray-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:border-gray-300 hover:shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                                <option value="">Select department...</option>
+                                <option value="cardiology">Cardiology</option>
+                                <option value="neurology">Neurology</option>
+                                <option value="emergency">Emergency Medicine</option>
+                                <option value="surgery">General Surgery</option>
+                            </select>
+                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filled Variant -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    Filled Variant
+                </h3>
+                <p class="text-gray-600 mb-6">Soft background with smooth focus transitions</p>
+                
+                <div class="space-y-4">
+                    <div class="select-container">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Timeframe</label>
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <select class="w-full pl-10 pr-10 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:bg-gray-100 hover:border-gray-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                                <option value="">Select timeframe...</option>
+                                <option value="1month">Last Month</option>
+                                <option value="3months">Last 3 Months</option>
+                                <option value="6months">Last 6 Months</option>
+                                <option value="12months">Last 12 Months</option>
+                            </select>
+                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gradient Variant -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <div class="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mr-3"></div>
+                    Gradient Variant
+                </h3>
+                <p class="text-gray-600 mb-6">Eye-catching gradient background with elegant styling</p>
+                
+                <div class="space-y-4">
+                    <div class="select-container">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">User Role</label>
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            <select class="w-full pl-10 pr-10 py-3 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:from-blue-100 hover:to-purple-100 hover:border-blue-300 focus:from-white focus:to-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                                <option value="">Select role...</option>
+                                <option value="clinician">Clinician</option>
+                                <option value="director">Clinical Director</option>
+                                <option value="admin">Administrator</option>
+                                <option value="super-admin">Super Admin</option>
+                            </select>
+                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Minimal Variant -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <div class="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                    Minimal Variant
+                </h3>
+                <p class="text-gray-600 mb-6">Clean underline design for modern interfaces</p>
+                
+                <div class="space-y-4">
+                    <div class="select-container">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Priority Level</label>
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <select class="w-full pl-10 pr-10 py-3 bg-transparent border-0 border-b-2 border-gray-200 rounded-none font-medium appearance-none cursor-pointer text-gray-900 hover:border-gray-400 hover:bg-gray-50/50 focus:border-blue-500 focus:ring-0 focus:bg-white/80 transition-all duration-200 ease-in-out">
+                                <option value="">Select priority...</option>
+                                <option value="low">Low Priority</option>
+                                <option value="medium">Medium Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Size Variants -->
+        <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <div class="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+                Size Variants
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Small -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Small Size</label>
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <select class="w-full pl-9 pr-8 py-1.5 text-sm bg-white border-2 border-gray-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:border-gray-300 hover:shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                            <option value="">Select user...</option>
+                            <option value="user1">Dr. Sarah Johnson</option>
+                            <option value="user2">Dr. Michael Chen</option>
+                            <option value="user3">Dr. Emily Rodriguez</option>
+                        </select>
+                        <svg class="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Medium -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Medium Size (Default)</label>
+                    <div class="relative">
+                        <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <select class="w-full pl-10 pr-10 py-2.5 text-sm bg-white border-2 border-gray-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:border-gray-300 hover:shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                            <option value="">Select KPI...</option>
+                            <option value="kpi1">Patient Satisfaction</option>
+                            <option value="kpi2">Quality Metrics</option>
+                            <option value="kpi3">Efficiency Score</option>
+                        </select>
+                        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Large -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Large Size</label>
+                    <div class="relative">
+                        <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        <select class="w-full pl-12 pr-12 py-3 text-base bg-white border-2 border-gray-200 rounded-xl font-medium appearance-none cursor-pointer text-gray-900 hover:border-gray-300 hover:shadow-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 ease-in-out">
+                            <option value="">Select organization...</option>
+                            <option value="org1">KPI Brain Healthcare</option>
+                            <option value="org2">Regional Medical Center</option>
+                            <option value="org3">University Hospital</option>
+                        </select>
+                        <svg class="absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2M7 4h10M7 4l-2 16h14L17 4M9 8v8m6-8v8"></path>
+                    </svg>
+                </div>
+                <h4 class="font-semibold text-gray-800 mb-2">Accessible</h4>
+                <p class="text-sm text-gray-600">Full keyboard navigation and screen reader support</p>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h4 class="font-semibold text-gray-800 mb-2">Fast</h4>
+                <p class="text-sm text-gray-600">Optimized performance with smooth animations</p>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17v4a2 2 0 002 2h4M15 5l2 2"></path>
+                    </svg>
+                </div>
+                <h4 class="font-semibold text-gray-800 mb-2">Customizable</h4>
+                <p class="text-sm text-gray-600">Multiple variants, sizes, and styling options</p>
+            </div>
+
+            <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
+                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h4 class="font-semibold text-gray-800 mb-2">Reliable</h4>
+                <p class="text-sm text-gray-600">TypeScript support with comprehensive error handling</p>
+            </div>
+        </div>
+
+        <!-- Implementation Code -->
+        <div class="glass-effect rounded-2xl p-8 border border-white/20 shadow-xl">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <div class="w-3 h-3 bg-gray-800 rounded-full mr-3"></div>
+                Implementation Example
+            </h3>
+            
+            <div class="bg-gray-900 rounded-xl p-6 overflow-x-auto">
+                <pre class="text-green-400 text-sm leading-relaxed"><code>&lt;EnhancedSelect
+  value={selectedDepartment}
+  onChange={(value) => setSelectedDepartment(value as string)}
+  options={[
+    { value: 'all', label: 'All Departments' },
+    { value: 'cardiology', label: 'Cardiology' },
+    { value: 'neurology', label: 'Neurology' }
+  ]}
+  icon={&lt;Filter className="w-4 h-4" /&gt;}
+  variant="gradient"
+  size="md"
+  label="Department"
+  placeholder="Select department..."
+  required
+/&gt;</code></pre>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12">
+            <p class="text-gray-600">
+                Enhanced select components for KPI Brain • 
+                <span class="text-blue-600 font-medium">React + TypeScript + Tailwind CSS</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add interactive behavior
+        document.querySelectorAll('select').forEach(select => {
+            select.addEventListener('focus', () => {
+                select.style.transform = 'translateY(-2px)';
+                select.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+            });
+            
+            select.addEventListener('blur', () => {
+                select.style.transform = 'translateY(0)';
+                select.style.boxShadow = '';
+            });
+            
+            select.addEventListener('change', () => {
+                // Add a subtle success animation
+                select.style.borderColor = '#10b981';
+                setTimeout(() => {
+                    select.style.borderColor = '';
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

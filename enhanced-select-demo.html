@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Select Dropdown Features - KPI Brain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .demo-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+        const { 
+            ChevronDown, Check, Search, X, Filter, Calendar, 
+            Shield, User, Building, Zap, Heart, Star,
+            Database, Settings, Globe, Briefcase
+        } = lucide;
+
+        // Enhanced Select Component (simplified for demo)
+        const EnhancedSelect = ({ 
+            value, 
+            onChange, 
+            options, 
+            placeholder = "Select an option...",
+            searchable = false,
+            clearable = false,
+            customDropdown = false,
+            variant = 'default',
+            size = 'md',
+            icon,
+            label,
+            description,
+            loading = false,
+            ...props 
+        }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [highlightedIndex, setHighlightedIndex] = useState(-1);
+            const containerRef = useRef(null);
+            const searchInputRef = useRef(null);
+
+            // Filter options based on search term
+            const filteredOptions = searchable && searchTerm
+                ? options.filter(option =>
+                    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                : options;
+
+            // Get selected option
+            const selectedOption = options.find(option => option.value === value);
+
+            // Close dropdown when clicking outside
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (containerRef.current && !containerRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                        setSearchTerm('');
+                        setHighlightedIndex(-1);
+                    }
+                };
+
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+
+            // Handle keyboard navigation
+            useEffect(() => {
+                const handleKeyDown = (event) => {
+                    if (!isOpen) return;
+
+                    switch (event.key) {
+                        case 'ArrowDown':
+                            event.preventDefault();
+                            setHighlightedIndex(prev => 
+                                prev < filteredOptions.length - 1 ? prev + 1 : 0
+                            );
+                            break;
+                        case 'ArrowUp':
+                            event.preventDefault();
+                            setHighlightedIndex(prev => 
+                                prev > 0 ? prev - 1 : filteredOptions.length - 1
+                            );
+                            break;
+                        case 'Enter':
+                            event.preventDefault();
+                            if (highlightedIndex >= 0) {
+                                handleOptionSelect(filteredOptions[highlightedIndex]);
+                            }
+                            break;
+                        case 'Escape':
+                            setIsOpen(false);
+                            setSearchTerm('');
+                            setHighlightedIndex(-1);
+                            break;
+                    }
+                };
+
+                if (isOpen) {
+                    document.addEventListener('keydown', handleKeyDown);
+                    return () => document.removeEventListener('keydown', handleKeyDown);
+                }
+            }, [isOpen, highlightedIndex, filteredOptions]);
+
+            const handleOptionSelect = (option) => {
+                onChange(option.value);
+                setIsOpen(false);
+                setSearchTerm('');
+                setHighlightedIndex(-1);
+            };
+
+            const handleClear = () => {
+                onChange('');
+                setSearchTerm('');
+            };
+
+            const toggleDropdown = () => {
+                setIsOpen(!isOpen);
+                if (!isOpen && searchable) {
+                    setTimeout(() => searchInputRef.current?.focus(), 100);
+                }
+            };
+
+            // Variant styles
+            const variantStyles = {
+                default: 'bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10',
+                filled: 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10',
+                gradient: 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 hover:from-blue-100 hover:to-purple-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10',
+                minimal: 'bg-transparent border-0 border-b-2 border-gray-200 rounded-none hover:border-gray-400 focus:border-blue-500'
+            };
+
+            const sizeStyles = {
+                sm: 'px-3 py-1.5 text-sm',
+                md: 'px-4 py-2.5 text-sm',
+                lg: 'px-5 py-3 text-base'
+            };
+
+            if (!customDropdown) {
+                // Standard select fallback
+                return (
+                    <div className="relative">
+                        {label && (
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                {label}
+                            </label>
+                        )}
+                        <div className="relative">
+                            {icon && (
+                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+                                    {React.createElement(icon, { size: 16 })}
+                                </div>
+                            )}
+                            <select
+                                value={value}
+                                onChange={(e) => onChange(e.target.value)}
+                                className={`w-full rounded-xl font-medium appearance-none outline-none transition-all duration-200 ${sizeStyles[size]} ${variantStyles[variant]} ${icon ? 'pl-10' : ''} pr-10 text-gray-900`}
+                                {...props}
+                            >
+                                {placeholder && <option value="" disabled>{placeholder}</option>}
+                                {options.map((option) => (
+                                    <option key={option.value} value={option.value} disabled={option.disabled}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                <ChevronDown size={20} className="text-gray-400" />
+                            </div>
+                        </div>
+                        {description && (
+                            <p className="mt-1 text-xs text-gray-500">{description}</p>
+                        )}
+                    </div>
+                );
+            }
+
+            // Custom dropdown implementation
+            return (
+                <div className="relative" ref={containerRef}>
+                    {label && (
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            {label}
+                        </label>
+                    )}
+                    
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={toggleDropdown}
+                            className={`w-full rounded-xl font-medium outline-none transition-all duration-200 flex items-center justify-between text-left
+                                ${sizeStyles[size]} ${variantStyles[variant]} ${icon ? 'pl-10' : ''} ${clearable && value ? 'pr-16' : 'pr-10'}
+                                ${isOpen ? 'ring-4 ring-blue-500/10 border-blue-500' : ''}`}
+                            aria-haspopup="listbox"
+                            aria-expanded={isOpen}
+                        >
+                            <div className="flex items-center flex-1 min-w-0">
+                                {icon && (
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10">
+                                        {React.createElement(icon, { size: 16 })}
+                                    </div>
+                                )}
+                                {selectedOption?.icon && (
+                                    <div className="mr-2 text-gray-500">
+                                        {React.createElement(selectedOption.icon, { size: 16 })}
+                                    </div>
+                                )}
+                                <span className={`block truncate ${!selectedOption ? 'text-gray-500' : 'text-gray-900'}`}>
+                                    {selectedOption ? selectedOption.label : placeholder}
+                                </span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-1">
+                                {loading && (
+                                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                                )}
+                                {clearable && value && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClear();
+                                        }}
+                                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                    >
+                                        <X size={12} className="text-gray-400" />
+                                    </button>
+                                )}
+                                <ChevronDown 
+                                    size={20}
+                                    className={`transition-all duration-200 text-gray-400 ${isOpen ? 'rotate-180' : ''}`}
+                                />
+                            </div>
+                        </button>
+
+                        {/* Dropdown */}
+                        {isOpen && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-hidden">
+                                {/* Search Input */}
+                                {searchable && (
+                                    <div className="p-3 border-b border-gray-100">
+                                        <div className="relative">
+                                            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                ref={searchInputRef}
+                                                type="text"
+                                                placeholder="Search options..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Options List */}
+                                <div className="overflow-y-auto" style={{ maxHeight: searchable ? 'calc(200px - 60px)' : '200px' }}>
+                                    {filteredOptions.length === 0 ? (
+                                        <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                                            {searchTerm ? 'No options found' : 'No options available'}
+                                        </div>
+                                    ) : (
+                                        filteredOptions.map((option, index) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => handleOptionSelect(option)}
+                                                disabled={option.disabled}
+                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors
+                                                    ${index === highlightedIndex ? 'bg-blue-50 text-blue-700' : ''}
+                                                    ${option.value === value ? 'bg-blue-100 text-blue-700' : 'text-gray-900'}
+                                                    ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                                                `}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center min-w-0 flex-1">
+                                                        {option.icon && (
+                                                            <div className="mr-3 text-gray-500">
+                                                                {React.createElement(option.icon, { size: 16 })}
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="font-medium truncate">{option.label}</div>
+                                                            {option.description && (
+                                                                <div className="text-sm text-gray-500 truncate mt-1">
+                                                                    {option.description}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {option.value === value && (
+                                                        <Check size={16} className="text-blue-600 flex-shrink-0" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {description && (
+                        <p className="mt-1 text-xs text-gray-500">{description}</p>
+                    )}
+                </div>
+            );
+        };
+
+        // Demo App
+        const App = () => {
+            const [department, setDepartment] = useState('');
+            const [role, setRole] = useState('');
+            const [timeframe, setTimeframe] = useState('');
+            const [priority, setPriority] = useState('');
+            const [organization, setOrganization] = useState('');
+            const [searchableDept, setSearchableDept] = useState('');
+
+            const departmentOptions = [
+                { value: 'cardiology', label: 'Cardiology', icon: Heart },
+                { value: 'neurology', label: 'Neurology', icon: Zap },
+                { value: 'emergency', label: 'Emergency Medicine', icon: Star },
+                { value: 'surgery', label: 'General Surgery', icon: Settings },
+                { value: 'pediatrics', label: 'Pediatrics', icon: User },
+                { value: 'oncology', label: 'Oncology', icon: Shield }
+            ];
+
+            const roleOptions = [
+                { 
+                    value: 'clinician', 
+                    label: 'Clinician', 
+                    icon: User,
+                    description: 'Front-line healthcare provider'
+                },
+                { 
+                    value: 'director', 
+                    label: 'Clinical Director', 
+                    icon: Shield,
+                    description: 'Department leadership role'
+                },
+                { 
+                    value: 'admin', 
+                    label: 'Administrator', 
+                    icon: Briefcase,
+                    description: 'Administrative oversight'
+                },
+                { 
+                    value: 'super-admin', 
+                    label: 'Super Admin', 
+                    icon: Settings,
+                    description: 'Full system access'
+                }
+            ];
+
+            const timeframeOptions = [
+                { value: '1month', label: 'Last Month' },
+                { value: '3months', label: 'Last 3 Months' },
+                { value: '6months', label: 'Last 6 Months' },
+                { value: '12months', label: 'Last 12 Months' }
+            ];
+
+            const priorityOptions = [
+                { value: 'low', label: 'Low Priority' },
+                { value: 'medium', label: 'Medium Priority' },
+                { value: 'high', label: 'High Priority' },
+                { value: 'urgent', label: 'Urgent' }
+            ];
+
+            const organizationOptions = [
+                { value: 'org1', label: 'KPI Brain Healthcare', icon: Building },
+                { value: 'org2', label: 'Regional Medical Center', icon: Globe },
+                { value: 'org3', label: 'University Hospital', icon: Database }
+            ];
+
+            return (
+                <div className="demo-container">
+                    <div className="container mx-auto px-6 py-12 max-w-6xl">
+                        {/* Header */}
+                        <div className="text-center mb-12">
+                            <div className="animate-float">
+                                <h1 className="text-6xl font-bold text-white mb-4">
+                                    Enhanced Select Dropdowns
+                                </h1>
+                                <div className="text-2xl gradient-text font-semibold mb-6">
+                                    Advanced Features & Beautiful Design
+                                </div>
+                            </div>
+                            <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+                                Experience the next generation of select components with search, keyboard navigation, 
+                                icons, descriptions, and stunning animations.
+                            </p>
+                        </div>
+
+                        {/* Feature Cards Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                            {/* Standard Custom Dropdown */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-blue-400 rounded-full mr-3"></div>
+                                    Custom Dropdown
+                                </h3>
+                                <p className="text-white/70 mb-6">Beautiful custom dropdown with smooth animations</p>
+                                
+                                <EnhancedSelect
+                                    value={department}
+                                    onChange={setDepartment}
+                                    options={departmentOptions}
+                                    icon={Filter}
+                                    label="Department"
+                                    placeholder="Select department..."
+                                    variant="default"
+                                    customDropdown={true}
+                                />
+                            </div>
+
+                            {/* Searchable Dropdown */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                                    Searchable
+                                </h3>
+                                <p className="text-white/70 mb-6">Type to search through options instantly</p>
+                                
+                                <EnhancedSelect
+                                    value={searchableDept}
+                                    onChange={setSearchableDept}
+                                    options={departmentOptions}
+                                    icon={Search}
+                                    label="Search Department"
+                                    placeholder="Search departments..."
+                                    variant="filled"
+                                    customDropdown={true}
+                                    searchable={true}
+                                />
+                            </div>
+
+                            {/* Clearable with Icons */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-purple-400 rounded-full mr-3"></div>
+                                    Icons & Clearable
+                                </h3>
+                                <p className="text-white/70 mb-6">Rich options with icons and descriptions</p>
+                                
+                                <EnhancedSelect
+                                    value={role}
+                                    onChange={setRole}
+                                    options={roleOptions}
+                                    icon={Shield}
+                                    label="User Role"
+                                    placeholder="Select role..."
+                                    variant="gradient"
+                                    customDropdown={true}
+                                    clearable={true}
+                                />
+                            </div>
+
+                            {/* Keyboard Navigation */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-orange-400 rounded-full mr-3"></div>
+                                    Keyboard Navigation
+                                </h3>
+                                <p className="text-white/70 mb-6">Full keyboard support with arrow keys</p>
+                                
+                                <EnhancedSelect
+                                    value={timeframe}
+                                    onChange={setTimeframe}
+                                    options={timeframeOptions}
+                                    icon={Calendar}
+                                    label="Timeframe"
+                                    placeholder="Select timeframe..."
+                                    variant="filled"
+                                    customDropdown={true}
+                                    description="Use ↑↓ keys to navigate, Enter to select"
+                                />
+                            </div>
+
+                            {/* Standard Select Comparison */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-red-400 rounded-full mr-3"></div>
+                                    Standard Select
+                                </h3>
+                                <p className="text-white/70 mb-6">Traditional select for comparison</p>
+                                
+                                <EnhancedSelect
+                                    value={priority}
+                                    onChange={setPriority}
+                                    options={priorityOptions}
+                                    icon={Star}
+                                    label="Priority"
+                                    placeholder="Select priority..."
+                                    variant="minimal"
+                                    customDropdown={false}
+                                />
+                            </div>
+
+                            {/* Large Size Variant */}
+                            <div className="glass-card rounded-2xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                                    <div className="w-3 h-3 bg-pink-400 rounded-full mr-3"></div>
+                                    Large Size
+                                </h3>
+                                <p className="text-white/70 mb-6">Prominent size for important selections</p>
+                                
+                                <EnhancedSelect
+                                    value={organization}
+                                    onChange={setOrganization}
+                                    options={organizationOptions}
+                                    icon={Building}
+                                    label="Organization"
+                                    placeholder="Select organization..."
+                                    variant="gradient"
+                                    size="lg"
+                                    customDropdown={true}
+                                    clearable={true}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Feature List */}
+                        <div className="glass-card rounded-2xl p-8 mb-12">
+                            <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                                🚀 Enhanced Features
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="text-center">
+                                    <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Search size={24} className="text-blue-400" />
+                                    </div>
+                                    <h4 className="font-semibold text-white mb-2">Live Search</h4>
+                                    <p className="text-sm text-white/70">Real-time filtering as you type</p>
+                                </div>
+
+                                <div className="text-center">
+                                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Zap size={24} className="text-green-400" />
+                                    </div>
+                                    <h4 className="font-semibold text-white mb-2">Keyboard Nav</h4>
+                                    <p className="text-sm text-white/70">Arrow keys, Enter, Escape support</p>
+                                </div>
+
+                                <div className="text-center">
+                                    <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Star size={24} className="text-purple-400" />
+                                    </div>
+                                    <h4 className="font-semibold text-white mb-2">Rich Options</h4>
+                                    <p className="text-sm text-white/70">Icons, descriptions, grouping</p>
+                                </div>
+
+                                <div className="text-center">
+                                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Heart size={24} className="text-orange-400" />
+                                    </div>
+                                    <h4 className="font-semibold text-white mb-2">Accessible</h4>
+                                    <p className="text-sm text-white/70">ARIA compliant, screen reader friendly</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Code Example */}
+                        <div className="glass-card rounded-2xl p-8">
+                            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                                <div className="w-3 h-3 bg-white rounded-full mr-3"></div>
+                                Implementation Example
+                            </h3>
+                            
+                            <div className="bg-gray-900/50 rounded-xl p-6 overflow-x-auto">
+                                <pre className="text-green-400 text-sm leading-relaxed">
+{`<EnhancedSelect
+  value={selectedValue}
+  onChange={setValue}
+  options={[
+    { 
+      value: 'option1', 
+      label: 'Option 1',
+      icon: User,
+      description: 'Description text'
+    }
+  ]}
+  customDropdown={true}
+  searchable={true}
+  clearable={true}
+  variant="gradient"
+  size="md"
+  icon={Filter}
+  label="Select Label"
+  placeholder="Choose an option..."
+/>`}
+                                </pre>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="text-center mt-12">
+                            <p className="text-white/60">
+                                Enhanced Select Components for KPI Brain • 
+                                <span className="text-blue-300 font-medium">React + TypeScript + Tailwind CSS</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

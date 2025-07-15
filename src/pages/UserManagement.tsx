@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { Plus, Edit2, Trash2, User, Shield, Users, Link as LinkIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Shield, Users, Link as LinkIcon, Settings } from 'lucide-react';
+import { EnhancedSelect } from '../components/UI';
 
 const UserManagement: React.FC = () => {
   const { user } = useAuth();
@@ -376,19 +377,38 @@ const UserManagement: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
-                </label>
-                <select
+                <EnhancedSelect
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(value) => setFormData({ ...formData, role: value as string })}
+                  options={[
+                    { 
+                      value: 'clinician', 
+                      label: 'Clinician',
+                      description: 'Front-line healthcare provider',
+                      icon: User
+                    },
+                    { 
+                      value: 'clinical_director', 
+                      label: 'Clinical Director',
+                      description: 'Department leadership role',
+                      icon: Shield
+                    },
+                    { 
+                      value: 'admin', 
+                      label: 'Admin',
+                      description: 'Administrative oversight',
+                      icon: Settings
+                    }
+                  ]}
+                  icon={<Shield className="w-4 h-4" />}
+                  label="Role"
+                  variant="filled"
+                  size="md"
                   required
-                >
-                  <option value="clinician">Clinician</option>
-                  <option value="clinical_director">Clinical Director</option>
-                  <option value="admin">Admin</option>
-                </select>
+                  placeholder="Select a role..."
+                  customDropdown={true}
+                  searchable={true}
+                />
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button

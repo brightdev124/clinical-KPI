@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, Target, Calendar, Filter } from 'lucide-react';
+import { EnhancedSelect } from '../components/UI';
 
 const PerformanceAnalytics: React.FC = () => {
   const { clinicians, kpis, getClinicianScore } = useData();
@@ -106,30 +107,38 @@ const PerformanceAnalytics: React.FC = () => {
           <p className="text-gray-600 mt-1">Comprehensive performance insights and trends</p>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
+        <div className="flex items-center space-x-6">
+          <div className="min-w-[200px]">
+            <EnhancedSelect
               value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Departments</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
+              onChange={(value) => setSelectedDepartment(value as string)}
+              options={[
+                { value: 'all', label: 'All Departments' },
+                ...departments.map(dept => ({ value: dept, label: dept }))
+              ]}
+              icon={<Filter className="w-4 h-4" />}
+              variant="gradient"
+              size="sm"
+              placeholder="Select department..."
+              customDropdown={true}
+              searchable={true}
+              clearable={true}
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <select
+          <div className="min-w-[180px]">
+            <EnhancedSelect
               value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="6months">Last 6 Months</option>
-              <option value="12months">Last 12 Months</option>
-            </select>
+              onChange={(value) => setSelectedTimeframe(value as string)}
+              options={[
+                { value: '6months', label: 'Last 6 Months' },
+                { value: '12months', label: 'Last 12 Months' }
+              ]}
+              icon={<Calendar className="w-4 h-4" />}
+              variant="filled"
+              size="sm"
+              placeholder="Select timeframe..."
+              customDropdown={true}
+            />
           </div>
         </div>
       </div>

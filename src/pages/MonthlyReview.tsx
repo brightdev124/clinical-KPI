@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
 import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus, File, Trash2, ExternalLink } from 'lucide-react';
+import { EnhancedSelect } from '../components/UI';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
 interface ReviewFormData {
@@ -528,26 +529,36 @@ const MonthlyReview: React.FC = () => {
               </button>
             )}
             
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {Array.from({ length: 12 }, (_, i) => 
-                new Date(0, i).toLocaleString('default', { month: 'long' })
-              ).map(month => (
-                <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {[2023, 2024, 2025].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+            <div className="min-w-[140px]">
+              <EnhancedSelect
+                value={selectedMonth}
+                onChange={(value) => setSelectedMonth(value as string)}
+                options={Array.from({ length: 12 }, (_, i) => {
+                  const month = new Date(0, i).toLocaleString('default', { month: 'long' });
+                  return { value: month, label: month };
+                })}
+                icon={<Calendar className="w-4 h-4" />}
+                variant="default"
+                size="sm"
+                placeholder="Select month..."
+                customDropdown={true}
+                searchable={true}
+              />
+            </div>
+            <div className="min-w-[100px]">
+              <EnhancedSelect
+                value={selectedYear}
+                onChange={(value) => setSelectedYear(parseInt(value as string))}
+                options={[2023, 2024, 2025].map(year => ({
+                  value: year,
+                  label: year.toString()
+                }))}
+                variant="default"
+                size="sm"
+                placeholder="Year..."
+                customDropdown={true}
+              />
+            </div>
           </div>
         </div>
 
