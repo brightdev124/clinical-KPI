@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import AdminAnalytics from '../components/AdminAnalytics';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -1790,6 +1791,11 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </>
+      )}
+
+      {/* Admin Analytics Component - Only for super-admin */}
+      {user?.role === 'super-admin' && (
+        <AdminAnalytics className="mt-8" />
       )}
 
     </div>
