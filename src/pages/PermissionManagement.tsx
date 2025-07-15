@@ -471,40 +471,54 @@ const PermissionManagement: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="px-4 sm:px-6 lg:px-8">
       <div className="mx-auto">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Permission Management</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Permission Management</h1>
               <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
             </div>
-            <div className="flex items-center space-x-8">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-8">
               <button
                 onClick={handleAddUser}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 lg:px-6 lg:py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
               >
-                <Plus className="w-5 h-5" />
-                <span>Add New User</span>
+                <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+                <span className="text-sm lg:text-base">Add New User</span>
               </button>
-              <div className="flex items-center space-x-2">
-                <Users className="w-8 h-8 text-blue-600" />
-                <span className="text-2xl font-bold text-gray-900">{users.length}</span>
-                <span className="text-gray-600">Total Users</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-green-600" />
+              <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:space-x-4 lg:space-x-8">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <Users className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600 mr-1 sm:mr-0" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <span className="text-xl lg:text-2xl font-bold text-gray-900 block">{users.length}</span>
+                    <span className="text-xs lg:text-sm text-gray-600">Total Users</span>
+                  </div>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{users.filter(u => u.accept).length}</span>
-                <span className="text-gray-600">Approved</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <X className="w-4 h-4 text-yellow-600" />
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 lg:w-4 lg:h-4 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <span className="text-xl lg:text-2xl font-bold text-gray-900 block">{users.filter(u => u.accept).length}</span>
+                    <span className="text-xs lg:text-sm text-gray-600">Approved</span>
+                  </div>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{users.filter(u => !u.accept).length}</span>
-                <span className="text-gray-600">Pending</span>
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <X className="w-3 h-3 lg:w-4 lg:h-4 text-yellow-600" />
+                    </div>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <span className="text-xl lg:text-2xl font-bold text-gray-900 block">{users.filter(u => !u.accept).length}</span>
+                    <span className="text-xs lg:text-sm text-gray-600">Pending</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -524,10 +538,10 @@ const PermissionManagement: React.FC = () => {
 
         {/* Role Tabs */}
         <div className="mb-6">
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('super-admin')}
-              className={`px-4 py-2 font-medium text-sm ${
+              className={`px-3 py-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'super-admin'
                   ? 'border-b-2 border-purple-500 text-purple-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -537,7 +551,7 @@ const PermissionManagement: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('director')}
-              className={`px-4 py-2 font-medium text-sm ${
+              className={`px-3 py-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'director'
                   ? 'border-b-2 border-blue-500 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -547,7 +561,7 @@ const PermissionManagement: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('clinician')}
-              className={`px-4 py-2 font-medium text-sm ${
+              className={`px-3 py-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'clinician'
                   ? 'border-b-2 border-green-500 text-green-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -559,23 +573,23 @@ const PermissionManagement: React.FC = () => {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 lg:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
                 <input
                   type="text"
                   placeholder="Search users by name or username..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-9 lg:pl-10 pr-4 py-2 text-sm lg:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
             
             <div className="flex items-center">
-              <div className="min-w-[140px]">
+              <div className="min-w-[120px] lg:min-w-[140px]">
                 <EnhancedSelect
                   value={filterStatus}
                   onChange={(value) => setFilterStatus(value as any)}
@@ -595,360 +609,627 @@ const PermissionManagement: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            {activeTab === 'super-admin' && (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Position Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.length === 0 ? (
+          {activeTab === 'super-admin' && (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center">
-                          <Users className="w-12 h-12 text-gray-400 mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">No super admins found</h3>
-                          <p className="text-gray-500">
-                            {searchTerm || filterStatus !== 'all'
-                              ? 'Try adjusting your search or filter criteria'
-                              : 'No super admins have been created yet'
-                            }
-                          </p>
-                        </div>
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Username
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Position Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created At
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">@{user.username}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.position_name ? (
-                            <div className="flex flex-col">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <Briefcase className="w-3 h-3 mr-1" />
-                                {user.position_name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
-                            {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
-                            {user.accept ? 'APPROVED' : 'PENDING'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => toggleUserAcceptance(user)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                user.accept
-                                  ? 'text-red-600 hover:bg-red-50'
-                                  : 'text-green-600 hover:bg-green-50'
-                              }`}
-                              title={user.accept ? 'Reject User' : 'Approve User'}
-                            >
-                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit User"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(user)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete User"
-                              disabled={user.id === currentUser?.id}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center">
+                            <Users className="w-12 h-12 text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No super admins found</h3>
+                            <p className="text-gray-500">
+                              {searchTerm || filterStatus !== 'all'
+                                ? 'Try adjusting your search or filter criteria'
+                                : 'No super admins have been created yet'
+                              }
+                            </p>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'director' && (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Direction
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Position Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center">
-                          <Users className="w-12 h-12 text-gray-400 mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">No directors found</h3>
-                          <p className="text-gray-500">
-                            {searchTerm || filterStatus !== 'all'
-                              ? 'Try adjusting your search or filter criteria'
-                              : 'No directors have been created yet'
-                            }
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">@{user.username}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.director_info ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                              <Building className="w-3 h-3 mr-1" />
-                              {user.director_info.direction}
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">@{user.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.position_name ? (
+                              <div className="flex flex-col">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  <Briefcase className="w-3 h-3 mr-1" />
+                                  {user.position_name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                              {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                              {user.accept ? 'APPROVED' : 'PENDING'}
                             </span>
-                          ) : (
-                            <span className="text-gray-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.position_name ? (
-                            <div className="flex flex-col">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <Briefcase className="w-3 h-3 mr-1" />
-                                {user.position_name}
-                              </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => toggleUserAcceptance(user)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  user.accept
+                                    ? 'text-red-600 hover:bg-red-50'
+                                    : 'text-green-600 hover:bg-green-50'
+                                }`}
+                                title={user.accept ? 'Reject User' : 'Approve User'}
+                              >
+                                {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleEdit(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit User"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(user)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User"
+                                disabled={user.id === currentUser?.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
-                          ) : (
-                            <span className="text-red-400 font-medium">⚠️ No position assigned</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile Cards */}
+              <div className="lg:hidden">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No super admins found</h3>
+                    <p className="text-gray-500">
+                      {searchTerm || filterStatus !== 'all'
+                        ? 'Try adjusting your search or filter criteria'
+                        : 'No super admins have been created yet'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <div key={user.id} className="p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-900">{user.name}</h3>
+                            <p className="text-sm text-gray-500">@{user.username}</p>
+                          </div>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
                             {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
                             {user.accept ? 'APPROVED' : 'PENDING'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => toggleUserAcceptance(user)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                user.accept
-                                  ? 'text-red-600 hover:bg-red-50'
-                                  : 'text-green-600 hover:bg-green-50'
-                              }`}
-                              title={user.accept ? 'Reject User' : 'Approve User'}
-                            >
-                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit User"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(user)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete User"
-                              disabled={user.id === currentUser?.id}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'clinician' && (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Clinician Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Position Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center">
-                          <Users className="w-12 h-12 text-gray-400 mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
-                          <p className="text-gray-500">
-                            {searchTerm || filterStatus !== 'all'
-                              ? 'Try adjusting your search or filter criteria'
-                              : 'No clinicians have been created yet'
-                            }
-                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">@{user.username}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.clinician_info ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                              <UserIcon className="w-3 h-3 mr-1" />
-                              {user.clinician_info.type_title || 'Unknown Type'}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.position_name ? (
-                            <div className="flex flex-col">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <Briefcase className="w-3 h-3 mr-1" />
+                        
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            {user.position_name ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 {user.position_name}
                               </span>
-                            </div>
-                          ) : (
-                            <span className="text-red-400 font-medium">⚠️ No position assigned</span>
-                          )}
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Created: {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => toggleUserAcceptance(user)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              user.accept
+                                ? 'text-red-600 hover:bg-red-50'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title={user.accept ? 'Reject User' : 'Approve User'}
+                          >
+                            {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit User"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete User"
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeTab === 'director' && (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Username
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Direction
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Position Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created At
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center">
+                            <Users className="w-12 h-12 text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No directors found</h3>
+                            <p className="text-gray-500">
+                              {searchTerm || filterStatus !== 'all'
+                                ? 'Try adjusting your search or filter criteria'
+                                : 'No directors have been created yet'
+                              }
+                            </p>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      </tr>
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">@{user.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.director_info ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                <Building className="w-3 h-3 mr-1" />
+                                {user.director_info.direction}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.position_name ? (
+                              <div className="flex flex-col">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  <Briefcase className="w-3 h-3 mr-1" />
+                                  {user.position_name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-red-400 font-medium">⚠️ No position assigned</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                              {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                              {user.accept ? 'APPROVED' : 'PENDING'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => toggleUserAcceptance(user)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  user.accept
+                                    ? 'text-red-600 hover:bg-red-50'
+                                    : 'text-green-600 hover:bg-green-50'
+                                }`}
+                                title={user.accept ? 'Reject User' : 'Approve User'}
+                              >
+                                {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleEdit(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit User"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(user)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User"
+                                disabled={user.id === currentUser?.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile Cards */}
+              <div className="lg:hidden">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No directors found</h3>
+                    <p className="text-gray-500">
+                      {searchTerm || filterStatus !== 'all'
+                        ? 'Try adjusting your search or filter criteria'
+                        : 'No directors have been created yet'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <div key={user.id} className="p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-900">{user.name}</h3>
+                            <p className="text-sm text-gray-500">@{user.username}</p>
+                          </div>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
                             {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
                             {user.accept ? 'APPROVED' : 'PENDING'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => toggleUserAcceptance(user)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                user.accept
-                                  ? 'text-red-600 hover:bg-red-50'
-                                  : 'text-green-600 hover:bg-green-50'
-                              }`}
-                              title={user.accept ? 'Reject User' : 'Approve User'}
-                            >
-                              {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit User"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(user)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete User"
-                              disabled={user.id === currentUser?.id}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                        </div>
+                        
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Building className="w-4 h-4 mr-2" />
+                            {user.director_info ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                {user.director_info.direction}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            {user.position_name ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {user.position_name}
+                              </span>
+                            ) : (
+                              <span className="text-red-400 font-medium">⚠️ No position assigned</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Created: {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => toggleUserAcceptance(user)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              user.accept
+                                ? 'text-red-600 hover:bg-red-50'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title={user.accept ? 'Reject User' : 'Approve User'}
+                          >
+                            {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit User"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete User"
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeTab === 'clinician' && (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Username
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Clinician Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Position Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created At
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center">
+                            <Users className="w-12 h-12 text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
+                            <p className="text-gray-500">
+                              {searchTerm || filterStatus !== 'all'
+                                ? 'Try adjusting your search or filter criteria'
+                                : 'No clinicians have been created yet'
+                              }
+                            </p>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">@{user.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.clinician_info ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                <UserIcon className="w-3 h-3 mr-1" />
+                                {user.clinician_info.type_title || 'Unknown Type'}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.position_name ? (
+                              <div className="flex flex-col">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  <Briefcase className="w-3 h-3 mr-1" />
+                                  {user.position_name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-red-400 font-medium">⚠️ No position assigned</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                              {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                              {user.accept ? 'APPROVED' : 'PENDING'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => toggleUserAcceptance(user)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  user.accept
+                                    ? 'text-red-600 hover:bg-red-50'
+                                    : 'text-green-600 hover:bg-green-50'
+                                }`}
+                                title={user.accept ? 'Reject User' : 'Approve User'}
+                              >
+                                {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleEdit(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit User"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(user)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User"
+                                disabled={user.id === currentUser?.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile Cards */}
+              <div className="lg:hidden">
+                {filteredUsers.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
+                    <p className="text-gray-500">
+                      {searchTerm || filterStatus !== 'all'
+                        ? 'Try adjusting your search or filter criteria'
+                        : 'No clinicians have been created yet'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <div key={user.id} className="p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-900">{user.name}</h3>
+                            <p className="text-sm text-gray-500">@{user.username}</p>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.accept)}`}>
+                            {user.accept ? <Check className="w-3 h-3 mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                            {user.accept ? 'APPROVED' : 'PENDING'}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <UserIcon className="w-4 h-4 mr-2" />
+                            {user.clinician_info ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                {user.clinician_info.type_title || 'Unknown Type'}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not assigned</span>
+                            )}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            {user.position_name ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {user.position_name}
+                              </span>
+                            ) : (
+                              <span className="text-red-400 font-medium">⚠️ No position assigned</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Created: {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => toggleUserAcceptance(user)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              user.accept
+                                ? 'text-red-600 hover:bg-red-50'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title={user.accept ? 'Reject User' : 'Approve User'}
+                          >
+                            {user.accept ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit User"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete User"
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Edit Modal */}
         {showEditModal && editingUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit User</h3>
                 
@@ -1150,7 +1431,7 @@ const PermissionManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-6">
                   <button
                     onClick={() => setShowEditModal(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -1182,13 +1463,13 @@ const PermissionManagement: React.FC = () => {
         {showDeleteModal && userToDelete && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Delete</h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-6 text-sm sm:text-base">
                   Are you sure you want to delete user <strong>{userToDelete.name}</strong>? This action cannot be undone.
                 </p>
                 
-                <div className="flex justify-end space-x-3">
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -1210,8 +1491,8 @@ const PermissionManagement: React.FC = () => {
         {/* Add New User Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="p-6">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New User</h3>
                 
                 <div className="space-y-4">
@@ -1371,7 +1652,7 @@ const PermissionManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-6">
                   <button
                     onClick={() => setShowAddModal(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
