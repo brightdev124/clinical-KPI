@@ -1578,7 +1578,7 @@ const Dashboard: React.FC = () => {
 
       {/* Admin Analytics Component - Only for super-admin */}
       {user?.role === 'super-admin' && (
-        <AdminAnalytics className="mt-8 max-lg:hidden" />
+        <AdminAnalytics className="mt-8 max-md:hidden" />
       )}
 
     </div>
