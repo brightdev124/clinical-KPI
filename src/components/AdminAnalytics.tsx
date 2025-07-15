@@ -156,13 +156,23 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   const generateChartData = () => {
     if (!startMonth || !endMonth || selectedUsers.size === 0) return [];
 
-    const start = new Date(startMonth + '-01');
-    const end = new Date(endMonth + '-01');
     const data = [];
-
-    // Generate monthly data points
-    const current = new Date(start);
-    while (current <= end) {
+    
+    // Parse start and end dates
+    const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+    const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+    
+    // Create current date starting from start month
+    let currentYear = startYear;
+    let currentMonth = startMonthNum;
+    
+    // Generate monthly data points - include both start and end months
+    while (
+      currentYear < endYear || 
+      (currentYear === endYear && currentMonth <= endMonthNum)
+    ) {
+      // Create date object for current iteration
+      const current = new Date(currentYear, currentMonth - 1, 1); // month is 0-indexed in Date constructor
       const monthStr = current.toLocaleDateString('en-US', { month: 'long' });
       const year = current.getFullYear();
       
@@ -177,14 +187,22 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
         const user = profiles.find(p => p.id === userId);
         if (user) {
           const score = getClinicianScore(userId, monthStr, year);
+          console.log(`Score for ${user.name} in ${monthStr} ${year}:`, score);
           monthData[user.name] = score;
         }
       });
 
       data.push(monthData);
-      current.setMonth(current.getMonth() + 1);
+      
+      // Move to next month
+      currentMonth++;
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear++;
+      }
     }
 
+    console.log('Generated chart data:', data);
     return data;
   };
 
@@ -197,18 +215,35 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
       .filter(Boolean);
 
     return selectedUserProfiles.map(user => {
-      const start = new Date(startMonth + '-01');
-      const end = new Date(endMonth + '-01');
       const monthlyScores: any = { user };
-
-      const current = new Date(start);
-      while (current <= end) {
+      
+      // Parse start and end dates
+      const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+      const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+      
+      // Create current date starting from start month
+      let currentYear = startYear;
+      let currentMonth = startMonthNum;
+      
+      // Generate monthly data points - include both start and end months
+      while (
+        currentYear < endYear || 
+        (currentYear === endYear && currentMonth <= endMonthNum)
+      ) {
+        // Create date object for current iteration
+        const current = new Date(currentYear, currentMonth - 1, 1); // month is 0-indexed in Date constructor
         const monthStr = current.toLocaleDateString('en-US', { month: 'long' });
         const year = current.getFullYear();
         const monthKey = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         
         monthlyScores[monthKey] = getClinicianScore(user!.id, monthStr, year);
-        current.setMonth(current.getMonth() + 1);
+        
+        // Move to next month
+        currentMonth++;
+        if (currentMonth > 12) {
+          currentMonth = 1;
+          currentYear++;
+        }
       }
 
       return monthlyScores;
