@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
 import LandingPage from './components/LandingPage';
 import PendingApproval from './components/PendingApproval';
+
 import Dashboard from './pages/Dashboard';
 import KPIManagement from './pages/KPIManagement';
 import ClinicianManagement from './pages/ClinicianManagement';
@@ -34,18 +35,21 @@ const AppContent: React.FC = () => {
   // Special handling for clinicians - only show Dashboard
   if (user?.role === 'clinician') {
     return (
-      <Routes>
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="*" element={<Dashboard />} />
-        </Route>
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="*" element={<Dashboard />} />
+          </Route>
+        </Routes>
+      </>
     );
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+    <>
+      <Routes>
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="kpis" element={
           <RoleBasedRoute allowedRoles={['super-admin']}>
@@ -91,7 +95,8 @@ const AppContent: React.FC = () => {
         } />
       </Route>
     </Routes>
-  );
+  </>
+);
 };
 
 function App() {

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication Demo - KPI Brain</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsonwebtoken@9.0.2/index.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .auth-section {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .token-display {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f1b0b7;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .jwt-info {
+            background: #f0f9ff;
+            border: 1px solid #0284c7;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .jwt-info h3 {
+            margin-top: 0;
+            color: #0284c7;
+        }
+        
+        .countdown {
+            font-weight: bold;
+            color: #dc2626;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 JWT Authentication Demo - KPI Brain</h1>
+        
+        <div class="auth-section">
+            <h2>Login with JWT Tokens (1-hour expiration)</h2>
+            
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <select id="username">
+                    <option value="admin">admin (Super Admin)</option>
+                    <option value="director">director (Director)</option>
+                    <option value="clinician">clinician (Clinician)</option>
+                    <option value="pending">pending (Pending User)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="password" readonly>
+            </div>
+            
+            <button onclick="login()">🔓 Login & Generate JWT</button>
+            <button onclick="refreshTokens()">🔄 Refresh Tokens</button>
+            <button onclick="logout()">🚪 Logout</button>
+            <button onclick="verifyToken()">✅ Verify Token</button>
+        </div>
+        
+        <div id="authStatus"></div>
+        
+        <div class="grid">
+            <div class="jwt-info">
+                <h3>Access Token (1 hour)</h3>
+                <div id="accessTokenDisplay">No token generated</div>
+                <div id="tokenExpiry"></div>
+            </div>
+            
+            <div class="jwt-info">
+                <h3>Refresh Token (7 days)</h3>
+                <div id="refreshTokenDisplay">No refresh token</div>
+            </div>
+        </div>
+        
+        <div class="jwt-info">
+            <h3>Decoded Token Payload</h3>
+            <div id="decodedPayload">No token to decode</div>
+        </div>
+        
+        <div class="jwt-info">
+            <h3>Demo API Request with JWT</h3>
+            <button onclick="makeAuthenticatedRequest()">📡 Test Supabase Request</button>
+            <div id="apiResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        // JWT Configuration (same as in your app)
+        const JWT_SECRET = 'kpi_brain_jwt_secret_2024_change_in_production';
+        const JWT_REFRESH_SECRET = 'kpi_brain_refresh_secret_2024_change_in_production';
+        const JWT_EXPIRES_IN = 3600; // 1 hour in seconds
+        const JWT_REFRESH_EXPIRES_IN = 604800; // 7 days in seconds
+        
+        // Mock users (same as in your app)
+        const mockUsers = [
+            {
+                id: '1',
+                name: 'System Administrator',
+                username: 'admin',
+                role: 'super-admin',
+                accept: true,
+            },
+            {
+                id: '2',
+                name: 'Dr. Michael Chen',
+                username: 'director',
+                role: 'director',
+                accept: true,
+            },
+            {
+                id: '3',
+                name: 'Dr. Emily Rodriguez',
+                username: 'clinician',
+                role: 'clinician',
+                accept: true,
+            },
+            {
+                id: '4',
+                name: 'Dr. John Pending',
+                username: 'pending',
+                role: 'clinician',
+                accept: false,
+            },
+        ];
+        
+        let currentTokens = null;
+        let tokenTimer = null;
+        
+        // Simple JWT implementation for demo
+        function createJWT(payload, secret, expiresIn) {
+            const header = { alg: 'HS256', typ: 'JWT' };
+            const now = Math.floor(Date.now() / 1000);
+            
+            const fullPayload = {
+                ...payload,
+                iat: now,
+                exp: now + expiresIn,
+                iss: 'kpi-brain',
+                aud: 'kpi-brain-users'
+            };
+            
+            // Simple base64url encoding (for demo purposes)
+            const headerEncoded = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            const payloadEncoded = btoa(JSON.stringify(fullPayload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            
+            // Simple signature (not cryptographically secure - for demo only)
+            const signature = btoa(secret + headerEncoded + payloadEncoded).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            
+            return `${headerEncoded}.${payloadEncoded}.${signature}`;
+        }
+        
+        function decodeJWT(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) throw new Error('Invalid token');
+                
+                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                return payload;
+            } catch (error) {
+                return null;
+            }
+        }
+        
+        function generateTokens(user) {
+            const accessToken = createJWT({
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                role: user.role
+            }, JWT_SECRET, JWT_EXPIRES_IN);
+            
+            const refreshToken = createJWT({
+                id: user.id,
+                username: user.username
+            }, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN);
+            
+            const expiresAt = Date.now() + (JWT_EXPIRES_IN * 1000);
+            
+            return { accessToken, refreshToken, expiresAt };
+        }
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const user = mockUsers.find(u => u.username === username);
+            
+            if (!user) {
+                showStatus('User not found', 'error');
+                return;
+            }
+            
+            if (!user.accept) {
+                showStatus('Account pending approval - no tokens generated', 'warning');
+                updateTokenDisplay(null, null);
+                return;
+            }
+            
+            currentTokens = generateTokens(user);
+            
+            // Store in localStorage (like your app)
+            localStorage.setItem('kpi_access_token', currentTokens.accessToken);
+            localStorage.setItem('kpi_refresh_token', currentTokens.refreshToken);
+            localStorage.setItem('kpi_token_expires_at', currentTokens.expiresAt.toString());
+            localStorage.setItem('kpi_user_data', JSON.stringify(user));
+            
+            showStatus(`✅ Login successful! JWT tokens generated for ${user.name} (${user.role})`, 'success');
+            updateTokenDisplay(currentTokens.accessToken, currentTokens.refreshToken);
+            startTokenTimer();
+        }
+        
+        function refreshTokens() {
+            if (!currentTokens || !currentTokens.refreshToken) {
+                showStatus('No refresh token available', 'error');
+                return;
+            }
+            
+            const refreshPayload = decodeJWT(currentTokens.refreshToken);
+            if (!refreshPayload) {
+                showStatus('Invalid refresh token', 'error');
+                return;
+            }
+            
+            // Check if refresh token is expired
+            if (refreshPayload.exp * 1000 < Date.now()) {
+                showStatus('Refresh token expired - please login again', 'error');
+                logout();
+                return;
+            }
+            
+            // Find user and generate new tokens
+            const user = mockUsers.find(u => u.id === refreshPayload.id && u.username === refreshPayload.username);
+            if (!user || !user.accept) {
+                showStatus('User not found or not authorized', 'error');
+                logout();
+                return;
+            }
+            
+            currentTokens = generateTokens(user);
+            
+            // Update localStorage
+            localStorage.setItem('kpi_access_token', currentTokens.accessToken);
+            localStorage.setItem('kpi_token_expires_at', currentTokens.expiresAt.toString());
+            
+            showStatus('🔄 Tokens refreshed successfully', 'success');
+            updateTokenDisplay(currentTokens.accessToken, currentTokens.refreshToken);
+            startTokenTimer();
+        }
+        
+        function logout() {
+            currentTokens = null;
+            clearInterval(tokenTimer);
+            
+            // Clear localStorage
+            localStorage.removeItem('kpi_access_token');
+            localStorage.removeItem('kpi_refresh_token');
+            localStorage.removeItem('kpi_token_expires_at');
+            localStorage.removeItem('kpi_user_data');
+            
+            showStatus('🚪 Logged out successfully', 'success');
+            updateTokenDisplay(null, null);
+        }
+        
+        function verifyToken() {
+            if (!currentTokens || !currentTokens.accessToken) {
+                showStatus('No access token to verify', 'error');
+                return;
+            }
+            
+            const payload = decodeJWT(currentTokens.accessToken);
+            if (!payload) {
+                showStatus('❌ Invalid token format', 'error');
+                return;
+            }
+            
+            const now = Date.now() / 1000;
+            if (payload.exp < now) {
+                showStatus('❌ Token has expired', 'error');
+            } else {
+                const timeLeft = Math.floor(payload.exp - now);
+                showStatus(`✅ Token is valid. Expires in ${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`, 'success');
+            }
+        }
+        
+        function makeAuthenticatedRequest() {
+            if (!currentTokens || !currentTokens.accessToken) {
+                document.getElementById('apiResponse').innerHTML = 
+                    '<div class="status error">❌ No access token available</div>';
+                return;
+            }
+            
+            // Simulate an authenticated API request
+            const headers = {
+                'Authorization': `Bearer ${currentTokens.accessToken}`,
+                'Content-Type': 'application/json'
+            };
+            
+            document.getElementById('apiResponse').innerHTML = `
+                <div class="status success">
+                    ✅ Simulated authenticated request to Supabase
+                    <div class="token-display">Authorization: Bearer ${currentTokens.accessToken.substring(0, 50)}...</div>
+                    <p><strong>This would include JWT token in headers for:</strong></p>
+                    <ul>
+                        <li>🔍 Fetching user profiles</li>
+                        <li>📊 Getting KPI data</li>
+                        <li>📝 Creating monthly reviews</li>
+                        <li>👥 Managing clinician assignments</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function updateTokenDisplay(accessToken, refreshToken) {
+            const accessDisplay = document.getElementById('accessTokenDisplay');
+            const refreshDisplay = document.getElementById('refreshTokenDisplay');
+            const decodedDisplay = document.getElementById('decodedPayload');
+            
+            if (accessToken) {
+                accessDisplay.innerHTML = `<div class="token-display">${accessToken}</div>`;
+                
+                const payload = decodeJWT(accessToken);
+                if (payload) {
+                    decodedDisplay.innerHTML = `<div class="token-display">${JSON.stringify(payload, null, 2)}</div>`;
+                }
+            } else {
+                accessDisplay.innerHTML = 'No token generated';
+                decodedDisplay.innerHTML = 'No token to decode';
+            }
+            
+            if (refreshToken) {
+                refreshDisplay.innerHTML = `<div class="token-display">${refreshToken}</div>`;
+            } else {
+                refreshDisplay.innerHTML = 'No refresh token';
+            }
+        }
+        
+        function startTokenTimer() {
+            clearInterval(tokenTimer);
+            
+            tokenTimer = setInterval(() => {
+                if (!currentTokens) {
+                    clearInterval(tokenTimer);
+                    return;
+                }
+                
+                const now = Date.now();
+                const timeLeft = currentTokens.expiresAt - now;
+                
+                if (timeLeft <= 0) {
+                    document.getElementById('tokenExpiry').innerHTML = 
+                        '<div class="status error countdown">⏰ Token EXPIRED</div>';
+                    clearInterval(tokenTimer);
+                    return;
+                }
+                
+                const minutes = Math.floor(timeLeft / 1000 / 60);
+                const seconds = Math.floor((timeLeft / 1000) % 60);
+                
+                let statusClass = 'success';
+                if (timeLeft <= 5 * 60 * 1000) statusClass = 'warning'; // 5 minutes
+                if (timeLeft <= 1 * 60 * 1000) statusClass = 'error';   // 1 minute
+                
+                document.getElementById('tokenExpiry').innerHTML = 
+                    `<div class="status ${statusClass} countdown">⏰ Expires in: ${minutes}m ${seconds}s</div>`;
+                
+                // Auto-refresh when expiring (as your app does)
+                if (timeLeft <= 5 * 60 * 1000 && timeLeft > 4 * 60 * 1000) {
+                    showStatus('🔄 Token expiring soon - would auto-refresh in real app', 'warning');
+                }
+            }, 1000);
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('authStatus');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // Auto-clear after 5 seconds
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Initialize on page load
+        window.onload = function() {
+            // Check for existing tokens in localStorage
+            const storedToken = localStorage.getItem('kpi_access_token');
+            const storedRefreshToken = localStorage.getItem('kpi_refresh_token');
+            const storedExpiry = localStorage.getItem('kpi_token_expires_at');
+            
+            if (storedToken && storedRefreshToken && storedExpiry) {
+                currentTokens = {
+                    accessToken: storedToken,
+                    refreshToken: storedRefreshToken,
+                    expiresAt: parseInt(storedExpiry)
+                };
+                
+                updateTokenDisplay(currentTokens.accessToken, currentTokens.refreshToken);
+                startTokenTimer();
+                showStatus('✅ Restored tokens from localStorage', 'success');
+            }
+        };
+    </script>
+</body>
+</html>

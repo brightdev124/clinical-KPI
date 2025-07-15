@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase, supabaseJWT } from '../lib/supabase';
+import { generateTokens, verifyAccessToken, verifyRefreshToken, isTokenExpiring as checkTokenExpiring } from '../lib/jwt';
+import { TokenStorage, StoredUser } from '../lib/tokenStorage';
 
 interface User {
   id: string;
@@ -18,8 +20,11 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string, name: string, role: 'super-admin' | 'director' | 'clinician' | 'admin') => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<boolean>;
   isAuthenticated: boolean;
   isPendingApproval: boolean;
+  accessToken: string | null;
+  isTokenExpiring: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,44 +65,262 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isTokenExpiring, setIsTokenExpiring] = useState(false);
 
-  useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('user');
-    const storedPendingUser = localStorage.getItem('pendingUser');
-    
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  // Token refresh function
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      const storedRefreshToken = TokenStorage.getRefreshToken();
+      
+      if (!storedRefreshToken) {
+        console.log('No refresh token available');
+        return false;
+      }
+
+      const refreshData = verifyRefreshToken(storedRefreshToken);
+      if (!refreshData) {
+        console.log('Invalid refresh token');
+        TokenStorage.clearAll();
+        return false;
+      }
+
+      // Find user to regenerate tokens
+      let userForToken: StoredUser | null = null;
+      
+      // Try mock users first
+      const mockUser = mockUsers.find(u => u.id === refreshData.id && u.username === refreshData.username);
+      if (mockUser && mockUser.accept) {
+        userForToken = mockUser;
+      } else {
+        // Try database
+        const { data: userProfile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', refreshData.id)
+          .eq('username', refreshData.username)
+          .single();
+
+        if (!error && userProfile && userProfile.accept) {
+          // Get role from position table
+          let userRole = 'clinician';
+          if (userProfile.position) {
+            const { data: positionData } = await supabase
+              .from('position')
+              .select('role')
+              .eq('id', userProfile.position)
+              .single();
+            
+            if (positionData) {
+              userRole = positionData.role;
+            }
+          }
+
+          userForToken = {
+            id: userProfile.id,
+            name: userProfile.name,
+            username: userProfile.username,
+            role: userRole as any,
+            position: userProfile.position
+          };
+        }
+      }
+
+      if (!userForToken) {
+        console.log('User not found or not authorized for token refresh');
+        TokenStorage.clearAll();
+        return false;
+      }
+
+      // Generate new tokens
+      const newTokens = generateTokens(userForToken);
+      
+      // Store new tokens
+      TokenStorage.storeTokens(newTokens);
+      TokenStorage.storeUser(userForToken);
+      
+      // Update state
+      setAccessToken(newTokens.accessToken);
+      setUser(userForToken);
       setIsAuthenticated(true);
       setIsPendingApproval(false);
-    } else if (storedPendingUser) {
-      setUser(JSON.parse(storedPendingUser));
+      
+      // Update Supabase JWT client
+      supabaseJWT.setAccessToken(newTokens.accessToken);
+      
+      console.log('🔄 Token refreshed successfully');
+      return true;
+
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      TokenStorage.clearAll();
+      setUser(null);
       setIsAuthenticated(false);
-      setIsPendingApproval(true);
+      setIsPendingApproval(false);
+      setAccessToken(null);
+      supabaseJWT.setAccessToken(null);
+      return false;
     }
   }, []);
 
+  // Check token expiration and auto-refresh
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const expiresAt = TokenStorage.getTokenExpiration();
+      if (expiresAt) {
+        const isExpiring = checkTokenExpiring(expiresAt);
+        setIsTokenExpiring(isExpiring);
+        
+        if (isExpiring && isAuthenticated) {
+          console.log('🔄 Token is expiring, attempting refresh...');
+          refreshToken();
+        }
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+    
+    // Check every minute
+    const interval = setInterval(checkTokenExpiration, 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated, refreshToken]);
+
+  // Initialize authentication state from storage
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Check for legacy storage first and migrate
+        const legacyUser = localStorage.getItem('user');
+        const legacyPendingUser = localStorage.getItem('pendingUser');
+        
+        if (legacyUser || legacyPendingUser) {
+          console.log('🔄 Migrating from legacy authentication...');
+          const userData = legacyUser ? JSON.parse(legacyUser) : JSON.parse(legacyPendingUser);
+          
+          if (legacyUser) {
+            // Generate JWT tokens for existing authenticated user
+            const tokens = generateTokens(userData);
+            TokenStorage.storeTokens(tokens);
+            TokenStorage.storeUser(userData);
+            
+            setUser(userData);
+            setIsAuthenticated(true);
+            setIsPendingApproval(false);
+            setAccessToken(tokens.accessToken);
+            supabaseJWT.setAccessToken(tokens.accessToken);
+            
+            console.log('✅ Legacy user migrated to JWT');
+          } else {
+            // Pending user - no tokens generated
+            setUser(userData);
+            setIsAuthenticated(false);
+            setIsPendingApproval(true);
+            
+            console.log('⏳ Legacy pending user migrated');
+          }
+          
+          // Clear legacy storage
+          localStorage.removeItem('user');
+          localStorage.removeItem('pendingUser');
+          return;
+        }
+
+        // Check for JWT-based authentication
+        const storedAuth = TokenStorage.getStoredAuth();
+        
+        if (storedAuth.accessToken && storedAuth.user) {
+          // Verify the access token
+          const tokenData = verifyAccessToken(storedAuth.accessToken);
+          
+          if (tokenData && TokenStorage.hasValidTokens()) {
+            // Token is valid
+            setUser(storedAuth.user);
+            setIsAuthenticated(true);
+            setIsPendingApproval(false);
+            setAccessToken(storedAuth.accessToken);
+            supabaseJWT.setAccessToken(storedAuth.accessToken);
+            
+            console.log('✅ Authenticated from stored JWT tokens');
+          } else {
+            // Token is invalid or expired, try to refresh
+            console.log('🔄 Stored token invalid/expired, attempting refresh...');
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              console.log('❌ Token refresh failed, user needs to log in again');
+            }
+          }
+        } else if (storedAuth.user && !storedAuth.user.accept) {
+          // User is pending approval
+          setUser(storedAuth.user);
+          setIsAuthenticated(false);
+          setIsPendingApproval(true);
+          
+          console.log('⏳ User pending approval');
+        } else {
+          console.log('🔐 No stored authentication found');
+        }
+        
+        // Debug log
+        TokenStorage.debugLogStoredAuth();
+        
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        TokenStorage.clearAll();
+      }
+    };
+
+    initializeAuth();
+  }, [refreshToken]);
+
   const login = async (username: string, password: string) => {
     try {
+      // Clear any existing auth state
+      TokenStorage.clearAll();
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsPendingApproval(false);
+      setAccessToken(null);
+      supabaseJWT.setAccessToken(null);
+
       // First, try to find the user in mock users for demo
       const mockUser = mockUsers.find(u => u.username === username);
       
       if (mockUser && password === 'password') {
         if (mockUser.accept) {
+          // Generate JWT tokens for authenticated user
+          const tokens = generateTokens(mockUser);
+          
+          // Store tokens and user data
+          TokenStorage.storeTokens(tokens);
+          TokenStorage.storeUser(mockUser);
+          
+          // Update state
           setUser(mockUser);
           setIsAuthenticated(true);
           setIsPendingApproval(false);
-          localStorage.setItem('user', JSON.stringify(mockUser));
+          setAccessToken(tokens.accessToken);
+          
+          // Update Supabase JWT client
+          supabaseJWT.setAccessToken(tokens.accessToken);
+          
+          console.log('✅ Mock user logged in with JWT tokens');
         } else {
+          // User is pending approval - no tokens generated
           setUser(mockUser);
           setIsAuthenticated(false);
           setIsPendingApproval(true);
-          localStorage.setItem('pendingUser', JSON.stringify(mockUser));
+          
+          // Store pending user data (without tokens)
+          TokenStorage.storeUser(mockUser);
+          
+          console.log('⏳ Mock user pending approval');
         }
         return;
       }
 
-      // First, find the user in the profiles table
+      // Try database authentication
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -111,7 +334,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check if user is pending approval
       if (!data.accept) {
-        // User is pending approval - create user object without position info
+        // User is pending approval - create user object without tokens
         const pendingUser: User = {
           id: data.id,
           name: data.name,
@@ -126,7 +349,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(pendingUser);
         setIsAuthenticated(false);
         setIsPendingApproval(true);
-        localStorage.setItem('pendingUser', JSON.stringify(pendingUser));
+        
+        // Store pending user data (without tokens)
+        TokenStorage.storeUser(pendingUser);
+        
+        console.log('⏳ Database user pending approval');
         return;
       }
 
@@ -171,11 +398,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         assignedClinicians: assignedClinicians.length > 0 ? assignedClinicians : undefined,
       };
 
-      // User is accepted - authenticate and redirect to appropriate page
+      // Generate JWT tokens for authenticated user
+      const tokens = generateTokens(userProfile);
+      
+      // Store tokens and user data
+      TokenStorage.storeTokens(tokens);
+      TokenStorage.storeUser(userProfile);
+      
+      // Update state
       setUser(userProfile);
       setIsAuthenticated(true);
       setIsPendingApproval(false);
-      localStorage.setItem('user', JSON.stringify(userProfile));
+      setAccessToken(tokens.accessToken);
+      
+      // Update Supabase JWT client
+      supabaseJWT.setAccessToken(tokens.accessToken);
+      
+      console.log('✅ Database user logged in with JWT tokens');
       
     } catch (error) {
       console.error('Login error:', error);
@@ -284,11 +523,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: data.updated_at,
         };
 
-        // Set user to pending approval state
+        // Set user to pending approval state (no tokens generated)
         setUser(userProfile);
         setIsAuthenticated(false);
         setIsPendingApproval(true);
-        localStorage.setItem('pendingUser', JSON.stringify(userProfile));
+        
+        // Store pending user data (without tokens)
+        TokenStorage.storeUser(userProfile);
+        
+        console.log('✅ User signed up - pending approval');
       }
 
       return data;
@@ -298,15 +541,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    console.log('🚪 Logging out user...');
+    
+    // Clear all authentication state
     setUser(null);
     setIsAuthenticated(false);
     setIsPendingApproval(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('pendingUser');
+    setAccessToken(null);
+    setIsTokenExpiring(false);
+    
+    // Clear stored tokens and data
+    TokenStorage.clearAll();
+    
+    // Clear Supabase JWT client
+    supabaseJWT.setAccessToken(null);
+    
+    console.log('✅ User logged out successfully');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated, isPendingApproval }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      signup, 
+      logout, 
+      refreshToken,
+      isAuthenticated, 
+      isPendingApproval,
+      accessToken,
+      isTokenExpiring
+    }}>
       {children}
     </AuthContext.Provider>
   );
