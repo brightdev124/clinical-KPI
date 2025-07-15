@@ -18,7 +18,11 @@ import {
   FileText,
   CheckCircle,
   Download,
-  ChevronDown
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -26,7 +30,7 @@ import AdminAnalytics from '../components/AdminAnalytics';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, loading, error } = useData();
+  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, reviewItems, loading, error } = useData();
 
   // Month selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
@@ -34,6 +38,9 @@ const Dashboard: React.FC = () => {
   const [showMonthSelector, setShowMonthSelector] = useState(false);
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const monthSelectorRef = useRef<HTMLDivElement>(null);
+  
+  // State for expanded KPIs in clinician dashboard
+  const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
 
 
 
@@ -104,6 +111,53 @@ const Dashboard: React.FC = () => {
       direction: difference > 0 ? 'up' : 'down',
       percentage: Math.abs(difference)
     };
+  };
+
+  // Toggle expanded state for KPIs in clinician dashboard
+  const toggleKPIExpanded = (kpiId: string) => {
+    setExpandedKPIs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(kpiId)) {
+        newSet.delete(kpiId);
+      } else {
+        newSet.add(kpiId);
+      }
+      return newSet;
+    });
+  };
+
+  // Get detailed KPI information for clinician
+  const getClinicianKPIDetails = (clinicianId: string, month: string, year: number) => {
+    const monthReviews = reviewItems.filter(review => {
+      const reviewDate = new Date(review.date);
+      const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+      const reviewYear = reviewDate.getFullYear();
+      return review.clinician === clinicianId && 
+             reviewMonth === month && 
+             reviewYear === year;
+    });
+
+    return kpis.map(kpi => {
+      const kpiReview = monthReviews.find(review => review.kpi === kpi.id);
+      return {
+        kpi,
+        review: kpiReview,
+        score: kpiReview ? (kpiReview.met_check ? kpi.weight : 0) : null,
+        hasData: !!kpiReview
+      };
+    });
+  };
+
+  // Helper function to get file name from URL
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      // Remove any query parameters
+      return fileName.split('?')[0];
+    } catch {
+      return 'Download File';
+    }
   };
 
   // Show loading state
@@ -640,28 +694,157 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* My Performance and Recent Reviews */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* KPI Performance */}
+        <div className="grid grid-cols-1 gap-8">
+          {/* Enhanced KPI Performance */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">My KPI Performance - {selectedMonth} {selectedYear}</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {selectedMonth} {selectedYear}</h3>
+              <div className="text-sm text-gray-600">
+                {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of {kpis.length} KPIs reviewed
+              </div>
+            </div>
+            
             <div className="space-y-4">
-              {kpis.map(kpi => {
-                const kpiReviews = myReviews.filter(r => r.kpiId === kpi.id && r.month === selectedMonth && r.year === selectedYear);
-                const metCount = kpiReviews.filter(r => r.met).length;
-                const percentage = kpiReviews.length > 0 ? Math.round((metCount / kpiReviews.length) * 100) : 0;
+              {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).map((kpiDetail) => {
+                const { kpi, review, score, hasData } = kpiDetail;
+                const isExpanded = expandedKPIs.has(kpi.id);
                 
                 return (
-                  <div key={kpi.id} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-900 text-sm">{kpi.title}</span>
-                      <span className="text-sm font-semibold text-gray-900">{percentage}%</span>
+                  <div key={kpi.id} className="border border-gray-200 rounded-lg">
+                    {/* KPI Header */}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Target className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium text-gray-900">{kpi.title}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Weight: {kpi.weight}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          {hasData ? (
+                            <>
+                              {review?.met_check ? (
+                                <div className="flex items-center space-x-1 text-green-600">
+                                  <Check className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Met</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-1 text-red-600">
+                                  <X className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Not Met</span>
+                                </div>
+                              )}
+                              <span className="text-sm font-semibold text-gray-900">
+                                {score}/{kpi.weight}
+                              </span>
+                            </>
+                          ) : (
+                            <div className="flex items-center space-x-1 text-gray-400">
+                              <AlertCircle className="w-4 h-4" />
+                              <span className="text-sm">No review</span>
+                            </div>
+                          )}
+                          
+                          {hasData && (
+                            <button
+                              onClick={() => toggleKPIExpanded(kpi.id)}
+                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 mb-3">{kpi.description}</p>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            hasData && review?.met_check ? 'bg-green-600' : hasData ? 'bg-red-600' : 'bg-gray-300'
+                          }`}
+                          style={{ width: hasData ? (review?.met_check ? '100%' : '0%') : '0%' }}
+                        />
+                      </div>
+                      
+                      {hasData && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Reviewed on {new Date(review!.date).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+
+                    {/* Expandable Details */}
+                    {isExpanded && hasData && (
+                      <div className="border-t border-gray-200 bg-gray-50 p-4">
+                        {!review?.met_check && (
+                          <div className="space-y-4">
+                            {review?.notes && (
+                              <div>
+                                <div className="flex items-center space-x-1 mb-2">
+                                  <FileText className="w-4 h-4 text-orange-600" />
+                                  <span className="text-sm font-medium text-gray-700">Notes:</span>
+                                </div>
+                                <p className="text-sm text-gray-600 bg-orange-50 p-3 rounded border-l-4 border-orange-200">
+                                  {review.notes}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {review?.plan && (
+                              <div>
+                                <div className="flex items-center space-x-1 mb-2">
+                                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm font-medium text-gray-700">Action Plan:</span>
+                                </div>
+                                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded border-l-4 border-blue-200">
+                                  {review.plan}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {review?.file_url && (
+                              <div>
+                                <div className="flex items-center space-x-1 mb-2">
+                                  <Download className="w-4 h-4 text-green-600" />
+                                  <span className="text-sm font-medium text-gray-700">Attached File:</span>
+                                </div>
+                                <div className="flex items-center space-x-2 bg-green-50 p-3 rounded border border-green-200">
+                                  <FileText className="w-4 h-4 text-green-600" />
+                                  <span className="text-sm text-green-700 flex-1">
+                                    {getFileNameFromUrl(review.file_url)}
+                                  </span>
+                                  <button
+                                    onClick={() => window.open(review.file_url, '_blank')}
+                                    className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1"
+                                    title="Download file"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    <span className="text-xs">Open</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {review?.met_check && (
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="text-sm font-medium">
+                              Great job! You successfully met this KPI target.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
