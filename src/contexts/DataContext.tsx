@@ -681,16 +681,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getClinicianScore = (clinicianId: string, month: string, year: number) => {
-    // Check if the ID belongs to a director
+    // Check if the ID belongs to a director and if they are approved
     const profile = profiles.find(p => p.id === clinicianId);
+    
+    // Only calculate scores for approved users
+    if (!profile || !profile.accept) {
+      return 0;
+    }
     
     // If this is a director, calculate the average score of their assigned clinicians
     if (profile?.position_info?.role === 'director') {
-      const assignedClinicians = getAssignedClinicians(clinicianId);
+      const assignedClinicians = getAssignedClinicians(clinicianId).filter(c => c.accept);
       
       if (assignedClinicians.length === 0) return 0;
       
-      // Calculate the average score of all assigned clinicians
+      // Calculate the average score of all assigned approved clinicians
       const totalScore = assignedClinicians.reduce((sum, clinician) => {
         // Use the regular clinician scoring method for each assigned clinician
         const clinicianScore = getClinicianScoreInternal(clinician.id, month, year);
@@ -706,6 +711,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Internal function to calculate individual clinician scores
   const getClinicianScoreInternal = (clinicianId: string, month: string, year: number) => {
+    // Ensure the clinician is approved before calculating their score
+    const profile = profiles.find(p => p.id === clinicianId);
+    if (!profile || !profile.accept) {
+      return 0;
+    }
+
     // Filter review items for the specific clinician and period
     const clinicianReviews = reviewItems.filter(r => {
       const reviewDate = new Date(r.date);
@@ -776,7 +787,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .map(a => a.clinician);
     
     return profiles.filter(p => 
-      assignedClinicianIds.includes(p.id) && p.position_info?.role === 'clinician'
+      assignedClinicianIds.includes(p.id) && 
+      p.position_info?.role === 'clinician' && 
+      p.accept === true
     );
   };
 

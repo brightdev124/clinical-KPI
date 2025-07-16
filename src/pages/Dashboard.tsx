@@ -85,15 +85,21 @@ const Dashboard: React.FC = () => {
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
     return reviews.filter(review => {
+      // First, ensure the clinician is approved (accept = true)
+      const clinician = profiles.find(p => p.id === review.clinician);
+      if (!clinician || !clinician.accept) {
+        return false;
+      }
+
       if (user?.role === 'super-admin') {
-        // Super-admin can see all reviews (already filtered by approved users in ReviewService)
+        // Super-admin can see all reviews from approved clinicians only
         return true;
       } else if (user?.role === 'director') {
-        // Directors can only see reviews for their assigned clinicians
+        // Directors can only see reviews for their assigned approved clinicians
         const assignedClinicianIds = userClinicians.map(c => c.id);
         return assignedClinicianIds.includes(review.clinician);
       } else {
-        // Clinicians can only see their own reviews
+        // Clinicians can only see their own reviews (and they must be approved)
         return review.clinician === user?.id;
       }
     });
@@ -155,6 +161,17 @@ const Dashboard: React.FC = () => {
 
   // Get detailed KPI information for clinician
   const getClinicianKPIDetails = (clinicianId: string, month: string, year: number) => {
+    // Ensure the clinician is approved before processing their reviews
+    const clinician = profiles.find(p => p.id === clinicianId);
+    if (!clinician || !clinician.accept) {
+      return kpis.map(kpi => ({
+        kpi,
+        review: null,
+        score: null,
+        hasData: false
+      }));
+    }
+
     const monthReviews = reviewItems.filter(review => {
       const reviewDate = new Date(review.date);
       const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
@@ -209,25 +226,25 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Filter clinicians based on user role - use profiles data instead of mock clinicians
+  // Filter clinicians based on user role - use profiles data and only include approved clinicians
   const userClinicians = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.position_info?.role === 'clinician' || p.position_info?.role === 'director')
+    ? profiles.filter(p => p.accept && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'))
     : user?.role === 'director'
-    ? getAssignedClinicians(user.id)
-    : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
+    ? getAssignedClinicians(user.id).filter(p => p.accept)
+    : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
 
-  // Separate directors and clinicians for admin dashboard
+  // Separate directors and clinicians for admin dashboard - only approved users
   const userDirectors = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.position_info?.role === 'director')
+    ? profiles.filter(p => p.accept && p.position_info?.role === 'director')
     : user?.role === 'director'
-    ? profiles.filter(p => p.id === user?.id && p.position_info?.role === 'director')
+    ? profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'director')
     : [];
 
   const userCliniciansOnly = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.position_info?.role === 'clinician')
+    ? profiles.filter(p => p.accept && p.position_info?.role === 'clinician')
     : user?.role === 'director'
-    ? getAssignedClinicians(user.id).filter(p => p.position_info?.role === 'clinician')
-    : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
+    ? getAssignedClinicians(user.id).filter(p => p.accept && p.position_info?.role === 'clinician')
+    : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
 
   // Calculate stats for selected month
   const totalTeamMembers = userClinicians.length;
@@ -1596,8 +1613,8 @@ const Dashboard: React.FC = () => {
                     <span className="text-xs sm:text-sm font-medium text-gray-700">Avg Met Rate</span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-green-600">
-                    {kpis.length > 0 ? Math.round(
-                      kpis.reduce((acc, kpi) => {
+                    {(() => {
+                      const kpisWithReviews = kpis.filter(kpi => {
                         const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
                           const reviewDate = new Date(review.date);
                           const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
@@ -1606,10 +1623,24 @@ const Dashboard: React.FC = () => {
                                  reviewMonth === selectedMonth && 
                                  reviewYear === selectedYear;
                         }));
-                        const metCount = kpiReviews.filter(r => r.met_check).length;
-                        return acc + (kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0);
-                      }, 0) / kpis.length
-                    ) : 0}%
+                        return kpiReviews.length > 0;
+                      });
+                      
+                      return kpisWithReviews.length > 0 ? Math.round(
+                        kpisWithReviews.reduce((acc, kpi) => {
+                          const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
+                            const reviewDate = new Date(review.date);
+                            const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+                            const reviewYear = reviewDate.getFullYear();
+                            return review.kpi === kpi.id && 
+                                   reviewMonth === selectedMonth && 
+                                   reviewYear === selectedYear;
+                          }));
+                          const metCount = kpiReviews.filter(r => r.met_check).length;
+                          return acc + (metCount / kpiReviews.length) * 100;
+                        }, 0) / kpisWithReviews.length
+                      ) : 0;
+                    })()}%
                   </div>
                   <div className="text-xs text-gray-600">Across all KPIs</div>
                 </div>
@@ -1629,8 +1660,10 @@ const Dashboard: React.FC = () => {
                                reviewMonth === selectedMonth && 
                                reviewYear === selectedYear;
                       }));
+                      // Only count KPIs that have reviews from approved clinicians
+                      if (kpiReviews.length === 0) return false;
                       const metCount = kpiReviews.filter(r => r.met_check).length;
-                      const metRate = kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0;
+                      const metRate = (metCount / kpiReviews.length) * 100;
                       return metRate < 70;
                     }).length}
                   </div>
@@ -1652,6 +1685,11 @@ const Dashboard: React.FC = () => {
                          reviewMonth === selectedMonth && 
                          reviewYear === selectedYear;
                 }));
+                
+                // Skip this KPI if there are no reviews from approved clinicians
+                if (kpiReviews.length === 0) {
+                  return null;
+                }
                 
                 const totalReviews = kpiReviews.length;
                 const metCount = kpiReviews.filter(r => r.met_check).length;
@@ -1786,7 +1824,26 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
                 );
-              })}
+              }).filter(Boolean)}
+              
+              {/* Show message if no KPIs have reviews from approved clinicians */}
+              {kpis.every(kpi => {
+                const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
+                  const reviewDate = new Date(review.date);
+                  const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+                  const reviewYear = reviewDate.getFullYear();
+                  return review.kpi === kpi.id && 
+                         reviewMonth === selectedMonth && 
+                         reviewYear === selectedYear;
+                }));
+                return kpiReviews.length === 0;
+              }) && (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium text-gray-700">No KPI Reviews Available</p>
+                  <p className="text-sm mt-1">No reviews from approved clinicians found for {selectedMonth} {selectedYear}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
