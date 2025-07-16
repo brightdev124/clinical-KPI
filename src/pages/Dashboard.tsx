@@ -41,6 +41,10 @@ const Dashboard: React.FC = () => {
   
   // State for expanded KPIs in clinician dashboard
   const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
+  
+  // State for showing all performers
+  const [showAllTopPerformers, setShowAllTopPerformers] = useState(false);
+  const [showAllNeedingAttention, setShowAllNeedingAttention] = useState(false);
 
 
 
@@ -71,6 +75,12 @@ const Dashboard: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Reset "Show All" states when month/year changes
+  useEffect(() => {
+    setShowAllTopPerformers(false);
+    setShowAllNeedingAttention(false);
+  }, [selectedMonth, selectedYear]);
 
   // Generate monthly score data for charts
   const generateMonthlyScoreData = (clinicianId: string) => {
@@ -1332,7 +1342,7 @@ const Dashboard: React.FC = () => {
 
             {topPerformers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {topPerformers.slice(0, 6).map((clinician) => {
+            {(showAllTopPerformers ? topPerformers : topPerformers.slice(0, 6)).map((clinician) => {
               const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
@@ -1387,12 +1397,23 @@ const Dashboard: React.FC = () => {
             )}
 
             {topPerformers.length > 6 && (
-              <div className="mt-4 text-center">
+              <div className="mt-4 flex justify-center space-x-4">
+                <button
+                  onClick={() => setShowAllTopPerformers(!showAllTopPerformers)}
+                  className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg"
+                >
+                  <span>{showAllTopPerformers ? 'Show Less' : `Show All (${topPerformers.length})`}</span>
+                  {showAllTopPerformers ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
                 <Link
                   to="/performance-analytics"
                   className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors"
                 >
-                  <span>View All Top Performers</span>
+                  <span>Analytics</span>
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -1432,7 +1453,7 @@ const Dashboard: React.FC = () => {
             {cliniciansNeedingAttention.length > 0 ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {cliniciansNeedingAttention.slice(0, 4).map((clinician) => {
+              {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
                 const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
@@ -1492,6 +1513,23 @@ const Dashboard: React.FC = () => {
                 );
               })}
                 </div>
+                
+                {/* Show All button for Performance Review needed */}
+                {cliniciansNeedingAttention.length > 4 && (
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={() => setShowAllNeedingAttention(!showAllNeedingAttention)}
+                      className="inline-flex items-center space-x-2 text-red-600 hover:text-red-700 font-medium transition-colors bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg"
+                    >
+                      <span>{showAllNeedingAttention ? 'Show Less' : `Show All (${cliniciansNeedingAttention.length})`}</span>
+                      {showAllNeedingAttention ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
