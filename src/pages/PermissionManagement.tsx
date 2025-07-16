@@ -104,6 +104,9 @@ const PermissionManagement: React.FC = () => {
   useEffect(() => {
     let filtered = users;
 
+    // Exclude specific username from display
+    filtered = filtered.filter(user => user.username !== 'JohnMinahan');
+
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(user => 
