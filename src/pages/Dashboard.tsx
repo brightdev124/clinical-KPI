@@ -666,9 +666,9 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Reviews Completed</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Reviewed KPIs</p>
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{myReviews.length}</p>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">Total reviews</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">KPIs</p>
               </div>
               <div className="w-12 sm:w-14 h-12 sm:h-14 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
                 <FileText className="w-6 sm:w-7 h-6 sm:h-7 text-green-600" />
