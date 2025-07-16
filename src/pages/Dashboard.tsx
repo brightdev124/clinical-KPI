@@ -189,6 +189,19 @@ const Dashboard: React.FC = () => {
     ? getAssignedClinicians(user.id)
     : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
 
+  // Separate directors and clinicians for admin dashboard
+  const userDirectors = user?.role === 'super-admin' 
+    ? profiles.filter(p => p.position_info?.role === 'director')
+    : user?.role === 'director'
+    ? profiles.filter(p => p.id === user?.id && p.position_info?.role === 'director')
+    : [];
+
+  const userCliniciansOnly = user?.role === 'super-admin' 
+    ? profiles.filter(p => p.position_info?.role === 'clinician')
+    : user?.role === 'director'
+    ? getAssignedClinicians(user.id).filter(p => p.position_info?.role === 'clinician')
+    : profiles.filter(p => p.id === user?.id && p.position_info?.role === 'clinician');
+
   // Calculate stats for selected month
   const totalTeamMembers = userClinicians.length;
   const totalKPIs = kpis.length;
@@ -196,13 +209,13 @@ const Dashboard: React.FC = () => {
     ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / userClinicians.length)
     : 0;
 
-  // Get clinicians needing attention (score < 70)
-  const cliniciansNeedingAttention = userClinicians.filter(c => 
+  // Get clinicians needing attention (score < 70) - only clinicians for admin
+  const cliniciansNeedingAttention = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
     getClinicianScore(c.id, selectedMonth, selectedYear) < 70
   );
 
-  // Top performers (score >= 90)
-  const topPerformers = userClinicians.filter(c => 
+  // Top performers (score >= 90) - only clinicians for admin
+  const topPerformers = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
     getClinicianScore(c.id, selectedMonth, selectedYear) >= 90
   );
 
@@ -1043,7 +1056,9 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Current month performance by Director</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                {user?.role === 'super-admin' ? 'Current month performance by Director' : 'Current month performance by team members'}
+              </p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <BarChart3 className="w-4 h-4" />
@@ -1053,11 +1068,11 @@ const Dashboard: React.FC = () => {
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={userClinicians.map(clinician => ({
-                name: clinician.name.split(' ')[0], // First name only for space
-                fullName: clinician.name,
-                score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
-                position: clinician.position_info?.position_title || 'Clinician'
+              <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
+                name: person.name.split(' ')[0], // First name only for space
+                fullName: person.name,
+                score: getClinicianScore(person.id, selectedMonth, selectedYear),
+                position: person.position_info?.position_title || (user?.role === 'super-admin' ? 'Director' : 'Clinician')
               }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
@@ -1294,7 +1309,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">Top Performers</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Clinicians and Directors with scores ≥ 90%</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {user?.role === 'super-admin' ? 'Clinicians with scores ≥ 90%' : 'Team members with scores ≥ 90%'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-center sm:justify-end space-x-6 sm:space-x-4">
@@ -1391,7 +1408,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">Performance Review needed</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {user?.role === 'super-admin' ? 'Clinicians with scores < 70% requiring attention' : 'Team members with scores < 70% requiring attention'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-center sm:justify-end space-x-6 sm:space-x-4">
