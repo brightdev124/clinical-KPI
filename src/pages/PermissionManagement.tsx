@@ -816,7 +816,7 @@ const PermissionManagement: React.FC = () => {
                         Username
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Direction
+                        Division
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Position Title
@@ -1369,7 +1369,7 @@ const PermissionManagement: React.FC = () => {
                   {editData.role === 'director' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Direction
+                        Division
                       </label>
                       <input
                         type="text"
@@ -1379,7 +1379,7 @@ const PermissionManagement: React.FC = () => {
                           director_info: { direction: e.target.value } 
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter direction"
+                        placeholder="Enter Division"
                       />
                     </div>
                   )}
@@ -1597,7 +1597,7 @@ const PermissionManagement: React.FC = () => {
                   {newUserData.role === 'director' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Direction
+                        Division
                       </label>
                       <input
                         type="text"
@@ -1607,7 +1607,7 @@ const PermissionManagement: React.FC = () => {
                           director_info: { direction: e.target.value } 
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter direction"
+                        placeholder="Enter Division"
                       />
                     </div>
                   )}
