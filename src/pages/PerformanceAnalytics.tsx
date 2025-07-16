@@ -6,15 +6,17 @@ import { TrendingUp, Users, Target, Calendar, Filter } from 'lucide-react';
 import { EnhancedSelect } from '../components/UI';
 
 const PerformanceAnalytics: React.FC = () => {
-  const { clinicians, kpis, getClinicianScore } = useData();
+  const { profiles, kpis, getClinicianScore, getAssignedClinicians } = useData();
   const { user } = useAuth();
   const [selectedTimeframe, setSelectedTimeframe] = useState('12months');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
 
-  // Filter clinicians based on user role
+  // Filter clinicians based on user role - use profiles data (already filtered by accept: true)
   const userClinicians = user?.role === 'super-admin' 
-    ? clinicians 
-    : clinicians.filter(c => user?.assignedClinicians?.includes(c.id));
+    ? profiles.filter(p => p.position_info?.role === 'clinician')
+    : user?.role === 'director'
+    ? getAssignedClinicians(user.id)
+    : [];
 
   // Get unique departments
   const departments = [...new Set(userClinicians.map(c => c.department))];

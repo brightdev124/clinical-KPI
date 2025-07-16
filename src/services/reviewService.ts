@@ -68,16 +68,24 @@ export class ReviewService {
       .from('review_items')
       .select(`
         *,
-        kpis!inner(id, title, description, weight)
+        kpis!inner(id, title, description, weight),
+        clinician_profile:profiles!clinician(id, name, accept),
+        director_profile:profiles!director(id, name, accept)
       `)
       .eq('clinician', clinicianId)
+      .eq('clinician_profile.accept', true)
       .order('date', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch clinician reviews: ${error.message}`);
     }
 
-    return data || [];
+    // Additional filtering to ensure only reviews from approved directors are included
+    const filteredData = (data || []).filter(review => 
+      !review.director_profile || review.director_profile.accept === true
+    );
+
+    return filteredData;
   }
 
   /**
@@ -86,16 +94,26 @@ export class ReviewService {
   static async getClinicianKPIReviews(clinicianId: string, kpiId: string): Promise<ReviewItem[]> {
     const { data, error } = await supabase
       .from('review_items')
-      .select('*')
+      .select(`
+        *,
+        clinician_profile:profiles!clinician(id, name, accept),
+        director_profile:profiles!director(id, name, accept)
+      `)
       .eq('clinician', clinicianId)
       .eq('kpi', kpiId)
+      .eq('clinician_profile.accept', true)
       .order('date', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch clinician KPI reviews: ${error.message}`);
     }
 
-    return data || [];
+    // Additional filtering to ensure only reviews from approved directors are included
+    const filteredData = (data || []).filter(review => 
+      !review.director_profile || review.director_profile.accept === true
+    );
+
+    return filteredData;
   }
 
   /**
@@ -113,9 +131,12 @@ export class ReviewService {
       .from('review_items')
       .select(`
         *,
-        kpis!inner(id, title, description, weight)
+        kpis!inner(id, title, description, weight),
+        clinician_profile:profiles!clinician(id, name, accept),
+        director_profile:profiles!director(id, name, accept)
       `)
       .eq('clinician', clinicianId)
+      .eq('clinician_profile.accept', true)
       .gte('date', startDate.toISOString())
       .lte('date', endDate.toISOString())
       .order('date', { ascending: false });
@@ -124,7 +145,12 @@ export class ReviewService {
       throw new Error(`Failed to fetch reviews by period: ${error.message}`);
     }
 
-    return data || [];
+    // Additional filtering to ensure only reviews from approved directors are included
+    const filteredData = (data || []).filter(review => 
+      !review.director_profile || review.director_profile.accept === true
+    );
+
+    return filteredData;
   }
 
   /**
@@ -199,16 +225,22 @@ export class ReviewService {
       .select(`
         *,
         kpis!inner(id, title, description, weight),
-        clinician_profile:profiles!clinician(id, name, username),
-        director_profile:profiles!director(id, name, username)
+        clinician_profile:profiles!clinician(id, name, username, accept),
+        director_profile:profiles!director(id, name, username, accept)
       `)
+      .eq('clinician_profile.accept', true)
       .order('date', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch all reviews: ${error.message}`);
     }
 
-    return data || [];
+    // Additional filtering to ensure only reviews from approved directors are included
+    const filteredData = (data || []).filter(review => 
+      !review.director_profile || review.director_profile.accept === true
+    );
+
+    return filteredData;
   }
 
   /**
@@ -253,9 +285,13 @@ export class ReviewService {
 
     const { data, error } = await supabase
       .from('review_items')
-      .select('id')
+      .select(`
+        id,
+        clinician_profile:profiles!clinician(accept)
+      `)
       .eq('clinician', clinicianId)
       .eq('kpi', kpiId)
+      .eq('clinician_profile.accept', true)
       .gte('date', startDate.toISOString())
       .lte('date', endDate.toISOString())
       .limit(1);
@@ -281,17 +317,34 @@ export class ReviewService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // First, delete any existing reviews for this clinician/KPI/period
-    const { error: deleteError } = await supabase
+    // First, get existing reviews to ensure we only delete reviews from approved users
+    const existingReviews = await supabase
       .from('review_items')
-      .delete()
+      .select(`
+        id,
+        clinician_profile:profiles!clinician(accept)
+      `)
       .eq('clinician', clinicianId)
       .eq('kpi', kpiId)
+      .eq('clinician_profile.accept', true)
       .gte('date', startDate.toISOString())
       .lte('date', endDate.toISOString());
 
-    if (deleteError) {
-      throw new Error(`Failed to delete existing reviews: ${deleteError.message}`);
+    if (existingReviews.error) {
+      throw new Error(`Failed to fetch existing reviews: ${existingReviews.error.message}`);
+    }
+
+    // Delete existing reviews from approved users only
+    if (existingReviews.data && existingReviews.data.length > 0) {
+      const reviewIds = existingReviews.data.map(review => review.id);
+      const { error: deleteError } = await supabase
+        .from('review_items')
+        .delete()
+        .in('id', reviewIds);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete existing reviews: ${deleteError.message}`);
+      }
     }
 
     // Then create the new review

@@ -82,6 +82,23 @@ const Dashboard: React.FC = () => {
     setShowAllNeedingAttention(false);
   }, [selectedMonth, selectedYear]);
 
+  // Helper function to filter reviews based on user role and assigned clinicians
+  const filterReviewsByUserRole = (reviews: any[]) => {
+    return reviews.filter(review => {
+      if (user?.role === 'super-admin') {
+        // Super-admin can see all reviews (already filtered by approved users in ReviewService)
+        return true;
+      } else if (user?.role === 'director') {
+        // Directors can only see reviews for their assigned clinicians
+        const assignedClinicianIds = userClinicians.map(c => c.id);
+        return assignedClinicianIds.includes(review.clinician);
+      } else {
+        // Clinicians can only see their own reviews
+        return review.clinician === user?.id;
+      }
+    });
+  };
+
   // Generate monthly score data for charts
   const generateMonthlyScoreData = (clinicianId: string) => {
     const monthlyData = [];
@@ -1581,14 +1598,14 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-green-600">
                     {kpis.length > 0 ? Math.round(
                       kpis.reduce((acc, kpi) => {
-                        const kpiReviews = reviewItems.filter(review => {
+                        const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
                           const reviewDate = new Date(review.date);
                           const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
                           const reviewYear = reviewDate.getFullYear();
                           return review.kpi === kpi.id && 
                                  reviewMonth === selectedMonth && 
                                  reviewYear === selectedYear;
-                        });
+                        }));
                         const metCount = kpiReviews.filter(r => r.met_check).length;
                         return acc + (kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0);
                       }, 0) / kpis.length
@@ -1604,14 +1621,14 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {kpis.filter(kpi => {
-                      const kpiReviews = reviewItems.filter(review => {
+                      const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
                         const reviewDate = new Date(review.date);
                         const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
                         const reviewYear = reviewDate.getFullYear();
                         return review.kpi === kpi.id && 
                                reviewMonth === selectedMonth && 
                                reviewYear === selectedYear;
-                      });
+                      }));
                       const metCount = kpiReviews.filter(r => r.met_check).length;
                       const metRate = kpiReviews.length > 0 ? (metCount / kpiReviews.length) * 100 : 0;
                       return metRate < 70;
@@ -1626,15 +1643,15 @@ const Dashboard: React.FC = () => {
             <div className="space-y-3 sm:space-y-4">
               <h4 className="text-sm sm:text-md font-semibold text-gray-900 mb-3 sm:mb-4">KPI Performance Breakdown</h4>
               {kpis.map((kpi) => {
-                // Get all reviews for this KPI in the selected month
-                const kpiReviews = reviewItems.filter(review => {
+                // Get all reviews for this KPI in the selected month, filtered by user role and approved clinicians
+                const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
                   const reviewDate = new Date(review.date);
                   const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
                   const reviewYear = reviewDate.getFullYear();
                   return review.kpi === kpi.id && 
                          reviewMonth === selectedMonth && 
                          reviewYear === selectedYear;
-                });
+                }));
                 
                 const totalReviews = kpiReviews.length;
                 const metCount = kpiReviews.filter(r => r.met_check).length;
