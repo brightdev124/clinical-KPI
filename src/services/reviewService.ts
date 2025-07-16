@@ -266,6 +266,37 @@ export class ReviewService {
 
     return (data?.length || 0) > 0;
   }
+
+  /**
+   * Replace or create a review for a specific clinician, KPI, and period
+   * This ensures only one review exists per clinician per KPI per month
+   */
+  static async replaceReviewForPeriod(
+    clinicianId: string,
+    kpiId: string,
+    month: number,
+    year: number,
+    reviewData: CreateReviewItemData
+  ): Promise<ReviewItem> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    // First, delete any existing reviews for this clinician/KPI/period
+    const { error: deleteError } = await supabase
+      .from('review_items')
+      .delete()
+      .eq('clinician', clinicianId)
+      .eq('kpi', kpiId)
+      .gte('date', startDate.toISOString())
+      .lte('date', endDate.toISOString());
+
+    if (deleteError) {
+      throw new Error(`Failed to delete existing reviews: ${deleteError.message}`);
+    }
+
+    // Then create the new review
+    return await this.createReviewItem(reviewData);
+  }
 }
 
 export default ReviewService;

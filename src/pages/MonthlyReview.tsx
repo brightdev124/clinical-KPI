@@ -4,7 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
-import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, Edit, Plus, File, Trash2, ExternalLink } from 'lucide-react';
+import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, File, Trash2, ExternalLink } from 'lucide-react';
 import { EnhancedSelect } from '../components/UI';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
@@ -21,52 +21,7 @@ interface ReviewFormData {
   };
 }
 
-interface ConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (action: 'update' | 'create') => void;
-  existingReviewsCount: number;
-}
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, existingReviewsCount }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-4 sm:p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-          Existing Reviews Found
-        </h3>
-        <p className="text-sm sm:text-base text-gray-600 mb-6">
-          Found {existingReviewsCount} existing review{existingReviewsCount > 1 ? 's' : ''} for this period. 
-          Would you like to update the existing review{existingReviewsCount > 1 ? 's' : ''} or create new one{existingReviewsCount > 1 ? 's' : ''}?
-        </p>
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-          <button
-            onClick={() => onConfirm('update')}
-            className="flex-1 px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Update Existing</span>
-          </button>
-          <button
-            onClick={() => onConfirm('create')}
-            className="flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-3 sm:py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const MonthlyReview: React.FC = () => {
   const { clinicianId } = useParams<{ clinicianId: string }>();
@@ -83,7 +38,6 @@ const MonthlyReview: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [existingReviews, setExistingReviews] = useState<ReviewItem[]>([]);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
 
@@ -399,29 +353,13 @@ const MonthlyReview: React.FC = () => {
       return;
     }
 
-    // Check if there are existing reviews that would conflict
-    const completedKPIs = Object.entries(reviewData).filter(([_, data]) => 
-      data.met !== null && data.met !== undefined
-    );
-    
-    const existingReviewsForCompletedKPIs = completedKPIs.filter(([kpiId, data]) => 
-      data.existingReviewId
-    );
-
-    // If there are existing reviews, show confirmation modal
-    if (existingReviewsForCompletedKPIs.length > 0) {
-      setShowConfirmModal(true);
-      return;
-    }
-
-    // No existing reviews, proceed with creation
-    await submitReviews('create');
+    // Automatically handle existing reviews - replace them for the same month/year/KPI
+    await submitReviews('auto');
   };
 
-  const submitReviews = async (action: 'update' | 'create') => {
+  const submitReviews = async (action: 'update' | 'create' | 'auto') => {
     setIsSubmitting(true);
     setSubmitError(null);
-    setShowConfirmModal(false);
     
     try {
       // Submit each completed KPI review
@@ -444,7 +382,27 @@ const MonthlyReview: React.FC = () => {
             }
           }
           
-          if (action === 'update' && data.existingReviewId) {
+          if (action === 'auto') {
+            // Auto mode: Replace existing review for this month/year/KPI combination
+            const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
+            
+            await ReviewService.replaceReviewForPeriod(
+              clinician.id,
+              kpiId,
+              monthNumber,
+              selectedYear,
+              {
+                clinician: clinician.id,
+                kpi: kpiId,
+                director: user?.id,
+                met_check: data.met,
+                notes: data.met ? undefined : data.notes,
+                plan: data.met ? undefined : data.plan,
+                score: score,
+                file_url: fileUrl
+              }
+            );
+          } else if (action === 'update' && data.existingReviewId) {
             // Update existing review
             await ReviewService.updateReviewItem(data.existingReviewId, {
               met_check: data.met,
@@ -922,13 +880,7 @@ const MonthlyReview: React.FC = () => {
         )}
       </div>
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={submitReviews}
-        existingReviewsCount={Object.values(reviewData).filter(data => data.existingReviewId).length}
-      />
+
     </div>
   );
 };
