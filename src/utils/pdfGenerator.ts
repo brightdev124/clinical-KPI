@@ -333,7 +333,7 @@ export const generateMonthlyDataPDF = (
       let yPosition = 155;
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text(`KPI Reviews for ${month} ${year}`, margin, yPosition);
+      doc.text(`KPI Review results for ${month} ${year}`, margin, yPosition);
 
       if (reviewsOrTeamData && reviewsOrTeamData.length > 0) {
         yPosition += 20;
@@ -347,7 +347,7 @@ export const generateMonthlyDataPDF = (
             // Add header on new page
             doc.setFontSize(14);
             doc.setTextColor(59, 130, 246);
-            doc.text(`KPI Reviews for ${month} ${year} (continued)`, margin, yPosition);
+            doc.text(`KPI Review results for ${month} ${year} (continued)`, margin, yPosition);
             yPosition += 20;
           }
           

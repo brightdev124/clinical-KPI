@@ -854,7 +854,7 @@ const Dashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reviews for {selectedMonth} {selectedYear}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review results for {selectedMonth} {selectedYear}</h3>
             <div className="space-y-4">
               {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).slice(0, 5).map((review) => {
                 const kpi = kpis.find(k => k.id === review.kpiId);
@@ -1043,7 +1043,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Current month performance by clinician</p>
+              <p className="text-xs sm:text-sm text-gray-600">Current month performance by Director</p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <BarChart3 className="w-4 h-4" />
@@ -1390,7 +1390,7 @@ const Dashboard: React.FC = () => {
                   <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Performance Improvement Needed</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Performance Review needed</h3>
                   <p className="text-xs sm:text-sm text-gray-600">Clinicians and Directors with scores &lt; 70% requiring attention</p>
                 </div>
               </div>
