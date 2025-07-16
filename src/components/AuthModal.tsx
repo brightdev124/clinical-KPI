@@ -46,25 +46,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
     }
   };
 
-  const demoAccounts = [
-    { username: 'admin', role: 'Super Admin', password: 'password' },
-    { username: 'director', role: 'Director', password: 'password' },
-    { username: 'clinician', role: 'Clinician', password: 'password' }
-  ];
-
-  const handleDemoLogin = async (demoUsername: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      await login(demoUsername, 'password');
-      onClose();
-    } catch (err) {
-      setError('Demo login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+ 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -98,25 +80,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
             </p>
           </div>
 
-          {/* Demo Accounts */}
-          {mode === 'login' && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-              <p className="text-sm font-medium text-blue-900 mb-3">Demo Accounts:</p>
-              <div className="space-y-2">
-                {demoAccounts.map((account, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleDemoLogin(account.username)}
-                    disabled={loading}
-                    className="w-full text-left p-2 text-xs bg-white rounded-lg border border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                  >
-                    <div className="font-medium text-blue-900">{account.role}</div>
-                    <div className="text-blue-600">Username: {account.username}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+        
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
