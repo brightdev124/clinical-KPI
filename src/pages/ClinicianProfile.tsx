@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useNameFormatter } from '../utils/nameFormatter';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { User, Mail, Calendar, MapPin, TrendingUp, ClipboardList, Target, Download } from 'lucide-react';
 import { generateClinicianSummaryPDF } from '../utils/pdfGenerator';
@@ -8,6 +9,7 @@ import { generateClinicianSummaryPDF } from '../utils/pdfGenerator';
 const ClinicianProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { profiles, kpis, getClinicianScore, getClinicianReviews } = useData();
+  const formatName = useNameFormatter();
   
   // Find the clinician profile from the profiles array
   const clinician = profiles.find(p => p.id === id && p.position_info?.role === 'clinician');
@@ -72,11 +74,11 @@ const ClinicianProfile: React.FC = () => {
           <div className="flex items-center space-x-6">
             <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white text-2xl font-bold">
-                {clinician.name.split(' ').map(n => n[0]).join('')}
+                {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{clinician.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{formatName(clinician.name)}</h1>
               <p className="text-gray-600">{clinician.position}</p>
               <p className="text-gray-600">{clinician.department}</p>
             </div>

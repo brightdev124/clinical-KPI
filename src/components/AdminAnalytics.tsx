@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
+import { useNameFormatter } from '../utils/nameFormatter';
 import { 
   Users, 
   UserCheck, 
@@ -25,6 +26,7 @@ interface AdminAnalyticsProps {
 
 const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   const { profiles, getClinicianScore, getAssignedClinicians, loading } = useData();
+  const formatName = useNameFormatter();
 
   // State for controls
   const [userType, setUserType] = useState<'director' | 'clinician'>('clinician');
@@ -507,7 +509,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-900 truncate">
-                          {director.name}
+                          {formatName(director.name)}
                         </div>
                         <div className="text-xs text-gray-500">
                           Director • {clinicians.length} clinicians
@@ -531,7 +533,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
-                                {clinician.name}
+                                {formatName(clinician.name)}
                               </div>
                               <div className="text-xs text-gray-500 truncate">
                                 {clinician.username}
@@ -558,7 +560,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 truncate">
-                        {user.name}
+                        {formatName(user.name)}
                       </div>
                       <div className="text-xs text-gray-500 truncate">
                         {user.username} • Director
@@ -644,7 +646,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                     {paginatedTableData.map((row, index) => (
                       <tr key={row.user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{row.user.name}</div>
+                          <div className="text-sm font-medium text-gray-900">{formatName(row.user.name)}</div>
                           <div className="text-sm text-gray-500">{row.user.username}</div>
                         </td>
                         {chartData.map(monthData => {
@@ -748,7 +750,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                   <XAxis dataKey="month" />
                   <YAxis domain={[0, 100]} />
                   <Tooltip 
-                    formatter={(value: any, name: string) => [`${value}%`, name]}
+                    formatter={(value: any, name: string) => [`${value}%`, formatName(name)]}
                     labelFormatter={(label) => `Month: ${label}`}
                   />
                   {Array.from(selectedUsers).map((userId, index) => {

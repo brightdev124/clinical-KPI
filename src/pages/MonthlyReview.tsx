@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNameFormatter } from '../utils/nameFormatter';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
 import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, File, Trash2, ExternalLink } from 'lucide-react';
@@ -28,6 +29,7 @@ const MonthlyReview: React.FC = () => {
   const navigate = useNavigate();
   const { profiles, kpis, loading, error } = useData();
   const { user } = useAuth();
+  const formatName = useNameFormatter();
   
   const clinician = profiles.find(c => c.id === clinicianId);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
@@ -458,7 +460,7 @@ const MonthlyReview: React.FC = () => {
                 </div>
               )}
             </div>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Conducting performance review for {clinician.name}</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Conducting performance review for {formatName(clinician.name)}</p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 space-y-1 sm:space-y-0">
               <span className="text-xs sm:text-sm text-gray-500">{clinician.position_info?.position_title || 'Clinician'}</span>
               <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">•</span>

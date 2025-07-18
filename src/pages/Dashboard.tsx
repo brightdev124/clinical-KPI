@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Link } from 'react-router-dom';
+import { useNameFormatter } from '../utils/nameFormatter';
 import { 
   Users, 
   Target, 
@@ -31,6 +32,7 @@ import AdminAnalytics from '../components/AdminAnalytics';
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, reviewItems, loading, error } = useData();
+  const formatName = useNameFormatter();
 
   // Month selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
@@ -313,7 +315,7 @@ const Dashboard: React.FC = () => {
           recentActivities.push({
             id: `${clinician.id}-${review.id}-${index}`,
             type: review.met ? 'kpi_updated' : 'improvement_plan',
-            clinician: clinician.name,
+            clinician: formatName(clinician.name),
             action: review.met ? `${kpi?.title} - Target achieved` : `${kpi?.title} - Improvement plan created`,
             time: timeText,
             score: getClinicianScore(clinician.id, review.month, review.year),
@@ -417,7 +419,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                Welcome, {user?.name?.split(' ')[0]}! 👩‍⚕️
+                Welcome, {formatName(user?.name || '')}! 👩‍⚕️
               </h1>
               <p className="text-green-100 text-base sm:text-lg">
                 Your performance overview for {selectedMonth} {selectedYear}
@@ -654,7 +656,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Your Director</h3>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{myDirector.name}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{formatName(myDirector.name)}</p>
                   <p className="text-xs sm:text-sm text-gray-600">
                     {myDirector.position_info?.position_title || 'Clinical Director'}
                   </p>
@@ -1386,7 +1388,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs sm:text-sm font-medium">
-                        {clinician.name.split(' ').map(n => n[0]).join('')}
+                        {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -1396,7 +1398,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   
                   <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
+                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{formatName(clinician.name)}</h4>
                     <p className="text-xs text-gray-600 truncate">
                       {clinician.position_info?.position_title || 'Clinician'} • 
                       {clinician.clinician_info?.type_info?.title || 'General'}
@@ -1500,7 +1502,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs sm:text-sm font-medium">
-                          {clinician.name.split(' ').map(n => n[0]).join('')}
+                          {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
@@ -1510,7 +1512,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     
                     <div className="mb-3">
-                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
+                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{formatName(clinician.name)}</h4>
                       <p className="text-xs text-gray-600 truncate">
                         {clinician.position_info?.position_title || 'Clinician'} • 
                         {clinician.clinician_info?.type_info?.title || 'General'}
@@ -1783,10 +1785,10 @@ const Dashboard: React.FC = () => {
                               <div className="flex items-center space-x-2 flex-1 min-w-0">
                                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-orange-800 text-xs font-medium">
-                                    {clinician.name.split(' ').map(n => n[0]).join('')}
+                                    {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
                                   </span>
                                 </div>
-                                <span className="text-xs sm:text-sm text-gray-900 truncate">{clinician.name}</span>
+                                <span className="text-xs sm:text-sm text-gray-900 truncate">{formatName(clinician.name)}</span>
                               </div>
                               <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                                 {review.notes && (

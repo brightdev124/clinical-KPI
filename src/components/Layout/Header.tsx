@@ -3,6 +3,7 @@ import { LogOut, Menu, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { useNameFormatter } from '../../utils/nameFormatter';
 import { 
   BarChart3, 
   Users, 
@@ -16,6 +17,7 @@ import {
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { isCollapsed, isMobile, toggleSidebar } = useSidebar();
+  const formatName = useNameFormatter();
   const [showMobileNav, setShowMobileNav] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +134,7 @@ const Header: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                        <p className="text-sm font-medium text-gray-900">{formatName(user?.name || '')}</p>
                         <p className="text-xs text-gray-600">
                           {user?.role === 'super-admin' && 'Super Administrator'}
                           {user?.role === 'director' && 'Clinical Director'}
@@ -187,7 +189,7 @@ const Header: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+              <span className="text-sm font-medium text-gray-700">{formatName(user?.name || '')}</span>
             </div>
           </div>
           

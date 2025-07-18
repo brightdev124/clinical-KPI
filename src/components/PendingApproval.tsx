@@ -1,9 +1,11 @@
 import React from 'react';
 import { Clock, Mail, User, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNameFormatter } from '../utils/nameFormatter';
 
 const PendingApproval: React.FC = () => {
   const { user, logout } = useAuth();
+  const formatName = useNameFormatter();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -28,7 +30,7 @@ const PendingApproval: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Account Details</span>
               </div>
               <div className="text-sm text-gray-600">
-                <p><strong>Name:</strong> {user.name}</p>
+                <p><strong>Name:</strong> {formatName(user.name)}</p>
                 <p><strong>Username:</strong> {user.username}</p>
                 <p><strong>Role:</strong> {user.role}</p>
               </div>

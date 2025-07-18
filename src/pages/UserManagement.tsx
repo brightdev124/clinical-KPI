@@ -3,10 +3,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Plus, Edit2, Trash2, User, Shield, Users, Link as LinkIcon, Settings } from 'lucide-react';
 import { EnhancedSelect } from '../components/UI';
+import { useNameFormatter } from '../utils/nameFormatter';
 
 const UserManagement: React.FC = () => {
   const { user } = useAuth();
   const { clinicians, updateClinician } = useData();
+  const formatName = useNameFormatter();
   const [showForm, setShowForm] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -160,7 +162,7 @@ const UserManagement: React.FC = () => {
           {directors.map(director => (
             <div key={director.id} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-blue-900">{director.name}</h4>
+                <h4 className="font-medium text-blue-900">{formatName(director.name)}</h4>
                 <button
                   onClick={() => handleAssignClinicians(director)}
                   className="text-blue-600 hover:text-blue-700 text-sm flex items-center"
@@ -177,7 +179,7 @@ const UserManagement: React.FC = () => {
                   const clinician = clinicians.find(c => c.id === clinicianId);
                   return clinician ? (
                     <div key={clinicianId} className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                      {clinician.name}
+                      {formatName(clinician.name)}
                     </div>
                   ) : null;
                 })}
@@ -192,7 +194,7 @@ const UserManagement: React.FC = () => {
             <div className="space-y-1">
               {unassignedClinicians.map(clinician => (
                 <div key={clinician.id} className="text-sm text-yellow-700">
-                  {clinician.name} - {clinician.department}
+                  {formatName(clinician.name)} - {clinician.department}
                 </div>
               ))}
             </div>
@@ -236,7 +238,7 @@ const UserManagement: React.FC = () => {
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm font-medium text-gray-900">{formatName(user.name)}</div>
                           <div className="text-sm text-gray-500">{user.email}</div>
                         </div>
                       </div>
@@ -293,7 +295,7 @@ const UserManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Assign Clinicians to {selectedDirector.name}
+              Assign Clinicians to {formatName(selectedDirector.name)}
             </h3>
             <div className="space-y-4">
               {clinicians.map(clinician => {
@@ -307,7 +309,7 @@ const UserManagement: React.FC = () => {
                 return (
                   <div key={clinician.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div>
-                      <div className="font-medium text-gray-900">{clinician.name}</div>
+                      <div className="font-medium text-gray-900">{formatName(clinician.name)}</div>
                       <div className="text-sm text-gray-600">{clinician.position} • {clinician.department}</div>
                       {assignedToOther && (
                         <div className="text-xs text-yellow-600">
