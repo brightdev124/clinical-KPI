@@ -961,7 +961,7 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.name?.split(' ')[0]}! 👋
+              Welcome back, {formatName(user?.name || '').split(' ')[0]}! 👋
             </h1>
             <p className="text-blue-100 text-lg">
               Here's your team performance overview for {selectedMonth} {selectedYear}
@@ -1115,8 +1115,8 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
-                name: person.name.split(' ')[0], // First name only for space
-                fullName: person.name,
+                name: formatName(person.name).split(' ')[0], // First word of formatted name for space
+                fullName: formatName(person.name),
                 score: getClinicianScore(person.id, selectedMonth, selectedYear),
                 position: person.position_info?.position_title || (user?.role === 'super-admin' ? 'Director' : 'Clinician')
               }))}>

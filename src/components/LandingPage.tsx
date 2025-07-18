@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Activity, BarChart3, Users, Target, TrendingUp, CheckCircle, ArrowRight, Star, Shield, Zap, AlertTriangle, MessageSquare, FileX, ArrowDown, Check, X, FileText, BarChart, ClipboardCheck, TrendingDown, Clock, UserCheck, Heart, Award, Lock } from 'lucide-react';
 import AuthModal from './AuthModal';
+import { useNameFormatter } from '../utils/nameFormatter';
 
 const LandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const formatName = useNameFormatter();
   const [currentStep, setCurrentStep] = useState(0);
 
   const features = [
@@ -507,11 +509,11 @@ const LandingPage: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-bold">
-                      {testimonial.name.split(' ').map(n => n[0]).join('')}
+                      {formatName(testimonial.name).split(' ').map(n => n[0]).join('')}
                     </span>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                    <div className="font-semibold text-gray-900">{formatName(testimonial.name)}</div>
                     <div className="text-gray-500 text-sm">{testimonial.role}</div>
                   </div>
                 </div>

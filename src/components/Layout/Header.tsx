@@ -130,7 +130,7 @@ const Header: React.FC = () => {
                     <div className="flex items-center px-4 py-3">
                       <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
                         <span className="text-white text-sm font-medium">
-                          {user?.name?.split(' ').map(n => n[0]).join('')}
+                          {formatName(user?.name || '').split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div className="flex-1">
@@ -170,7 +170,7 @@ const Header: React.FC = () => {
           
           <div className="hidden sm:block">
             <h1 className="text-2xl font-semibold text-gray-900">
-              Welcome back, {user?.name?.split(' ')[0]}
+              Welcome back, {formatName(user?.name || '').split(' ')[0]}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
               {user?.role === 'super-admin' && 'Super Administrator'}
@@ -185,7 +185,7 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">
-                {user?.name?.split(' ').map(n => n[0]).join('')}
+                {formatName(user?.name || '').split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div className="flex items-center space-x-2">
