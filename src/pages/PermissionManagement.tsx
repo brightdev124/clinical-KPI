@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Users, Edit2, Trash2, Plus, Check, X, UserCheck, UserX, Search, Filter, Shield, User as UserIcon, Users as UsersIcon, Briefcase, Building, Eye, EyeOff, Loader2, Upload, FileText, AlertCircle } from 'lucide-react';
 import { EnhancedSelect } from '../components/UI';
 import { useAuth } from '../contexts/AuthContext';
 import UserService, { User, Position, ClinicianType } from '../services/userService';
@@ -72,6 +72,14 @@ const PermissionManagement: React.FC = () => {
     accept: false,
   });
   const [isCreating, setIsCreating] = useState(false);
+  
+  // CSV Import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{current: number, total: number}>({current: 0, total: 0});
+  const [importResults, setImportResults] = useState<{success: number, failed: number, errors: string[]}>({success: 0, failed: 0, errors: []});
 
   useEffect(() => {
     fetchData();
@@ -465,6 +473,174 @@ const PermissionManagement: React.FC = () => {
     return positions.filter(position => position.role === role);
   };
 
+  // CSV Import Functions
+  const handleImportCSV = () => {
+    setCsvFile(null);
+    setCsvData([]);
+    setImportResults({success: 0, failed: 0, errors: []});
+    setShowImportModal(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCsvFile(file);
+      parseCsvFile(file);
+    }
+  };
+
+  const parseCsvFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      
+      const data = lines.slice(1)
+        .filter(line => line.trim())
+        .map((line, index) => {
+          const values = line.split(',').map(v => v.trim());
+          const row: any = {};
+          headers.forEach((header, i) => {
+            row[header] = values[i] || '';
+          });
+          row.rowNumber = index + 2; // Add row number for error reporting
+          return row;
+        });
+      
+      setCsvData(data);
+    };
+    reader.readAsText(file);
+  };
+
+  const mapCsvFieldsToDatabase = async (csvRow: any) => {
+    // Map CSV fields to database structure
+    const fullName = csvRow.Full_Name || csvRow.full_name || csvRow.name || '';
+    const username = csvRow.Username || csvRow.username || '';
+    const password = csvRow.Password || csvRow.password || '';
+    const roleText = csvRow.Role || csvRow.role || '';
+    const positionText = csvRow.Position || csvRow.position || '';
+    const clinicianTypeText = csvRow.Clinician_Type || csvRow.clinician_type || '';
+
+    if (!fullName || !username || !password) {
+      throw new Error('Missing required fields: Full_Name, Username, or Password');
+    }
+
+    // Map role text to role enum
+    let role: 'super-admin' | 'director' | 'clinician' = 'clinician';
+    const roleTextLower = roleText.toLowerCase();
+    if (roleTextLower.includes('admin') || roleTextLower.includes('super')) {
+      role = 'super-admin';
+    } else if (roleTextLower.includes('director')) {
+      role = 'director';
+    } else {
+      role = 'clinician';
+    }
+
+    // Find position ID based on position text
+    let positionId: string | undefined;
+    if (positionText) {
+      const matchingPosition = positions.find(p => 
+        p.position_title.toLowerCase().includes(positionText.toLowerCase()) ||
+        positionText.toLowerCase().includes(p.position_title.toLowerCase())
+      );
+      if (matchingPosition) {
+        positionId = matchingPosition.id;
+        // Update role to match position role
+        role = matchingPosition.role as 'super-admin' | 'director' | 'clinician';
+      }
+    }
+
+    // If no position found, find first position matching the role
+    if (!positionId) {
+      const matchingPosition = positions.find(p => p.role === role);
+      if (matchingPosition) {
+        positionId = matchingPosition.id;
+      }
+    }
+
+    // Prepare user data
+    const userData: any = {
+      name: fullName,
+      username: username,
+      password: password,
+      role: role,
+      position_id: positionId,
+      accept: false, // Default to not accepted
+    };
+
+    // Add role-specific information
+    if (role === 'director') {
+      userData.director_info = {
+        direction: positionText || 'General'
+      };
+    } else if (role === 'clinician') {
+      // Find clinician type ID
+      let clinicianTypeId: string | undefined;
+      if (clinicianTypeText) {
+        const matchingType = clinicianTypes.find(t => 
+          t.title.toLowerCase().includes(clinicianTypeText.toLowerCase()) ||
+          clinicianTypeText.toLowerCase().includes(t.title.toLowerCase())
+        );
+        if (matchingType) {
+          clinicianTypeId = matchingType.id;
+        }
+      }
+
+      // If no type found, use first available type
+      if (!clinicianTypeId && clinicianTypes.length > 0) {
+        clinicianTypeId = clinicianTypes[0].id;
+      }
+
+      if (clinicianTypeId) {
+        userData.clinician_info = {
+          type_id: clinicianTypeId
+        };
+      }
+    }
+
+    return userData;
+  };
+
+  const handleImportUsers = async () => {
+    if (!csvData || csvData.length === 0) {
+      setError('No data to import');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress({current: 0, total: csvData.length});
+    const results = {success: 0, failed: 0, errors: []};
+
+    for (let i = 0; i < csvData.length; i++) {
+      const csvRow = csvData[i];
+      setImportProgress({current: i + 1, total: csvData.length});
+
+      try {
+        const userData = await mapCsvFieldsToDatabase(csvRow);
+        await UserService.createUser(userData);
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Row ${csvRow.rowNumber}: ${error.message}`);
+      }
+    }
+
+    setImportResults(results);
+    setIsImporting(false);
+    
+    if (results.success > 0) {
+      setSuccess(`Successfully imported ${results.success} users`);
+      await fetchData(); // Refresh the user list
+    }
+    
+    if (results.failed > 0) {
+      setError(`Failed to import ${results.failed} users. Check the details below.`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -483,13 +659,22 @@ const PermissionManagement: React.FC = () => {
               <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-8">
-              <button
-                onClick={handleAddUser}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 lg:px-6 lg:py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
-              >
-                <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span className="text-sm lg:text-base">Add New User</span>
-              </button>
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <button
+                  onClick={handleAddUser}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 lg:px-6 lg:py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+                  <span className="text-sm lg:text-base">Add New User</span>
+                </button>
+                <button
+                  onClick={handleImportCSV}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 lg:px-6 lg:py-3 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <Upload className="w-4 h-4 lg:w-5 lg:h-5" />
+                  <span className="text-sm lg:text-base">Import from CSV</span>
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:space-x-4 lg:space-x-8">
                 <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
                   <div className="flex items-center justify-center sm:justify-start">
@@ -1675,6 +1860,217 @@ const PermissionManagement: React.FC = () => {
                       </div>
                     ) : (
                       'Create User'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Import Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Import Users from CSV</h3>
+                  <button
+                    onClick={() => setShowImportModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                    disabled={isImporting}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* CSV Format Information */}
+                <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-start space-x-3">
+                    <FileText className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-2">CSV Format Requirements</h4>
+                      <p className="text-sm text-blue-800 mb-3">
+                        Your CSV file should have the following columns (case-insensitive):
+                      </p>
+                      <div className="bg-white p-3 rounded border border-blue-200 mb-3">
+                        <code className="text-sm text-gray-700">
+                          Full_Name, Username, Password, Role, Position, Clinician_Type
+                        </code>
+                      </div>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• <strong>Full_Name</strong>: User's full name (required)</li>
+                        <li>• <strong>Username</strong>: Unique username (required)</li>
+                        <li>• <strong>Password</strong>: User's password (required)</li>
+                        <li>• <strong>Role</strong>: Text description (e.g., "Admin", "Director", "Clinician")</li>
+                        <li>• <strong>Position</strong>: Position title (will be mapped to database positions)</li>
+                        <li>• <strong>Clinician_Type</strong>: Type of clinician (for clinician roles only)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File Upload Section */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select CSV File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileSelect}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    disabled={isImporting}
+                  />
+                  {csvFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {csvFile.name} ({csvData.length} rows)
+                    </p>
+                  )}
+                </div>
+
+                {/* CSV Data Preview */}
+                {csvData.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Data Preview</h4>
+                    <div className="overflow-x-auto bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Row</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Full Name</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Username</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Role</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Position</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Clinician Type</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {csvData.slice(0, 10).map((row, index) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-900">{row.rowNumber}</td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {row.Full_Name || row.full_name || row.name || '-'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {row.Username || row.username || '-'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {row.Role || row.role || '-'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {row.Position || row.position || '-'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-900">
+                                {row.Clinician_Type || row.clinician_type || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {csvData.length > 10 && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Showing first 10 rows of {csvData.length} total rows
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Import Progress */}
+                {isImporting && (
+                  <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-900">
+                          Importing users... ({importProgress.current}/{importProgress.total})
+                        </p>
+                        <div className="mt-2 w-full bg-blue-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Import Results */}
+                {importResults.success > 0 || importResults.failed > 0 ? (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Import Results</h4>
+                    <div className="space-y-3">
+                      {importResults.success > 0 && (
+                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                          <p className="text-sm font-medium text-green-800">
+                            ✓ Successfully imported {importResults.success} users
+                          </p>
+                        </div>
+                      )}
+                      {importResults.failed > 0 && (
+                        <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                          <p className="text-sm font-medium text-red-800 mb-2">
+                            ✗ Failed to import {importResults.failed} users
+                          </p>
+                          <div className="max-h-32 overflow-y-auto">
+                            {importResults.errors.map((error, index) => (
+                              <p key={index} className="text-sm text-red-700 mt-1">
+                                {error}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Error/Success Messages */}
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-green-700">{success}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+                  <button
+                    onClick={() => setShowImportModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    disabled={isImporting}
+                  >
+                    {isImporting ? 'Importing...' : 'Cancel'}
+                  </button>
+                  <button
+                    onClick={handleImportUsers}
+                    disabled={isImporting || !csvFile || csvData.length === 0}
+                    className={`px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg transition-colors ${
+                      isImporting || !csvFile || csvData.length === 0
+                        ? 'opacity-70 cursor-not-allowed'
+                        : 'hover:bg-green-700'
+                    }`}
+                  >
+                    {isImporting ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                        <span>Importing...</span>
+                      </div>
+                    ) : (
+                      `Import ${csvData.length} Users`
                     )}
                   </button>
                 </div>
