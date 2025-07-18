@@ -5,7 +5,7 @@ import { useNameFormatter } from '../utils/nameFormatter';
 
 const LandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
   const formatName = useNameFormatter();
   const [currentStep, setCurrentStep] = useState(0);
 

@@ -65,6 +65,22 @@ export interface UpdateUserData {
 
 export class UserService {
   /**
+   * Fetch all positions from the database
+   */
+  static async getAllPositions(): Promise<Position[]> {
+    const { data: positions, error: positionsError } = await supabase
+      .from('position')
+      .select('id, position_title, role')
+      .order('position_title', { ascending: true });
+
+    if (positionsError) {
+      throw new Error(`Failed to fetch positions: ${positionsError.message}`);
+    }
+
+    return positions || [];
+  }
+
+  /**
    * Fetch all clinician types from the database
    */
   static async getAllClinicianTypes(): Promise<ClinicianType[]> {
@@ -740,21 +756,7 @@ export class UserService {
     return stats;
   }
 
-  /**
-   * Get all positions
-   */
-  static async getAllPositions(): Promise<Position[]> {
-    const { data, error } = await supabase
-      .from('position')
-      .select('*')
-      .order('position_title', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to fetch positions: ${error.message}`);
-    }
-
-    return data || [];
-  }
 }
 
 export default UserService;

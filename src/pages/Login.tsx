@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Activity, Eye, EyeOff } from 'lucide-react';
 
@@ -94,6 +94,24 @@ const Login: React.FC = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="mt-6 text-center space-y-2">
+          <Link
+            to="/forgot-password"
+            className="block text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Forgot your password?
+          </Link>
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Register here
+            </Link>
+          </p>
+        </div>
 
         <div className="mt-8 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600 mb-2">Demo Accounts:</p>

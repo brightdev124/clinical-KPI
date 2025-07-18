@@ -18,6 +18,10 @@ import PermissionManagement from './pages/PermissionManagement';
 import ClinicianProfile from './pages/ClinicianProfile';
 import ClinicianTypesManagement from './pages/ClinicianTypesManagement';
 import PositionManagement from './pages/PositionManagement';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import SecuritySettingsPage from './pages/SecuritySettings';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 
@@ -32,13 +36,14 @@ const AppContent: React.FC = () => {
     return <LandingPage />;
   }
 
-  // Special handling for clinicians - only show Dashboard
+  // Special handling for clinicians - only show Dashboard and Security Settings
   if (user?.role === 'clinician') {
     return (
       <>
         <Routes>
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
+            <Route path="security-settings" element={<SecuritySettingsPage />} />
             <Route path="*" element={<Dashboard />} />
           </Route>
         </Routes>
@@ -93,6 +98,7 @@ const AppContent: React.FC = () => {
             <PositionManagement />
           </RoleBasedRoute>
         } />
+        <Route path="security-settings" element={<SecuritySettingsPage />} />
       </Route>
     </Routes>
   </>
@@ -104,7 +110,15 @@ function App() {
     <AuthProvider>
       <DataProvider>
         <Router>
-          <AppContent />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            
+            {/* Protected routes */}
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
         </Router>
       </DataProvider>
     </AuthProvider>

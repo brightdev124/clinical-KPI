@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Menu, X } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { LogOut, Menu, X, Settings } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useNameFormatter } from '../../utils/nameFormatter';
@@ -18,6 +18,7 @@ const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { isCollapsed, isMobile, toggleSidebar } = useSidebar();
   const formatName = useNameFormatter();
+  const navigate = useNavigate();
   const [showMobileNav, setShowMobileNav] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -145,6 +146,18 @@ const Header: React.FC = () => {
                     
                     <button
                       onClick={() => {
+                        console.log('📱 Mobile settings clicked for user:', user?.role);
+                        setShowMobileNav(false);
+                        navigate('/security-settings');
+                      }}
+                      className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Settings className="w-5 h-5 mr-3" />
+                      Security Settings
+                    </button>
+                    
+                    <button
+                      onClick={() => {
                         logout();
                         setShowMobileNav(false);
                       }}
@@ -192,6 +205,17 @@ const Header: React.FC = () => {
               <span className="text-sm font-medium text-gray-700">{formatName(user?.name || '')}</span>
             </div>
           </div>
+          
+          <button
+            onClick={() => {
+              console.log('🔧 Settings clicked for user:', user?.role);
+              navigate('/security-settings');
+            }}
+            className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+            title="Security Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
           
           <button
             onClick={logout}
