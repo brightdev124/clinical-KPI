@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNameFormatter } from '../utils/nameFormatter';
-import { UserPlus, UserMinus, User, Mail, Calendar, Users, X, CheckCircle, Navigation } from 'lucide-react';
+import { UserPlus, UserMinus, User, Mail, Calendar, Users, X, CheckCircle, Navigation, Search } from 'lucide-react';
 
 const AssignDirector: React.FC = () => {
   const { 
@@ -23,21 +23,35 @@ const AssignDirector: React.FC = () => {
   const [selectedDirector, setSelectedDirector] = useState<number | null>(null);
   const [sidebarMode, setSidebarMode] = useState<'assign' | 'unassign' | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const directors = getDirectors();
   const assignedClinicians = selectedDirector ? getAssignedClinicians(selectedDirector) : [];
   const unassignedClinicians = getUnassignedClinicians();
 
+  // Filter clinicians based on search term
+  const filteredUnassignedClinicians = unassignedClinicians.filter(clinician =>
+    formatName(clinician.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    clinician.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredAssignedClinicians = assignedClinicians.filter(clinician =>
+    formatName(clinician.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    clinician.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleAssignClick = (directorId: number) => {
     setSelectedDirector(directorId);
     setSidebarMode('assign');
     setShowSidebar(true);
+    setSearchTerm('');
   };
 
   const handleUnassignClick = (directorId: number) => {
     setSelectedDirector(directorId);
     setSidebarMode('unassign');
     setShowSidebar(true);
+    setSearchTerm('');
   };
 
   const handleAssignClinician = async (clinicianId: number) => {
@@ -72,6 +86,7 @@ const AssignDirector: React.FC = () => {
     setShowSidebar(false);
     setSelectedDirector(null);
     setSidebarMode(null);
+    setSearchTerm('');
   };
 
   const selectedDirectorData = directors.find(d => d.id === selectedDirector);
@@ -311,16 +326,42 @@ const AssignDirector: React.FC = () => {
             <div className="p-6">
               {sidebarMode === 'assign' ? (
                 <div className="space-y-4">
-                  <div className="text-sm text-gray-600 mb-4">
-                    Available unassigned clinicians ({unassignedClinicians.length})
+                  {/* Search Input */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search clinicians..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
                   </div>
-                  {unassignedClinicians.length === 0 ? (
+                  
+                  <div className="text-sm text-gray-600 mb-4">
+                    Available unassigned clinicians ({filteredUnassignedClinicians.length}{searchTerm ? ` of ${unassignedClinicians.length}` : ''})
+                  </div>
+                  {filteredUnassignedClinicians.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>No unassigned clinicians available</p>
+                      {searchTerm ? (
+                        <div>
+                          <p>No clinicians match your search</p>
+                          <button
+                            onClick={() => setSearchTerm('')}
+                            className="text-blue-600 hover:text-blue-700 text-sm mt-2"
+                          >
+                            Clear search
+                          </button>
+                        </div>
+                      ) : (
+                        <p>No unassigned clinicians available</p>
+                      )}
                     </div>
                   ) : (
-                    unassignedClinicians.map((clinician) => (
+                    filteredUnassignedClinicians.map((clinician) => (
                       <div
                         key={clinician.id}
                         className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -348,16 +389,42 @@ const AssignDirector: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-sm text-gray-600 mb-4">
-                    Currently assigned clinicians ({assignedClinicians.length})
+                  {/* Search Input */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search clinicians..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
                   </div>
-                  {assignedClinicians.length === 0 ? (
+                  
+                  <div className="text-sm text-gray-600 mb-4">
+                    Currently assigned clinicians ({filteredAssignedClinicians.length}{searchTerm ? ` of ${assignedClinicians.length}` : ''})
+                  </div>
+                  {filteredAssignedClinicians.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>No clinicians assigned to this director</p>
+                      {searchTerm ? (
+                        <div>
+                          <p>No clinicians match your search</p>
+                          <button
+                            onClick={() => setSearchTerm('')}
+                            className="text-blue-600 hover:text-blue-700 text-sm mt-2"
+                          >
+                            Clear search
+                          </button>
+                        </div>
+                      ) : (
+                        <p>No clinicians assigned to this director</p>
+                      )}
                     </div>
                   ) : (
-                    assignedClinicians.map((clinician) => (
+                    filteredAssignedClinicians.map((clinician) => (
                       <div
                         key={clinician.id}
                         className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
