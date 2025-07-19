@@ -23,15 +23,32 @@ import {
   ChevronUp,
   Check,
   X,
-  ExternalLink
+  ExternalLink,
+  Crown,
+  UserPlus,
+  User,
+  Navigation
 } from 'lucide-react';
 import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import AdminAnalytics from '../components/AdminAnalytics';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { clinicians, kpis, getClinicianScore, getClinicianReviews, profiles, getAssignedClinicians, getClinicianDirector, reviewItems, loading, error } = useData();
+  const { 
+    clinicians, 
+    kpis, 
+    getClinicianScore, 
+    getClinicianReviews, 
+    profiles, 
+    getAssignedClinicians, 
+    getAssignedDirectors,
+    getClinicianDirector, 
+    getDirectorSupervisor,
+    reviewItems, 
+    loading, 
+    error 
+  } = useData();
   const formatName = useNameFormatter();
 
   // Month selector state
@@ -228,11 +245,11 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Filter clinicians based on user role - use profiles data and only include approved clinicians
+  // Filter staff based on user role - include both clinicians and directors for directors
   const userClinicians = user?.role === 'super-admin' 
     ? profiles.filter(p => p.accept && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'))
     : user?.role === 'director'
-    ? getAssignedClinicians(user.id).filter(p => p.accept)
+    ? [...getAssignedClinicians(user.id).filter(p => p.accept), ...getAssignedDirectors(user.id).filter(p => p.accept)]
     : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
 
   // Separate directors and clinicians for admin dashboard - only approved users
@@ -248,6 +265,9 @@ const Dashboard: React.FC = () => {
     ? getAssignedClinicians(user.id).filter(p => p.accept && p.position_info?.role === 'clinician')
     : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
 
+  // Combined assigned staff for directors (both clinicians and directors)
+  const userAssignedDirectors = user?.role === 'director' ? getAssignedDirectors(user.id).filter(p => p.accept) : [];
+
   // Calculate stats for selected month
   const totalTeamMembers = userClinicians.length;
   const totalKPIs = kpis.length;
@@ -255,12 +275,12 @@ const Dashboard: React.FC = () => {
     ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / userClinicians.length)
     : 0;
 
-  // Get clinicians needing attention (score < 70) - only clinicians for admin
+  // Get staff needing attention (score < 70) - clinicians only for admin, clinicians + directors for directors
   const cliniciansNeedingAttention = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
     getClinicianScore(c.id, selectedMonth, selectedYear) < 70
   );
 
-  // Top performers (score >= 90) - only clinicians for admin
+  // Top performers (score >= 90) - clinicians only for admin, clinicians + directors for directors
   const topPerformers = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
     getClinicianScore(c.id, selectedMonth, selectedYear) >= 90
   );
@@ -1103,7 +1123,9 @@ const Dashboard: React.FC = () => {
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                {user?.role === 'super-admin' ? 'Current month performance by Director' : 'Current month performance by team members'}
+                {user?.role === 'super-admin' ? 'Current month performance by Director' : 
+                 user?.role === 'director' ? 'Current month performance by assigned staff (👤 Clinicians, 👑 Directors)' :
+                 'Current month performance'}
               </p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
@@ -1118,7 +1140,9 @@ const Dashboard: React.FC = () => {
                 name: formatName(person.name).split(' ')[0], // First word of formatted name for space
                 fullName: formatName(person.name),
                 score: getClinicianScore(person.id, selectedMonth, selectedYear),
-                position: person.position_info?.position_title || (user?.role === 'super-admin' ? 'Director' : 'Clinician')
+                position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
+                role: person.position_info?.role || 'clinician',
+                isDirector: person.position_info?.role === 'director'
               }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
@@ -1153,14 +1177,21 @@ const Dashboard: React.FC = () => {
                   ]}
                   labelFormatter={(label, payload) => {
                     const data = payload?.[0]?.payload;
-                    return data ? `${data.fullName} (${data.position})` : label;
+                    const roleIcon = data?.isDirector ? '👑' : '👤';
+                    return data ? `${roleIcon} ${data.fullName} (${data.position})` : label;
                   }}
                 />
                 <Bar 
                   dataKey="score" 
-                  fill="#3b82f6"
                   radius={[4, 4, 0, 0]}
-                />
+                >
+                  {(user?.role === 'super-admin' ? userDirectors : userClinicians).map((person, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={person.position_info?.role === 'director' ? '#8b5cf6' : '#3b82f6'} 
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
