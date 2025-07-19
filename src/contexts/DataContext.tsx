@@ -99,10 +99,15 @@ interface DataContextType {
   // Assignment functions
   assignClinician: (clinicianId: string, directorId: string) => Promise<void>;
   unassignClinician: (clinicianId: string, directorId: string) => Promise<void>;
+  assignDirector: (subordinateDirectorId: string, supervisorDirectorId: string) => Promise<void>;
+  unassignDirector: (subordinateDirectorId: string, supervisorDirectorId: string) => Promise<void>;
   getAssignedClinicians: (directorId: string) => Profile[];
+  getAssignedDirectors: (directorId: string) => Profile[];
   getUnassignedClinicians: () => Profile[];
+  getUnassignedDirectors: () => Profile[];
   getDirectors: () => Profile[];
   getClinicianDirector: (clinicianId: string) => Profile | null;
+  getDirectorSupervisor: (directorId: string) => Profile | null;
   refreshProfiles: () => Promise<void>;
   refreshAssignments: () => Promise<void>;
 }
@@ -322,6 +327,10 @@ const mockProfiles: Profile[] = [
       id: 'pos-2',
       position_title: 'Clinical Director',
       role: 'director'
+    },
+    director_info: {
+      id: 'dir-2',
+      direction: 'General Operations'
     }
   },
   {
@@ -364,6 +373,42 @@ const mockProfiles: Profile[] = [
       id: 'pos-5',
       position_title: 'Physician Assistant',
       role: 'clinician'
+    }
+  },
+  {
+    id: '6',
+    name: 'Dr. Michael Chen',
+    username: 'michael.chen',
+    position: 'pos-6',
+    accept: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    position_info: {
+      id: 'pos-6',
+      position_title: 'Associate Director',
+      role: 'director'
+    },
+    director_info: {
+      id: 'dir-6',
+      direction: 'Emergency Medicine'
+    }
+  },
+  {
+    id: '7',
+    name: 'Dr. Jennifer Martinez',
+    username: 'jennifer.martinez',
+    position: 'pos-7',
+    accept: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    position_info: {
+      id: 'pos-7',
+      position_title: 'Clinical Director',
+      role: 'director'
+    },
+    director_info: {
+      id: 'dir-7',
+      direction: 'Pediatrics'
     }
   }
 ];
@@ -503,6 +548,33 @@ const AssignmentService = {
 
     if (error) {
       console.error('Error unassigning clinician:', error);
+      throw error;
+    }
+  },
+
+  async assignDirector(subordinateDirectorId: string, supervisorDirectorId: string): Promise<void> {
+    const { error } = await supabase
+      .from('assign')
+      .insert({
+        clinician: subordinateDirectorId,
+        director: supervisorDirectorId
+      });
+
+    if (error) {
+      console.error('Error assigning director:', error);
+      throw error;
+    }
+  },
+
+  async unassignDirector(subordinateDirectorId: string, supervisorDirectorId: string): Promise<void> {
+    const { error } = await supabase
+      .from('assign')
+      .delete()
+      .eq('clinician', subordinateDirectorId)
+      .eq('director', supervisorDirectorId);
+
+    if (error) {
+      console.error('Error unassigning director:', error);
       throw error;
     }
   }
@@ -781,6 +853,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const assignDirector = async (subordinateDirectorId: string, supervisorDirectorId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await AssignmentService.assignDirector(subordinateDirectorId, supervisorDirectorId);
+      
+      // Refresh assignments after successful assignment
+      await refreshAssignments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign director');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const unassignDirector = async (subordinateDirectorId: string, supervisorDirectorId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await AssignmentService.unassignDirector(subordinateDirectorId, supervisorDirectorId);
+      
+      // Refresh assignments after successful unassignment
+      await refreshAssignments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unassign director');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getAssignedClinicians = (directorId: string): Profile[] => {
     const assignedClinicianIds = assignments
       .filter(a => a.director === directorId)
@@ -793,10 +899,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const getAssignedDirectors = (directorId: string): Profile[] => {
+    const assignedDirectorIds = assignments
+      .filter(a => a.director === directorId)
+      .map(a => a.clinician);
+    
+    return profiles.filter(p => 
+      assignedDirectorIds.includes(p.id) && 
+      p.position_info?.role === 'director' && 
+      p.accept === true
+    );
+  };
+
   const getUnassignedClinicians = (): Profile[] => {
     const assignedClinicianIds = assignments.map(a => a.clinician);
     return profiles.filter(p => 
       !assignedClinicianIds.includes(p.id) && p.position_info?.role === 'clinician'
+    );
+  };
+
+  const getUnassignedDirectors = (): Profile[] => {
+    const assignedDirectorIds = assignments.map(a => a.clinician);
+    return profiles.filter(p => 
+      !assignedDirectorIds.includes(p.id) && p.position_info?.role === 'director'
     );
   };
 
@@ -812,6 +937,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Find the director profile
     const director = profiles.find(p => p.id === assignment.director);
     return director || null;
+  };
+
+  const getDirectorSupervisor = (directorId: string): Profile | null => {
+    // Find the assignment for this director (where the director is the "clinician" being assigned)
+    const assignment = assignments.find(a => a.clinician === directorId);
+    if (!assignment) return null;
+    
+    // Find the supervisor director profile
+    const supervisor = profiles.find(p => p.id === assignment.director);
+    return supervisor || null;
   };
 
   const refreshProfiles = async () => {
@@ -894,10 +1029,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getClinicianScore,
       assignClinician,
       unassignClinician,
+      assignDirector,
+      unassignDirector,
       getAssignedClinicians,
+      getAssignedDirectors,
       getUnassignedClinicians,
+      getUnassignedDirectors,
       getDirectors,
       getClinicianDirector,
+      getDirectorSupervisor,
       refreshProfiles,
       refreshAssignments,
       refreshReviewItems,
