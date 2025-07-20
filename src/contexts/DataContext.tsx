@@ -281,20 +281,32 @@ const mockReviews = generateMockReviews();
 const mockAssignments: Assignment[] = [
   {
     id: 'assign-1',
-    clinician: '3', // Dr. Emily Rodriguez
-    director: '2', // Assuming user ID 2 is a director
+    clinician: '3', // Dr. Emily Rodriguez (clinician)
+    director: '2', // Dr. Sarah Johnson (director)
     created_at: '2024-01-15T00:00:00Z'
   },
   {
     id: 'assign-2',
-    clinician: '4', // Dr. James Wilson
-    director: '2',
+    clinician: '4', // Dr. James Wilson (clinician)
+    director: '2', // Dr. Sarah Johnson (director)
     created_at: '2024-01-15T00:00:00Z'
   },
   {
     id: 'assign-3',
-    clinician: '5', // Dr. Lisa Thompson
-    director: '2',
+    clinician: '5', // Dr. Lisa Thompson (clinician)
+    director: '2', // Dr. Sarah Johnson (director)
+    created_at: '2024-01-15T00:00:00Z'
+  },
+  {
+    id: 'assign-4',
+    clinician: '6', // Dr. Michael Chen (director)
+    director: '2', // Dr. Sarah Johnson (director) - director supervising director
+    created_at: '2024-01-15T00:00:00Z'
+  },
+  {
+    id: 'assign-5',
+    clinician: '7', // Dr. Jennifer Martinez (director)
+    director: '2', // Dr. Sarah Johnson (director) - director supervising director
     created_at: '2024-01-15T00:00:00Z'
   }
 ];

@@ -11,12 +11,13 @@ const ClinicianProfile: React.FC = () => {
   const { profiles, kpis, getClinicianScore, getClinicianReviews } = useData();
   const formatName = useNameFormatter();
   
-  // Find the clinician profile from the profiles array
-  const clinician = profiles.find(p => p.id === id && p.position_info?.role === 'clinician');
+  // Find the staff member profile from the profiles array (clinician or director)
+  const staffMember = profiles.find(p => p.id === id && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'));
   const reviews = getClinicianReviews(id || '');
+  const isDirector = staffMember?.position_info?.role === 'director';
   
-  if (!clinician) {
-    return <div>Clinician not found</div>;
+  if (!staffMember) {
+    return <div>Staff member not found</div>;
   }
 
   // Generate performance data for the last 12 months
@@ -26,7 +27,7 @@ const ClinicianProfile: React.FC = () => {
     const month = date.toLocaleString('default', { month: 'short' });
     const monthName = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
-    const score = getClinicianScore(clinician.id, monthName, year);
+    const score = getClinicianScore(staffMember.id, monthName, year);
     
     return {
       month,
@@ -54,7 +55,7 @@ const ClinicianProfile: React.FC = () => {
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
-  const currentScore = getClinicianScore(clinician.id, currentMonth, currentYear);
+  const currentScore = getClinicianScore(staffMember.id, currentMonth, currentYear);
 
   const handleDownloadSummary = () => {
     const monthlyScores = performanceData.map(data => ({
@@ -63,7 +64,7 @@ const ClinicianProfile: React.FC = () => {
       score: data.score
     }));
     
-    generateClinicianSummaryPDF(clinician, kpis, monthlyScores, reviews);
+    generateClinicianSummaryPDF(staffMember, kpis, monthlyScores, reviews);
   };
 
   return (
@@ -72,15 +73,27 @@ const ClinicianProfile: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className={`w-20 h-20 ${isDirector ? 'bg-purple-600' : 'bg-blue-600'} rounded-full flex items-center justify-center`}>
               <span className="text-white text-2xl font-bold">
-                {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                {formatName(staffMember.name).split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{formatName(clinician.name)}</h1>
-              <p className="text-gray-600">{clinician.position}</p>
-              <p className="text-gray-600">{clinician.department}</p>
+              <div className="flex items-center space-x-3 mb-1">
+                <h1 className="text-2xl font-bold text-gray-900">{formatName(staffMember.name)}</h1>
+                {isDirector && (
+                  <span className="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">
+                    Director
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600">{staffMember.position_info?.position_title}</p>
+              <p className="text-gray-600">
+                {isDirector 
+                  ? staffMember.director_info?.direction || 'General Direction'
+                  : staffMember.clinician_info?.type_info?.title || 'General'
+                }
+              </p>
             </div>
           </div>
           <div className="text-right">
@@ -92,17 +105,22 @@ const ClinicianProfile: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="flex items-center space-x-2">
             <Mail className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{clinician.email}</span>
+            <span className="text-sm text-gray-600">{staffMember.username}@clinic.com</span>
           </div>
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-600">
-              Since {new Date(clinician.startDate).toLocaleDateString()}
+              Since {new Date(staffMember.created_at).toLocaleDateString()}
             </span>
           </div>
           <div className="flex items-center space-x-2">
             <MapPin className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{clinician.department}</span>
+            <span className="text-sm text-gray-600">
+              {isDirector 
+                ? staffMember.director_info?.direction || 'General Direction'
+                : staffMember.clinician_info?.type_info?.title || 'General'
+              }
+            </span>
           </div>
         </div>
       </div>
@@ -110,7 +128,7 @@ const ClinicianProfile: React.FC = () => {
       {/* Actions */}
       <div className="flex space-x-4">
         <Link
-          to={`/review/${clinician.id}`}
+          to={`/review/${staffMember.id}`}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
           <ClipboardList className="w-4 h-4" />

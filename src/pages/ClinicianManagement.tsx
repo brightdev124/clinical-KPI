@@ -8,6 +8,7 @@ import { User, Mail, Calendar, ChevronRight, ClipboardList, TrendingUp, UserChec
 const ClinicianManagement: React.FC = () => {
   const { 
     getAssignedClinicians, 
+    getAssignedDirectors,
     getClinicianScore, 
     getClinicianReviews,
     kpis,
@@ -21,11 +22,13 @@ const ClinicianManagement: React.FC = () => {
   const { user } = useAuth();
   const formatName = useNameFormatter();
   
-  // State for managing expanded clinicians
-  const [expandedClinicians, setExpandedClinicians] = useState<Set<string>>(new Set());
+  // State for managing expanded staff members
+  const [expandedStaff, setExpandedStaff] = useState<Set<string>>(new Set());
 
-  // Get clinicians assigned to the current director
+  // Get clinicians and directors assigned to the current director
   const assignedClinicians = user?.id ? getAssignedClinicians(user.id) : [];
+  const assignedDirectors = user?.id ? getAssignedDirectors(user.id) : [];
+  const allAssignedStaff = [...assignedClinicians, ...assignedDirectors];
 
   // Load data on component mount
   useEffect(() => {
@@ -44,26 +47,26 @@ const ClinicianManagement: React.FC = () => {
     return 'text-red-600 bg-red-100';
   };
 
-  // Toggle expanded state for a clinician
-  const toggleExpanded = (clinicianId: string) => {
-    setExpandedClinicians(prev => {
+  // Toggle expanded state for a staff member
+  const toggleExpanded = (staffId: string) => {
+    setExpandedStaff(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(clinicianId)) {
-        newSet.delete(clinicianId);
+      if (newSet.has(staffId)) {
+        newSet.delete(staffId);
       } else {
-        newSet.add(clinicianId);
+        newSet.add(staffId);
       }
       return newSet;
     });
   };
 
-  // Get KPI details for a clinician for the current month
-  const getClinicianKPIDetails = (clinicianId: string) => {
+  // Get KPI details for a staff member for the current month
+  const getStaffKPIDetails = (staffId: string) => {
     const currentMonthReviews = reviewItems.filter(review => {
       const reviewDate = new Date(review.date);
       const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
       const reviewYear = reviewDate.getFullYear();
-      return review.clinician === clinicianId && 
+      return review.clinician === staffId && 
              reviewMonth === currentMonth && 
              reviewYear === currentYear;
     });
@@ -95,7 +98,9 @@ const ClinicianManagement: React.FC = () => {
   useEffect(() => {
     console.log('Current user:', user);
     console.log('Assigned clinicians:', assignedClinicians);
-  }, [user, assignedClinicians]);
+    console.log('Assigned directors:', assignedDirectors);
+    console.log('All assigned staff:', allAssignedStaff);
+  }, [user, assignedClinicians, assignedDirectors, allAssignedStaff]);
 
   if (loading) {
     return (
@@ -130,9 +135,9 @@ const ClinicianManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Clinician Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Staff Management</h2>
           <p className="text-gray-600 mt-1">
-            Manage your assigned clinical team members and track their performance
+            Manage your assigned team members (clinicians and directors) and track their performance
           </p>
         </div>
         <button
@@ -150,59 +155,70 @@ const ClinicianManagement: React.FC = () => {
       {/* Assignment Overview */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Assignment Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">
-              {assignedClinicians.length}
+              {allAssignedStaff.length}
             </div>
             <div className="text-sm text-blue-700">Total Assigned</div>
           </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600">
+              {assignedClinicians.length}
+            </div>
+            <div className="text-sm text-purple-700">Clinicians</div>
+          </div>
+          <div className="text-center p-4 bg-indigo-50 rounded-lg">
+            <div className="text-2xl font-bold text-indigo-600">
+              {assignedDirectors.length}
+            </div>
+            <div className="text-sm text-indigo-700">Directors</div>
+          </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">
-              {assignedClinicians.filter(c => getClinicianScore(c.id, currentMonth, currentYear) >= 90).length}
+              {allAssignedStaff.filter(s => getClinicianScore(s.id, currentMonth, currentYear) >= 90).length}
             </div>
             <div className="text-sm text-green-700">Excellent (90%+)</div>
           </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">
-              {assignedClinicians.filter(c => {
-                const score = getClinicianScore(c.id, currentMonth, currentYear);
-                return score >= 70 && score < 90;
-              }).length}
-            </div>
-            <div className="text-sm text-yellow-700">Good (70-89%)</div>
-          </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className="text-2xl font-bold text-red-600">
-              {assignedClinicians.filter(c => getClinicianScore(c.id, currentMonth, currentYear) < 70).length}
+              {allAssignedStaff.filter(s => getClinicianScore(s.id, currentMonth, currentYear) < 70).length}
             </div>
             <div className="text-sm text-red-700">Needs Attention (&lt;70%)</div>
           </div>
         </div>
       </div>
 
-      {/* Clinician Grid */}
+      {/* Staff Grid */}
       <div className="grid grid-cols-1 gap-6">
-        {assignedClinicians.map((clinician) => {
-          const currentScore = getClinicianScore(clinician.id, currentMonth, currentYear);
+        {allAssignedStaff.map((staffMember) => {
+          const currentScore = getClinicianScore(staffMember.id, currentMonth, currentYear);
           const scoreColorClass = getPerformanceColor(currentScore);
-          const isExpanded = expandedClinicians.has(clinician.id);
-          const kpiDetails = getClinicianKPIDetails(clinician.id);
+          const isExpanded = expandedStaff.has(staffMember.id);
+          const kpiDetails = getStaffKPIDetails(staffMember.id);
+          const isDirector = staffMember.position_info?.role === 'director';
           
           return (
-            <div key={clinician.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-              {/* Main Clinician Card */}
+            <div key={staffMember.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
+              {/* Main Staff Member Card */}
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-blue-600 rounded-full flex items-center justify-center">
+                    <div className={`w-12 h-12 ${isDirector ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-gradient-to-r from-green-600 to-blue-600'} rounded-full flex items-center justify-center`}>
                       <span className="text-white font-medium">
-                        {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                        {formatName(staffMember.name).split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{formatName(clinician.name)}</h3>
-                      <p className="text-sm text-gray-600">{clinician.position_info?.position_title || 'General'}</p>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{formatName(staffMember.name)}</h3>
+                        {isDirector && (
+                          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
+                            Director
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">{staffMember.position_info?.position_title || 'General'}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -219,12 +235,17 @@ const ClinicianManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{clinician.clinician_info?.type_info?.title || 'General'}</span>
+                    <span className="text-sm text-gray-600">
+                      {isDirector 
+                        ? staffMember.director_info?.direction || 'General Direction'
+                        : staffMember.clinician_info?.type_info?.title || 'General'
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      Since {new Date(clinician.created_at).toLocaleDateString()}
+                      Since {new Date(staffMember.created_at).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -238,7 +259,7 @@ const ClinicianManagement: React.FC = () => {
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="flex space-x-2">
                     <Link
-                      to={`/clinician/${clinician.id}`}
+                      to={`/clinician/${staffMember.id}`}
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center space-x-1"
                     >
                       <span>View Profile</span>
@@ -247,7 +268,7 @@ const ClinicianManagement: React.FC = () => {
                     
                     {user?.role === 'director' && (
                       <Link
-                        to={`/review/${clinician.id}`}
+                        to={`/review/${staffMember.id}`}
                         className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center space-x-1"
                       >
                         <ClipboardList className="w-4 h-4" />
@@ -257,7 +278,7 @@ const ClinicianManagement: React.FC = () => {
                   </div>
                   
                   <button
-                    onClick={() => toggleExpanded(clinician.id)}
+                    onClick={() => toggleExpanded(staffMember.id)}
                     className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
                   >
                     <span>{isExpanded ? 'Hide' : 'Show'} KPI Details</span>
@@ -400,12 +421,12 @@ const ClinicianManagement: React.FC = () => {
       </div>
 
       {/* Empty State */}
-      {assignedClinicians.length === 0 && (
+      {allAssignedStaff.length === 0 && (
         <div className="text-center py-12">
           <User className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Assigned Clinicians</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Assigned Staff Members</h3>
           <p className="text-gray-600">
-            You don't have any clinicians assigned to you yet. Contact your administrator to assign clinicians to your supervision.
+            You don't have any staff members (clinicians or directors) assigned to you yet. Contact your administrator to assign staff to your supervision.
           </p>
         </div>
       )}
