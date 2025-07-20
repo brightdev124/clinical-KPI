@@ -1171,7 +1171,7 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
-                name: formatName(person.name).split(' ')[0], // First word of formatted name for space
+                name: user?.role === 'super-admin' ? formatName(person.name) : formatName(person.name).split(' ')[0], // Full name for directors, first word for others
                 fullName: formatName(person.name),
                 score: person.position_info?.role === 'director' 
                   ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
@@ -1256,14 +1256,21 @@ const Dashboard: React.FC = () => {
                 {
                   range: '90-100%',
                   label: 'Excellent',
-                  count: userClinicians.filter(c => getClinicianScore(c.id, selectedMonth, selectedYear) >= 90).length,
+                  count: userClinicians.filter(c => {
+                    const score = c.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    return score >= 90;
+                  }).length,
                   color: '#10b981'
                 },
                 {
                   range: '80-89%',
                   label: 'Good',
                   count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = c.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                      : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 80 && score < 90;
                   }).length,
                   color: '#3b82f6'
@@ -1272,7 +1279,9 @@ const Dashboard: React.FC = () => {
                   range: '70-79%',
                   label: 'Average',
                   count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = c.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                      : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 70 && score < 80;
                   }).length,
                   color: '#f59e0b'
@@ -1280,7 +1289,12 @@ const Dashboard: React.FC = () => {
                 {
                   range: '0-69%',
                   label: 'Needs Improvement',
-                  count: userClinicians.filter(c => getClinicianScore(c.id, selectedMonth, selectedYear) < 70).length,
+                  count: userClinicians.filter(c => {
+                    const score = c.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    return score < 70;
+                  }).length,
                   color: '#ef4444'
                 }
               ]}>
@@ -1350,7 +1364,9 @@ const Dashboard: React.FC = () => {
                   const year = date.getFullYear();
                   
                   const monthlyScores = userClinicians.map(c => 
-                    getClinicianScore(c.id, month, year)
+                    c.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(c.id, month, year)
+                      : getClinicianScore(c.id, month, year)
                   );
                   const avgScore = monthlyScores.length > 0 
                     ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
