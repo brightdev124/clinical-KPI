@@ -165,6 +165,29 @@ const Dashboard: React.FC = () => {
     };
   };
 
+  // Calculate director's average score based on assigned members
+  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+    const assignedClinicians = getAssignedClinicians(directorId);
+    const assignedDirectors = getAssignedDirectors(directorId);
+    const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+    
+    if (allAssignedMembers.length === 0) {
+      return 0; // No assigned members
+    }
+    
+    const scores = allAssignedMembers.map(member => {
+      // For both assigned directors and clinicians, get their individual clinician score
+      return getClinicianScore(member.id, month, year);
+    });
+    
+    const validScores = scores.filter(score => score > 0);
+    if (validScores.length === 0) {
+      return 0;
+    }
+    
+    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+  };
+
   // Toggle expanded state for KPIs in clinician dashboard
   const toggleKPIExpanded = (kpiId: string) => {
     setExpandedKPIs(prev => {
@@ -272,18 +295,29 @@ const Dashboard: React.FC = () => {
   const totalTeamMembers = userClinicians.length;
   const totalKPIs = kpis.length;
   const avgScore = userClinicians.length > 0 
-    ? Math.round(userClinicians.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / userClinicians.length)
+    ? Math.round(userClinicians.reduce((acc, c) => {
+        const score = c.position_info?.role === 'director' 
+          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+          : getClinicianScore(c.id, selectedMonth, selectedYear);
+        return acc + score;
+      }, 0) / userClinicians.length)
     : 0;
 
   // Get staff needing attention (score < 70) - clinicians only for admin, clinicians + directors for directors
-  const cliniciansNeedingAttention = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
-    getClinicianScore(c.id, selectedMonth, selectedYear) < 70
-  );
+  const cliniciansNeedingAttention = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => {
+    const score = c.position_info?.role === 'director' 
+      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+      : getClinicianScore(c.id, selectedMonth, selectedYear);
+    return score < 70;
+  });
 
   // Top performers (score >= 90) - clinicians only for admin, clinicians + directors for directors
-  const topPerformers = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => 
-    getClinicianScore(c.id, selectedMonth, selectedYear) >= 90
-  );
+  const topPerformers = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => {
+    const score = c.position_info?.role === 'director' 
+      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+      : getClinicianScore(c.id, selectedMonth, selectedYear);
+    return score >= 90;
+  });
 
   // Recent activity based on user role
   const getRecentActivity = () => {
@@ -1139,7 +1173,9 @@ const Dashboard: React.FC = () => {
               <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
                 name: formatName(person.name).split(' ')[0], // First word of formatted name for space
                 fullName: formatName(person.name),
-                score: getClinicianScore(person.id, selectedMonth, selectedYear),
+                score: person.position_info?.role === 'director' 
+                  ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
+                  : getClinicianScore(person.id, selectedMonth, selectedYear),
                 position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
                 role: person.position_info?.role || 'clinician',
                 isDirector: person.position_info?.role === 'director'

@@ -47,6 +47,29 @@ const ClinicianManagement: React.FC = () => {
     return 'text-red-600 bg-red-100';
   };
 
+  // Calculate director's average score based on assigned members
+  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+    const assignedClinicians = getAssignedClinicians(directorId);
+    const assignedDirectors = getAssignedDirectors(directorId);
+    const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+    
+    if (allAssignedMembers.length === 0) {
+      return 0; // No assigned members
+    }
+    
+    const scores = allAssignedMembers.map(member => {
+      // For both assigned directors and clinicians, get their individual clinician score
+      return getClinicianScore(member.id, month, year);
+    });
+    
+    const validScores = scores.filter(score => score > 0);
+    if (validScores.length === 0) {
+      return 0;
+    }
+    
+    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+  };
+
   // Toggle expanded state for a staff member
   const toggleExpanded = (staffId: string) => {
     setExpandedStaff(prev => {
@@ -176,13 +199,23 @@ const ClinicianManagement: React.FC = () => {
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">
-              {allAssignedStaff.filter(s => getClinicianScore(s.id, currentMonth, currentYear) >= 90).length}
+              {allAssignedStaff.filter(s => {
+                const score = s.position_info?.role === 'director' 
+                  ? getDirectorAverageScore(s.id, currentMonth, currentYear)
+                  : getClinicianScore(s.id, currentMonth, currentYear);
+                return score >= 90;
+              }).length}
             </div>
             <div className="text-sm text-green-700">Excellent (90%+)</div>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className="text-2xl font-bold text-red-600">
-              {allAssignedStaff.filter(s => getClinicianScore(s.id, currentMonth, currentYear) < 70).length}
+              {allAssignedStaff.filter(s => {
+                const score = s.position_info?.role === 'director' 
+                  ? getDirectorAverageScore(s.id, currentMonth, currentYear)
+                  : getClinicianScore(s.id, currentMonth, currentYear);
+                return score < 70;
+              }).length}
             </div>
             <div className="text-sm text-red-700">Needs Attention (&lt;70%)</div>
           </div>
@@ -192,7 +225,9 @@ const ClinicianManagement: React.FC = () => {
       {/* Staff Grid */}
       <div className="grid grid-cols-1 gap-6">
         {allAssignedStaff.map((staffMember) => {
-          const currentScore = getClinicianScore(staffMember.id, currentMonth, currentYear);
+          const currentScore = staffMember.position_info?.role === 'director' 
+            ? getDirectorAverageScore(staffMember.id, currentMonth, currentYear)
+            : getClinicianScore(staffMember.id, currentMonth, currentYear);
           const scoreColorClass = getPerformanceColor(currentScore);
           const isExpanded = expandedStaff.has(staffMember.id);
           const kpiDetails = getStaffKPIDetails(staffMember.id);
