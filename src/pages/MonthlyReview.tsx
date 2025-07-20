@@ -355,8 +355,6 @@ const MonthlyReview: React.FC = () => {
     }
 
     try {
-      const score = calculateScore();
-      
       // Map clinician profile data to match the expected Clinician interface
       const isDirector = clinician.position_info?.role === 'director';
       const clinicianData = {
@@ -371,7 +369,27 @@ const MonthlyReview: React.FC = () => {
         startDate: clinician.created_at
       };
       
-      generateReviewPDF(clinicianData, kpis, reviewData, selectedMonth, selectedYear, score);
+      // Convert existingReviews to ReviewData format for PDF generation
+      const reviewDataForPDF: { [kpiId: string]: { met: boolean | null; reviewDate?: string; notes?: string; plan?: string; } } = {};
+      
+      existingReviews.forEach(review => {
+        reviewDataForPDF[review.kpi] = {
+          met: review.met_check,
+          reviewDate: review.review_date,
+          notes: review.notes,
+          plan: review.plan
+        };
+      });
+      
+      // Calculate score based on existing reviews
+      const totalWeight = kpis.reduce((sum, kpi) => sum + kpi.weight, 0);
+      const earnedWeight = existingReviews.reduce((sum, review) => {
+        const kpi = kpis.find(k => k.id === review.kpi);
+        return sum + (kpi && review.met_check ? kpi.weight : 0);
+      }, 0);
+      const score = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+      
+      generateReviewPDF(clinicianData, kpis, reviewDataForPDF, selectedMonth, selectedYear, score);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
@@ -472,6 +490,207 @@ const MonthlyReview: React.FC = () => {
   const completedKPIs = Object.values(reviewData).filter(data => data.met !== null && data.met !== undefined).length;
   const totalKPIs = kpis.length;
   const hasAnyData = completedKPIs > 0;
+
+  // If in "My Reviews" mode, render a profile-like view
+  if (isMyReviewsMode) {
+    return (
+      <div className="space-y-6">
+        {/* Profile Header */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className={`w-20 h-20 ${clinician.position_info?.role === 'director' ? 'bg-purple-600' : 'bg-blue-600'} rounded-full flex items-center justify-center`}>
+                <span className="text-white text-2xl font-bold">
+                  {clinician.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+              <div>
+                <div className="flex items-center space-x-3 mb-1">
+                  <h1 className="text-2xl font-bold text-gray-900">{clinician.name}</h1>
+                  {clinician.position_info?.role === 'director' && (
+                    <span className="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">
+                      Director
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-600">{clinician.position_info?.position_title}</p>
+                <p className="text-gray-600">
+                  {clinician.position_info?.role === 'director' 
+                    ? clinician.director_info?.direction || 'General Direction'
+                    : clinician.clinician_info?.type_info?.title || 'General'
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center space-x-4 mb-2">
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Username</div>
+                  <div className="font-medium">{clinician.username}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Start Date</div>
+                  <div className="font-medium">{new Date(clinician.created_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Month/Year Selection and Performance Overview */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Month:</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = new Date(0, i).toLocaleString('default', { month: 'long' });
+                    return (
+                      <option key={month} value={month}>
+                        {month}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Year:</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - i;
+                    return (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <button
+                onClick={handleDownloadPDF}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Summary</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Performance Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{calculateScore()}%</div>
+              <div className="text-sm text-blue-700">Current Score</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {existingReviews.filter(r => {
+                  const kpi = kpis.find(k => k.id === r.kpi);
+                  return kpi && r.met_check;
+                }).length}
+              </div>
+              <div className="text-sm text-green-700">KPIs Met</div>
+            </div>
+            <div className="text-center p-4 bg-red-50 rounded-lg">
+              <div className="text-2xl font-bold text-red-600">
+                {existingReviews.filter(r => {
+                  const kpi = kpis.find(k => k.id === r.kpi);
+                  return kpi && !r.met_check;
+                }).length}
+              </div>
+              <div className="text-sm text-red-700">KPIs Not Met</div>
+            </div>
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-600">{existingReviews.length}</div>
+              <div className="text-sm text-gray-700">Total Reviewed</div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">KPI Details - {selectedMonth} {selectedYear}</h3>
+          <div className="space-y-4">
+            {kpis.map((kpi) => {
+              const review = existingReviews.find(r => r.kpi === kpi.id);
+              const isMet = review?.met_check;
+              
+              return (
+                <div key={kpi.id} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{kpi.title}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{kpi.description}</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm text-gray-600">Weight: {kpi.weight}%</span>
+                      {review ? (
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          isMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {isMet ? 'Met' : 'Not Met'}
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                          Not Reviewed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {review && (
+                    <div className="space-y-3 pt-3 border-t border-gray-200">
+                      {review.review_date && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Review Date: </span>
+                          <span className="text-sm text-gray-600">{new Date(review.review_date).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {review.notes && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Notes: </span>
+                          <p className="text-sm text-gray-600 mt-1">{review.notes}</p>
+                        </div>
+                      )}
+                      {review.plan && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Improvement Plan: </span>
+                          <p className="text-sm text-gray-600 mt-1">{review.plan}</p>
+                        </div>
+                      )}
+                      {review.file_url && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Supporting File: </span>
+                          <a
+                            href={review.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 underline ml-1"
+                          >
+                            View File
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -740,9 +959,13 @@ const MonthlyReview: React.FC = () => {
                           type="file"
                           multiple
                           accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
-                          onChange={(e) => handleFileUpload(kpi.id, e.target.files)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-2 sm:file:mr-4 file:py-1 file:px-2 sm:file:px-3 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          disabled={uploadingFiles[kpi.id]}
+                          onChange={isMyReviewsMode ? undefined : (e) => handleFileUpload(kpi.id, e.target.files)}
+                          className={`w-full px-3 py-2 border rounded-lg file:mr-2 sm:file:mr-4 file:py-1 file:px-2 sm:file:px-3 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-medium ${
+                            isMyReviewsMode 
+                              ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed file:bg-gray-100 file:text-gray-400'
+                              : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+                          }`}
+                          disabled={isMyReviewsMode || uploadingFiles[kpi.id]}
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           {isMyReviewsMode 
@@ -823,14 +1046,16 @@ const MonthlyReview: React.FC = () => {
                                     >
                                       <ExternalLink className="w-4 h-4" />
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveUploadedFile(kpi.id, index)}
-                                      className="text-red-600 hover:text-red-800 transition-colors"
-                                      title="Remove file"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {!isMyReviewsMode && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveUploadedFile(kpi.id, index)}
+                                        className="text-red-600 hover:text-red-800 transition-colors"
+                                        title="Remove file"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </div>

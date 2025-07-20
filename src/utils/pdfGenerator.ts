@@ -3,10 +3,13 @@ import autoTable from 'jspdf-autotable';
 
 interface KPI {
   id: string;
-  name: string;
+  title: string;
   description: string;
   weight: number;
-  category: string;
+  floor: string;
+  is_removed: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Clinician {
@@ -85,16 +88,16 @@ export const generateReviewPDF = (
   const tableData = kpis.map(kpi => {
     const kpiData = reviewData[kpi.id] || {};
     const status = kpiData.met === true ? 'Met' : kpiData.met === false ? 'Not Met' : 'Not Reviewed';
-    const weight = kpi.weight.toString();
-    const category = kpi.category;
+    const weight = `${kpi.weight}%`;
+    const floor = kpi.floor || 'General'; // Use floor as category
     
-    return [kpi.name, category, weight, status];
+    return [kpi.title, floor, weight, status]; // Use title instead of name
   });
 
   // Add table
   autoTable(doc, {
     startY: yPosition + 10,
-    head: [['KPI Name', 'Category', 'Weight', 'Status']],
+    head: [['KPI Title', 'Floor', 'Weight', 'Status']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -117,25 +120,58 @@ export const generateReviewPDF = (
   const unmetKPIs = kpis.filter(kpi => reviewData[kpi.id]?.met === false);
   
   if (unmetKPIs.length > 0) {
-    let currentY = (doc as any).lastAutoTable?.finalY + 20 || yPosition + 100;
+    // Always start Improvement Plans & Notes on a new page
+    doc.addPage();
+    let currentY = 30;
     
-    doc.setFontSize(14);
+    // Add a header section for the second page
+    doc.setFontSize(16);
+    doc.setTextColor(220, 38, 38); // Red color to indicate areas needing improvement
     doc.text('Improvement Plans & Notes', margin, currentY);
+    currentY += 10;
+    
+    // Add a subtitle
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Detailed feedback and action plans for KPIs that were not met', margin, currentY);
+    currentY += 15;
+    
+    // Add a separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
     currentY += 15;
 
     unmetKPIs.forEach((kpi, index) => {
       const kpiData = reviewData[kpi.id];
       
-      // Check if we need a new page
-      if (currentY > 250) {
+      // Estimate content height for this KPI
+      let estimatedHeight = 20; // Base height for title and spacing
+      
+      if (kpiData?.reviewDate) estimatedHeight += 8;
+      if (kpiData?.notes) {
+        const notesLines = doc.splitTextToSize(kpiData.notes, pageWidth - margin * 3);
+        estimatedHeight += notesLines.length * 5 + 11; // 6 for label + 5 for spacing
+      }
+      if (kpiData?.plan) {
+        const planLines = doc.splitTextToSize(kpiData.plan, pageWidth - margin * 3);
+        estimatedHeight += planLines.length * 5 + 16; // 6 for label + 10 for spacing
+      }
+      if (kpiData?.files && kpiData.files.length > 0) estimatedHeight += 10;
+      
+      // Check if we need a new page for this entire KPI section
+      if (currentY + estimatedHeight > 270) {
         doc.addPage();
         currentY = 30;
       }
 
+      // Add a light background box for each KPI section
+      doc.setFillColor(250, 250, 250);
+      doc.rect(margin - 5, currentY - 5, pageWidth - (margin * 2) + 10, estimatedHeight, 'F');
+      
       doc.setFontSize(12);
       doc.setTextColor(220, 38, 38); // Red color for unmet KPIs
-      doc.text(`${index + 1}. ${kpi.name}`, margin, currentY);
-      currentY += 10;
+      doc.text(`${index + 1}. ${kpi.title}`, margin, currentY);
+      currentY += 12;
 
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
@@ -165,7 +201,31 @@ export const generateReviewPDF = (
         doc.text(`Supporting Files: ${kpiData.files.length} file(s) attached`, margin + 10, currentY);
         currentY += 10;
       }
+      
+      // Add extra spacing between KPIs
+      currentY += 5;
     });
+  } else {
+    // If no unmet KPIs, add a congratulatory message on the first page
+    let currentY = (doc as any).lastAutoTable?.finalY + 30 || yPosition + 120;
+    
+    // Check if we have enough space on the first page
+    if (currentY > 240) {
+      doc.addPage();
+      currentY = 30;
+    }
+    
+    doc.setFillColor(34, 197, 94, 0.1); // Light green background
+    doc.rect(margin, currentY - 10, pageWidth - (margin * 2), 40, 'F');
+    
+    doc.setFontSize(14);
+    doc.setTextColor(34, 197, 94); // Green color
+    doc.text('🎉 Excellent Performance!', margin + 10, currentY + 5);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text('All KPIs have been met for this review period.', margin + 10, currentY + 18);
+    doc.text('Keep up the great work!', margin + 10, currentY + 28);
   }
 
   // Footer

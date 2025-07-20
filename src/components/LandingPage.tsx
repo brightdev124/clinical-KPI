@@ -192,7 +192,7 @@ const LandingPage: React.FC = () => {
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Built for clinicians who manage clinicians
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
-                no experience required
+                You can’t improve what you can’t see
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
@@ -204,7 +204,7 @@ const LandingPage: React.FC = () => {
                 onClick={() => handleAuthClick('signup')}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center"
               >
-                Start Free Trial - First 6 months free
+                Start Free Trial
               </button>              
             </div>
           </div>
@@ -230,7 +230,7 @@ const LandingPage: React.FC = () => {
           <div className="text-center mb-16">
             <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-100 to-orange-100 rounded-full text-red-800 text-sm font-bold mb-8 shadow-lg border border-red-200">
               <AlertTriangle className="w-4 h-4 mr-2" />
-              The Reality Check
+                Do Your Clinical Directors Know What Drives Margin?
             </div>
             <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
               Do your Clinical Directors:
