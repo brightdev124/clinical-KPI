@@ -77,6 +77,11 @@ const AppContent: React.FC = () => {
             <MonthlyReview />
           </RoleBasedRoute>
         } />
+        <Route path="my-reviews" element={
+          <RoleBasedRoute allowedRoles={['director']}>
+            <MonthlyReview />
+          </RoleBasedRoute>
+        } />
 
         <Route path="users" element={
           <RoleBasedRoute allowedRoles={['super-admin']}>

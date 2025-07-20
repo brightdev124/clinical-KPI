@@ -31,7 +31,10 @@ const MonthlyReview: React.FC = () => {
   const { user } = useAuth();
   const formatName = useNameFormatter();
   
-  const clinician = profiles.find(c => c.id === clinicianId);
+  // Determine if this is "My Reviews" mode (viewing own reviews) or reviewing someone else
+  const isMyReviewsMode = !clinicianId && window.location.pathname === '/my-reviews';
+  const targetStaffId = isMyReviewsMode ? user?.id : clinicianId;
+  const clinician = profiles.find(c => c.id === targetStaffId);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [reviewData, setReviewData] = useState<ReviewFormData>({});
@@ -45,12 +48,12 @@ const MonthlyReview: React.FC = () => {
 
   // Load existing reviews for the selected period
   const loadReviewsForPeriod = async (month: string, year: number) => {
-    if (!clinicianId) return;
+    if (!targetStaffId) return;
     
     setIsLoading(true);
     try {
       const monthNumber = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
-      const reviews = await ReviewService.getReviewsByPeriod(clinicianId, monthNumber, year);
+      const reviews = await ReviewService.getReviewsByPeriod(targetStaffId, monthNumber, year);
       setExistingReviews(reviews);
       
       // Load existing review data into form
@@ -80,11 +83,11 @@ const MonthlyReview: React.FC = () => {
 
   // Load most recent review data as defaults
   const loadMostRecentReviews = async () => {
-    if (!clinicianId || hasLoadedData) return;
+    if (!targetStaffId || hasLoadedData) return;
     
     setIsLoading(true);
     try {
-      const allReviews = await ReviewService.getClinicianReviews(clinicianId);
+      const allReviews = await ReviewService.getClinicianReviews(targetStaffId);
       if (allReviews.length === 0) {
         setHasLoadedData(true);
         setIsLoading(false);
@@ -126,13 +129,13 @@ const MonthlyReview: React.FC = () => {
 
   // Load data when month/year changes
   useEffect(() => {
-    if (clinicianId && kpis.length > 0) {
+    if (targetStaffId && kpis.length > 0) {
       setHasLoadedData(false);
       setReviewData({});
       setExistingReviews([]);
       loadReviewsForPeriod(selectedMonth, selectedYear);
     }
-  }, [selectedMonth, selectedYear, clinicianId, kpis.length]);
+  }, [selectedMonth, selectedYear, targetStaffId, kpis.length]);
 
   // Load most recent data as defaults if no existing reviews found
   useEffect(() => {
@@ -146,8 +149,8 @@ const MonthlyReview: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Clinician Not Found</h2>
-          <p className="text-gray-600">The requested clinician could not be found.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Staff Member Not Found</h2>
+          <p className="text-gray-600">The requested staff member could not be found.</p>
         </div>
       </div>
     );
@@ -190,11 +193,11 @@ const MonthlyReview: React.FC = () => {
     setUploadingFiles(prev => ({ ...prev, [kpiId]: true }));
     
     try {
-      if (!clinicianId) throw new Error('Clinician ID not found');
+      if (!targetStaffId) throw new Error('Staff member ID not found');
       
       const uploadedFiles = await FileUploadService.uploadFiles(
         fileArray,
-        clinicianId,
+        targetStaffId,
         kpiId
       );
 
@@ -452,7 +455,9 @@ const MonthlyReview: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
           <div className="flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Monthly KPI Review</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                {isMyReviewsMode ? 'My Reviews' : 'Monthly KPI Review'}
+              </h2>
               {isLoading && (
                 <div className="flex items-center space-x-2">
                   <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
@@ -460,11 +465,23 @@ const MonthlyReview: React.FC = () => {
                 </div>
               )}
             </div>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Conducting performance review for {formatName(clinician.name)}</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              {isMyReviewsMode 
+                ? `Viewing your performance reviews and uploading supporting documentation`
+                : `Conducting performance review for ${formatName(clinician.name)}`
+              }
+            </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 space-y-1 sm:space-y-0">
-              <span className="text-xs sm:text-sm text-gray-500">{clinician.position_info?.position_title || 'Clinician'}</span>
+              <span className="text-xs sm:text-sm text-gray-500">
+                {clinician.position_info?.position_title || 'Staff Member'}
+              </span>
               <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">•</span>
-              <span className="text-xs sm:text-sm text-gray-500">{clinician.clinician_info?.type_info?.title || 'General'}</span>
+              <span className="text-xs sm:text-sm text-gray-500">
+                {clinician.position_info?.role === 'director' 
+                  ? clinician.director_info?.direction || 'General Direction'
+                  : clinician.clinician_info?.type_info?.title || 'General'
+                }
+              </span>
               {existingReviews.length > 0 && (
                 <>
                   <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">•</span>
@@ -616,25 +633,36 @@ const MonthlyReview: React.FC = () => {
 
                 {/* KPI Status Selection */}
                 <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
-                  <span className="text-sm font-medium text-gray-700">KPI Status:</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    KPI Status:
+                    {isMyReviewsMode && (
+                      <span className="text-xs text-gray-500 ml-2">(Set by your supervisor)</span>
+                    )}
+                  </span>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <button
-                      onClick={() => handleKPIChange(kpi.id, 'met', true)}
+                      onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', true)}
+                      disabled={isMyReviewsMode}
                       className={`flex items-center justify-center space-x-2 px-4 sm:px-6 py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                         isMet === true 
-                          ? 'bg-green-600 text-white shadow-lg transform scale-105' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600 hover:border-green-200 border border-gray-200'
+                          ? 'bg-green-600 text-white shadow-lg' + (isMyReviewsMode ? '' : ' transform scale-105')
+                          : isMyReviewsMode 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600 hover:border-green-200 border border-gray-200'
                       }`}
                     >
                       <Check className="w-4 sm:w-5 h-4 sm:h-5" />
                       <span>Met / Exceeded</span>
                     </button>
                     <button
-                      onClick={() => handleKPIChange(kpi.id, 'met', false)}
+                      onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', false)}
+                      disabled={isMyReviewsMode}
                       className={`flex items-center justify-center space-x-2 px-4 sm:px-6 py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                         isMet === false 
-                          ? 'bg-red-600 text-white shadow-lg transform scale-105' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200'
+                          ? 'bg-red-600 text-white shadow-lg' + (isMyReviewsMode ? '' : ' transform scale-105')
+                          : isMyReviewsMode 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200'
                       }`}
                     >
                       <X className="w-4 sm:w-5 h-4 sm:h-5" />
@@ -650,23 +678,36 @@ const MonthlyReview: React.FC = () => {
                       <div>
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           <Calendar className="w-4 h-4 inline mr-1" />
-                          Review Date *
+                          Review Date {!isMyReviewsMode && '*'}
+                          {isMyReviewsMode && (
+                            <span className="text-xs text-gray-500 ml-2">(Set by supervisor)</span>
+                          )}
                         </label>
                         <input
                           type="date"
                           value={kpiData.reviewDate || ''}
-                          onChange={(e) => handleKPIChange(kpi.id, 'reviewDate', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                          onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'reviewDate', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
+                            isMyReviewsMode 
+                              ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                              : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                          }`}
                           max={new Date().toISOString().split('T')[0]}
-                          required
+                          required={!isMyReviewsMode}
+                          disabled={isMyReviewsMode}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Date when this KPI was discussed with the clinician</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {isMyReviewsMode 
+                            ? 'Date when this KPI was discussed with you'
+                            : 'Date when this KPI was discussed with the clinician'
+                          }
+                        </p>
                       </div>
                       
                       <div>
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           <Upload className="w-4 h-4 inline mr-1" />
-                          Supporting Files
+                          {isMyReviewsMode ? 'Your Supporting Files' : 'Supporting Files'}
                         </label>
                         
                         {/* File Upload Input */}
@@ -679,7 +720,10 @@ const MonthlyReview: React.FC = () => {
                           disabled={uploadingFiles[kpi.id]}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          Upload PDFs, screenshots, or other supporting documents (Max 10MB per file)
+                          {isMyReviewsMode 
+                            ? 'Upload your supporting documents, evidence, or explanations (Max 10MB per file)'
+                            : 'Upload PDFs, screenshots, or other supporting documents (Max 10MB per file)'
+                          }
                         </p>
                         
                         {/* Upload Progress */}
@@ -774,30 +818,52 @@ const MonthlyReview: React.FC = () => {
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         <FileText className="w-4 h-4 inline mr-1" />
-                        Performance Notes *
+                        {isMyReviewsMode ? 'Performance Notes' : 'Performance Notes *'}
+                        {isMyReviewsMode && (
+                          <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
+                        )}
                       </label>
                       <textarea
                         value={kpiData.notes || ''}
-                        onChange={(e) => handleKPIChange(kpi.id, 'notes', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'notes', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
+                          isMyReviewsMode 
+                            ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        }`}
                         rows={4}
-                        placeholder="Detailed notes from the performance conversation, including specific examples and context..."
-                        required
+                        placeholder={isMyReviewsMode 
+                          ? "Notes from your supervisor about this KPI performance..."
+                          : "Detailed notes from the performance conversation, including specific examples and context..."
+                        }
+                        required={!isMyReviewsMode}
+                        disabled={isMyReviewsMode}
                       />
                     </div>
                     
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         <TrendingUp className="w-4 h-4 inline mr-1" />
-                        Improvement Plan *
+                        {isMyReviewsMode ? 'Improvement Plan' : 'Improvement Plan *'}
+                        {isMyReviewsMode && (
+                          <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
+                        )}
                       </label>
                       <textarea
                         value={kpiData.plan || ''}
-                        onChange={(e) => handleKPIChange(kpi.id, 'plan', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'plan', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
+                          isMyReviewsMode 
+                            ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        }`}
                         rows={4}
-                        placeholder="Specific action plan for improvement, including timelines, resources, training, or support needed..."
-                        required
+                        placeholder={isMyReviewsMode 
+                          ? "Improvement plan provided by your supervisor..."
+                          : "Specific action plan for improvement, including timelines, resources, training, or support needed..."
+                        }
+                        required={!isMyReviewsMode}
+                        disabled={isMyReviewsMode}
                       />
                     </div>
                   </div>
@@ -822,31 +888,47 @@ const MonthlyReview: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">Review Summary</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {isMyReviewsMode ? 'My Review Summary' : 'Review Summary'}
+            </h3>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
-              {completedKPIs} of {totalKPIs} KPIs reviewed • Projected Score: {score}%
+              {isMyReviewsMode 
+                ? `${existingReviews.length} of ${totalKPIs} KPIs have been reviewed • Current Score: ${score}%`
+                : `${completedKPIs} of ${totalKPIs} KPIs reviewed • Projected Score: ${score}%`
+              }
             </p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
             <button
-              onClick={() => navigate('/clinicians')}
+              onClick={() => navigate(isMyReviewsMode ? '/' : '/clinicians')}
               className="px-4 sm:px-6 py-3 sm:py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
             >
-              Cancel
+              {isMyReviewsMode ? 'Back to Dashboard' : 'Cancel'}
             </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || completedKPIs === 0}
-              className="px-4 sm:px-6 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-            >
-              {isSubmitting ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>
-            </button>
+            {!isMyReviewsMode && (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || completedKPIs === 0}
+                className="px-4 sm:px-6 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              >
+                {isSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>{isSubmitting ? 'Saving Changes...' : 'Save Changes'}</span>
+              </button>
+            )}
+            {isMyReviewsMode && (
+              <button
+                onClick={handleDownloadPDF}
+                className="px-4 sm:px-6 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download My Reviews</span>
+              </button>
+            )}
           </div>
         </div>
         

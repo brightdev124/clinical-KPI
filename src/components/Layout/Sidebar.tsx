@@ -33,6 +33,7 @@ const Sidebar: React.FC = () => {
       { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['super-admin', 'director'] },
       { name: 'KPI Management', href: '/kpis', icon: Target, roles: ['super-admin'] },
       { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
+      { name: 'My Reviews', href: '/my-reviews', icon: ClipboardList, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Clinician Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
       { name: 'Positions', href: '/positions', icon: Briefcase, roles: ['super-admin'] },
