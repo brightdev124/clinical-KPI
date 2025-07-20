@@ -55,8 +55,8 @@ export const generateReviewPDF = (
   const clinicianInfo = [
     `Name: ${clinician.name}`,
     `Position: ${clinician.position}`,
-    `Department: ${clinician.department}`,
-    `Email: ${clinician.email}`,
+    `Direction: ${clinician.department}`, // This field contains direction/specialty info
+    `Username: ${clinician.email}`, // Using email field to store username
     `Review Period: ${month} ${year}`,
     `Overall Score: ${score}%`
   ];
@@ -217,8 +217,8 @@ export const generateClinicianSummaryPDF = (
   const clinicianInfo = [
     `Name: ${clinician.name}`,
     `Position: ${clinician.position}`,
-    `Department: ${clinician.department}`,
-    `Email: ${clinician.email}`,
+    `Direction: ${clinician.department}`, // This field contains direction/specialty info
+    `Username: ${clinician.email}`, // Using email field to store username
     `Start Date: ${new Date(clinician.startDate).toLocaleDateString()}`,
     `Report Generated: ${new Date().toLocaleDateString()}`
   ];

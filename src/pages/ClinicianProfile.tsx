@@ -68,8 +68,8 @@ const ClinicianProfile: React.FC = () => {
       // Map staffMember data to match the expected Clinician interface
       const clinicianData = {
         id: staffMember.id,
-        name: formatName(staffMember.name),
-        email: `${staffMember.username}@clinic.com`,
+        name: staffMember.name, // Use full name without formatting
+        email: staffMember.username, // Use username instead of fake email
         position: staffMember.position_info?.position_title || (isDirector ? 'Director' : 'Clinician'),
         department: isDirector 
           ? staffMember.director_info?.direction || 'General Direction'
@@ -93,12 +93,12 @@ const ClinicianProfile: React.FC = () => {
           <div className="flex items-center space-x-6">
             <div className={`w-20 h-20 ${isDirector ? 'bg-purple-600' : 'bg-blue-600'} rounded-full flex items-center justify-center`}>
               <span className="text-white text-2xl font-bold">
-                {formatName(staffMember.name).split(' ').map(n => n[0]).join('')}
+                {staffMember.name.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div>
               <div className="flex items-center space-x-3 mb-1">
-                <h1 className="text-2xl font-bold text-gray-900">{formatName(staffMember.name)}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{staffMember.name}</h1>
                 {isDirector && (
                   <span className="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">
                     Director
@@ -122,8 +122,8 @@ const ClinicianProfile: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="flex items-center space-x-2">
-            <Mail className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{staffMember.username}@clinic.com</span>
+            <User className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-600">Username: {staffMember.username}</span>
           </div>
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-gray-400" />
@@ -210,36 +210,7 @@ const ClinicianProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Reviews */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h3>
-        <div className="space-y-4">
-          {reviews.slice(0, 5).map((review) => {
-            const kpi = kpis.find(k => k.id === review.kpiId);
-            return (
-              <div key={review.id} className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">{kpi?.title}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">{review.month} {review.year}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      review.met ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {review.met ? 'Met' : 'Not Met'}
-                    </span>
-                  </div>
-                </div>
-                {review.notes && (
-                  <p className="text-sm text-gray-600 mt-2">{review.notes}</p>
-                )}
-                {review.plan && (
-                  <p className="text-sm text-blue-600 mt-2"><strong>Plan:</strong> {review.plan}</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+
     </div>
   );
 };
