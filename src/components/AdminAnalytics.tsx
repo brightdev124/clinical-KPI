@@ -25,7 +25,7 @@ interface AdminAnalyticsProps {
 }
 
 const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
-  const { profiles, getClinicianScore, getAssignedClinicians, loading } = useData();
+  const { profiles, getClinicianScore, getAssignedClinicians, getAssignedDirectors, loading } = useData();
   const formatName = useNameFormatter();
 
   // State for controls
@@ -79,6 +79,29 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
   const availableMonths = generateAvailableMonths();
 
+  // Calculate director's average score based on assigned members
+  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+    const assignedClinicians = getAssignedClinicians(directorId);
+    const assignedDirectors = getAssignedDirectors(directorId);
+    const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+    
+    if (allAssignedMembers.length === 0) {
+      return 0; // No assigned members
+    }
+    
+    const scores = allAssignedMembers.map(member => {
+      // For both assigned directors and clinicians, get their individual clinician score
+      return getClinicianScore(member.id, month, year);
+    });
+    
+    const validScores = scores.filter(score => score > 0);
+    if (validScores.length === 0) {
+      return 0;
+    }
+    
+    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+  };
+
   // Get filtered users based on type
   const getFilteredUsers = () => {
     if (userType === 'director') {
@@ -93,14 +116,13 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     return profiles.filter(p => p.position_info?.role === 'director');
   };
 
-  // Group clinicians by director
+  // Group clinicians and directors by director
   const getCliniciansByDirector = () => {
     const directors = getDirectors();
-    const clinicians = profiles.filter(p => p.position_info?.role === 'clinician');
     
     return directors.map(director => ({
       director,
-      clinicians: getAssignedClinicians(director.id)
+      clinicians: [...getAssignedClinicians(director.id), ...getAssignedDirectors(director.id)]
     }));
   };
 
@@ -147,19 +169,19 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setExpandedDirectors(newExpanded);
   };
 
-  // Handle director selection (select all clinicians under director)
+  // Handle director selection (select all clinicians and directors under director)
   const handleDirectorSelect = (directorId: string) => {
-    const clinicians = getAssignedClinicians(directorId);
+    const assignedUsers = [...getAssignedClinicians(directorId), ...getAssignedDirectors(directorId)];
     const newSelected = new Set(selectedUsers);
     
-    const allSelected = clinicians.every(c => newSelected.has(c.id));
+    const allSelected = assignedUsers.every(u => newSelected.has(u.id));
     
     if (allSelected) {
-      // Deselect all clinicians under this director
-      clinicians.forEach(c => newSelected.delete(c.id));
+      // Deselect all users under this director
+      assignedUsers.forEach(u => newSelected.delete(u.id));
     } else {
-      // Select all clinicians under this director
-      clinicians.forEach(c => newSelected.add(c.id));
+      // Select all users under this director
+      assignedUsers.forEach(u => newSelected.add(u.id));
     }
     
     setSelectedUsers(newSelected);
@@ -199,7 +221,12 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
       Array.from(selectedUsers).forEach(userId => {
         const user = profiles.find(p => p.id === userId);
         if (user) {
-          const score = getClinicianScore(userId, monthStr, year);
+          let score;
+          if (userType === 'director' && user.position_info?.role === 'director') {
+            score = getDirectorAverageScore(userId, monthStr, year);
+          } else {
+            score = getClinicianScore(userId, monthStr, year);
+          }
           console.log(`Score for ${user.name} in ${monthStr} ${year}:`, score);
           monthData[user.name] = score;
         }
@@ -275,7 +302,11 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
         const year = current.getFullYear();
         const monthKey = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         
-        monthlyScores[monthKey] = getClinicianScore(user!.id, monthStr, year);
+        if (userType === 'director' && user!.position_info?.role === 'director') {
+          monthlyScores[monthKey] = getDirectorAverageScore(user!.id, monthStr, year);
+        } else {
+          monthlyScores[monthKey] = getClinicianScore(user!.id, monthStr, year);
+        }
         
         // Move to next month
         currentMonth++;
@@ -512,31 +543,31 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                           {formatName(director.name)}
                         </div>
                         <div className="text-xs text-gray-500">
-                          Director • {clinicians.length} clinicians
+                          Director • {clinicians.length} assigned users
                         </div>
                       </div>
                     </div>
 
-                    {/* Clinicians under director */}
+                    {/* Assigned users under director */}
                     {expandedDirectors.has(director.id) && (
                       <div className="ml-6 space-y-1">
-                        {filterUsers(clinicians).map(clinician => (
+                        {filterUsers(clinicians).map(user => (
                           <button
-                            key={clinician.id}
-                            onClick={() => handleUserSelect(clinician.id)}
+                            key={user.id}
+                            onClick={() => handleUserSelect(user.id)}
                             className="flex items-center space-x-2 w-full p-2 text-left hover:bg-gray-50 rounded-lg"
                           >
-                            {selectedUsers.has(clinician.id) ? (
+                            {selectedUsers.has(user.id) ? (
                               <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
                             ) : (
                               <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
-                                {formatName(clinician.name)}
+                                {formatName(user.name)}
                               </div>
                               <div className="text-xs text-gray-500 truncate">
-                                {clinician.username}
+                                {user.username} • {user.position_info?.role === 'director' ? 'Director' : 'Clinician'}
                               </div>
                             </div>
                           </button>
