@@ -58,13 +58,31 @@ const ClinicianProfile: React.FC = () => {
   const currentScore = getClinicianScore(staffMember.id, currentMonth, currentYear);
 
   const handleDownloadSummary = () => {
-    const monthlyScores = performanceData.map(data => ({
-      month: data.month,
-      year: data.year,
-      score: data.score
-    }));
-    
-    generateClinicianSummaryPDF(staffMember, kpis, monthlyScores, reviews);
+    try {
+      const monthlyScores = performanceData.map(data => ({
+        month: data.month,
+        year: data.year,
+        score: data.score
+      }));
+      
+      // Map staffMember data to match the expected Clinician interface
+      const clinicianData = {
+        id: staffMember.id,
+        name: formatName(staffMember.name),
+        email: `${staffMember.username}@clinic.com`,
+        position: staffMember.position_info?.position_title || (isDirector ? 'Director' : 'Clinician'),
+        department: isDirector 
+          ? staffMember.director_info?.direction || 'General Direction'
+          : staffMember.clinician_info?.type_info?.title || 'General',
+        assignedDirector: '', // This would need to be fetched if needed
+        startDate: staffMember.created_at
+      };
+      
+      generateClinicianSummaryPDF(clinicianData, kpis, monthlyScores, reviews);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   return (

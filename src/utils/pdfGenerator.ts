@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface KPI {
   id: string;
@@ -92,7 +92,7 @@ export const generateReviewPDF = (
   });
 
   // Add table
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: yPosition + 10,
     head: [['KPI Name', 'Category', 'Weight', 'Status']],
     body: tableData,
@@ -117,7 +117,7 @@ export const generateReviewPDF = (
   const unmetKPIs = kpis.filter(kpi => reviewData[kpi.id]?.met === false);
   
   if (unmetKPIs.length > 0) {
-    let currentY = (doc as any).lastAutoTable.finalY + 20;
+    let currentY = (doc as any).lastAutoTable?.finalY + 20 || yPosition + 100;
     
     doc.setFontSize(14);
     doc.text('Improvement Plans & Notes', margin, currentY);
@@ -237,7 +237,7 @@ export const generateClinicianSummaryPDF = (
     `${score.score}%`
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: yPosition + 10,
     head: [['Month', 'Score']],
     body: trendData,
@@ -261,7 +261,7 @@ export const generateClinicianSummaryPDF = (
     ? Math.round(monthlyScores.reduce((sum, score) => sum + score.score, 0) / monthlyScores.length)
     : 0;
 
-  const currentY = (doc as any).lastAutoTable.finalY + 20;
+  const currentY = (doc as any).lastAutoTable?.finalY + 20 || yPosition + 100;
   doc.setFillColor(34, 197, 94, 0.1);
   doc.rect(margin, currentY, pageWidth - (margin * 2), 20, 'F');
   doc.setFontSize(12);
