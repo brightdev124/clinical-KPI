@@ -349,8 +349,33 @@ const MonthlyReview: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    const score = calculateScore();
-    generateReviewPDF(clinician, kpis, reviewData, selectedMonth, selectedYear, score);
+    if (!clinician) {
+      alert('Clinician data not found');
+      return;
+    }
+
+    try {
+      const score = calculateScore();
+      
+      // Map clinician profile data to match the expected Clinician interface
+      const isDirector = clinician.position_info?.role === 'director';
+      const clinicianData = {
+        id: clinician.id,
+        name: clinician.name, // Use full name without formatting
+        email: clinician.username, // Use username instead of fake email
+        position: clinician.position_info?.position_title || (isDirector ? 'Director' : 'Clinician'),
+        department: isDirector 
+          ? clinician.director_info?.direction || 'General Direction'
+          : clinician.clinician_info?.type_info?.title || 'General',
+        assignedDirector: '', // This would need to be fetched if needed
+        startDate: clinician.created_at
+      };
+      
+      generateReviewPDF(clinicianData, kpis, reviewData, selectedMonth, selectedYear, score);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   const handleSubmit = async () => {
