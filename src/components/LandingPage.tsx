@@ -236,7 +236,7 @@ const LandingPage: React.FC = () => {
               Do your Clinical Directors:
             </h2>
             <p className="text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed font-medium">
-              Most clinical directors struggle with performance management, creating dangerous gaps in accountability and team development that impact patient care
+              Most clinical leaders aren’t trained to manage performance. The result? Missed KPIs, unaddressed underperformance, and revenue leakage across your regions.
             </p>
             
             {/* Warning Stats */}

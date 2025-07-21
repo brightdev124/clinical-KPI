@@ -586,6 +586,36 @@ const MonthlyReview: React.FC = () => {
             </div>
           </div>
 
+          {/* Progress Bar */}
+          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Review Progress for {selectedMonth} {selectedYear}</span>
+                <p className="text-xs text-gray-500 mt-1">Track your KPI review completion status</p>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-bold text-blue-600">{kpis.length > 0 ? Math.round((existingReviews.length / kpis.length) * 100) : 0}%</span>
+                <p className="text-xs text-gray-600">{existingReviews.length}/{kpis.length} completed</p>
+              </div>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-4 shadow-inner">
+              <div 
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-4 rounded-full transition-all duration-500 shadow-sm"
+                style={{ width: `${kpis.length > 0 ? (existingReviews.length / kpis.length) * 100 : 0}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-600 mt-2">
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-blue-600 rounded-full mr-1"></div>
+                {existingReviews.length} reviewed
+              </span>
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-gray-300 rounded-full mr-1"></div>
+                {kpis.length - existingReviews.length} pending
+              </span>
+            </div>
+          </div>
+
           {/* Performance Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
@@ -619,18 +649,54 @@ const MonthlyReview: React.FC = () => {
 
         {/* KPI Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">KPI Details - {selectedMonth} {selectedYear}</h3>
-          <div className="space-y-4">
-            {kpis.map((kpi) => {
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">KPI Details - {selectedMonth} {selectedYear}</h3>
+            {existingReviews.length === kpis.length && kpis.length > 0 && (
+              <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full flex items-center space-x-1">
+                <Check className="w-4 h-4" />
+                <span>All Reviews Complete</span>
+              </span>
+            )}
+          </div>
+          {existingReviews.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-gray-900 mb-2">No Reviews Found</h4>
+              <p className="text-gray-600 mb-4">
+                No KPI reviews have been conducted for {selectedMonth} {selectedYear}.
+              </p>
+              <p className="text-sm text-gray-500">
+                Try selecting a different month or contact your supervisor if you believe this is an error.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {kpis.map((kpi) => {
               const review = existingReviews.find(r => r.kpi === kpi.id);
               const isMet = review?.met_check;
               
               return (
                 <div key={kpi.id} className="p-4 border border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{kpi.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{kpi.description}</p>
+                    <div className="flex items-start space-x-3 flex-1">
+                      {/* Status Icon */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
+                        review ? (isMet ? 'bg-green-100' : 'bg-red-100') : 'bg-gray-100'
+                      }`}>
+                        {review ? (
+                          isMet ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <X className="w-4 h-4 text-red-600" />
+                          )
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{kpi.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{kpi.description}</p>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="text-sm text-gray-600">Weight: {kpi.weight}%</span>
@@ -645,6 +711,18 @@ const MonthlyReview: React.FC = () => {
                           Not Reviewed
                         </span>
                       )}
+                    </div>
+                  </div>
+                  
+                  {/* Individual KPI Progress Bar */}
+                  <div className="mb-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          review ? (isMet ? 'bg-green-600' : 'bg-red-600') : 'bg-gray-300'
+                        }`}
+                        style={{ width: review ? (isMet ? '100%' : '0%') : '0%' }}
+                      />
                     </div>
                   </div>
                   
@@ -686,7 +764,8 @@ const MonthlyReview: React.FC = () => {
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
