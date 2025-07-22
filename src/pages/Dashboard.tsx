@@ -32,6 +32,7 @@ import {
 import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import AdminAnalytics from '../components/AdminAnalytics';
+import { MonthYearPicker } from '../components/UI';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -56,7 +57,6 @@ const Dashboard: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthSelector, setShowMonthSelector] = useState(false);
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
-  const monthSelectorRef = useRef<HTMLDivElement>(null);
   
   // State for expanded KPIs in clinician dashboard
   const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
@@ -70,30 +70,7 @@ const Dashboard: React.FC = () => {
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
 
-  // Generate available months (last 12 months)
-  const availableMonths = Array.from({ length: 12 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    return {
-      month: date.toLocaleString('default', { month: 'long' }),
-      year: date.getFullYear(),
-      value: `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`
-    };
-  });
 
-  // Click outside handler for month selector
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (monthSelectorRef.current && !monthSelectorRef.current.contains(event.target as Node)) {
-        setShowMonthSelector(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // Reset "Show All" states when month/year changes
   useEffect(() => {
@@ -491,36 +468,13 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               <h3 className="text-lg font-semibold text-gray-900">View Data By Month</h3>
-              <div className="relative" ref={monthSelectorRef}>
-                <button
-                  onClick={() => setShowMonthSelector(!showMonthSelector)}
-                  className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-3 sm:py-2 rounded-lg hover:bg-blue-100 transition-colors w-full sm:w-auto justify-center sm:justify-start text-sm sm:text-base"
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>{selectedMonth} {selectedYear}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                
-                {showMonthSelector && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px] w-full sm:w-auto">
-                    <div className="p-2 max-h-60 overflow-y-auto">
-                      {availableMonths.map((monthData, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleMonthSelect(monthData.month, monthData.year)}
-                          className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-sm sm:text-base ${
-                            selectedMonth === monthData.month && selectedYear === monthData.year
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          {monthData.value}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <MonthYearPicker
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                onSelect={handleMonthSelect}
+                isOpen={showMonthSelector}
+                onToggle={() => setShowMonthSelector(!showMonthSelector)}
+              />
             </div>
             
             <button
@@ -1040,36 +994,13 @@ const Dashboard: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">View Team Data By Month</h3>
-            <div className="relative" ref={monthSelectorRef}>
-              <button
-                onClick={() => setShowMonthSelector(!showMonthSelector)}
-                className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center sm:justify-start"
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="truncate">{selectedMonth} {selectedYear}</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              
-              {showMonthSelector && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px] max-w-[280px] w-full sm:w-auto">
-                  <div className="p-2 max-h-60 overflow-y-auto">
-                    {availableMonths.map((monthData, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleMonthSelect(monthData.month, monthData.year)}
-                        className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-sm ${
-                          selectedMonth === monthData.month && selectedYear === monthData.year
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        {monthData.value}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <MonthYearPicker
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onSelect={handleMonthSelect}
+              isOpen={showMonthSelector}
+              onToggle={() => setShowMonthSelector(!showMonthSelector)}
+            />
           </div>
           
           <button
