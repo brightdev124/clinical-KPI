@@ -6,7 +6,7 @@ import { useNameFormatter } from '../utils/nameFormatter';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
 import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, File, Trash2, ExternalLink } from 'lucide-react';
-import { EnhancedSelect } from '../components/UI';
+import { EnhancedSelect, MonthYearPicker } from '../components/UI';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
 interface ReviewFormData {
@@ -45,6 +45,10 @@ const MonthlyReview: React.FC = () => {
   const [existingReviews, setExistingReviews] = useState<ReviewItem[]>([]);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
+  
+  // State for MonthYearPicker dropdowns
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [mobileMonthPickerOpen, setMobileMonthPickerOpen] = useState(false);
 
   // Load existing reviews for the selected period
   const loadReviewsForPeriod = async (month: string, year: number) => {
@@ -486,6 +490,19 @@ const MonthlyReview: React.FC = () => {
     }
   };
 
+  // MonthYearPicker handlers
+  const handleMonthYearSelect = (month: string, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    setMonthPickerOpen(false);
+  };
+
+  const handleMobileMonthYearSelect = (month: string, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    setMobileMonthPickerOpen(false);
+  };
+
   const score = calculateScore();
   const completedKPIs = Object.values(reviewData).filter(data => data.met !== null && data.met !== undefined).length;
   const totalKPIs = kpis.length;
@@ -542,40 +559,13 @@ const MonthlyReview: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">Month:</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const month = new Date(0, i).toLocaleString('default', { month: 'long' });
-                    return (
-                      <option key={month} value={month}>
-                        {month}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">Year:</label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+              <MonthYearPicker
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                onSelect={handleMonthYearSelect}
+                isOpen={monthPickerOpen}
+                onToggle={() => setMonthPickerOpen(!monthPickerOpen)}
+              />
               <button
                 onClick={handleDownloadPDF}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -829,37 +819,14 @@ const MonthlyReview: React.FC = () => {
               </button>
             )}
             
-            <div className="flex space-x-2 sm:space-x-4">
-              <div className="flex-1 sm:min-w-[140px]">
-                <EnhancedSelect
-                  value={selectedMonth}
-                  onChange={(value) => setSelectedMonth(value as string)}
-                  options={Array.from({ length: 12 }, (_, i) => {
-                    const month = new Date(0, i).toLocaleString('default', { month: 'long' });
-                    return { value: month, label: month };
-                  })}
-                  icon={<Calendar className="w-4 h-4" />}
-                  variant="default"
-                  size="sm"
-                  placeholder="Select month..."
-                  customDropdown={true}
-                  searchable={true}
-                />
-              </div>
-              <div className="flex-1 sm:min-w-[100px]">
-                <EnhancedSelect
-                  value={selectedYear}
-                  onChange={(value) => setSelectedYear(parseInt(value as string))}
-                  options={[2023, 2024, 2025].map(year => ({
-                    value: year,
-                    label: year.toString()
-                  }))}
-                  variant="default"
-                  size="sm"
-                  placeholder="Year..."
-                  customDropdown={true}
-                />
-              </div>
+            <div className="flex justify-center">
+              <MonthYearPicker
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                onSelect={handleMobileMonthYearSelect}
+                isOpen={mobileMonthPickerOpen}
+                onToggle={() => setMobileMonthPickerOpen(!mobileMonthPickerOpen)}
+              />
             </div>
           </div>
         </div>
