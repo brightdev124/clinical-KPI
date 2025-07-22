@@ -359,7 +359,7 @@ const Dashboard: React.FC = () => {
           recentActivities.push({
             id: `${clinician.id}-${review.id}-${index}`,
             type: review.met ? 'kpi_updated' : 'improvement_plan',
-            clinician: formatName(clinician.name),
+            clinician: clinician.name,
             action: review.met ? `${kpi?.title} - Target achieved` : `${kpi?.title} - Improvement plan created`,
             time: timeText,
             score: getClinicianScore(clinician.id, review.month, review.year),
@@ -1877,10 +1877,10 @@ const Dashboard: React.FC = () => {
                               <div className="flex items-center space-x-2 flex-1 min-w-0">
                                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-orange-800 text-xs font-medium">
-                                    {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                                    {clinician.name.split(' ').map(n => n[0]).join('')}
                                   </span>
                                 </div>
-                                <span className="text-xs sm:text-sm text-gray-900 truncate">{formatName(clinician.name)}</span>
+                                <span className="text-xs sm:text-sm text-gray-900 truncate">{clinician.name}</span>
                               </div>
                               <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                                 {review.notes && (
