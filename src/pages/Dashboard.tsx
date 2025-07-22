@@ -1172,7 +1172,7 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
-                name: user?.role === 'super-admin' ? formatName(person.name) : formatName(person.name).split(' ')[0], // Full name for directors, first word for others
+                name: formatName(person.name), // Use formatted name for all roles
                 fullName: formatName(person.name),
                 score: person.position_info?.role === 'director' 
                   ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
