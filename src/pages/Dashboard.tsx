@@ -29,7 +29,7 @@ import {
   User,
   Navigation
 } from 'lucide-react';
-import { generateMonthlyDataPDF } from '../utils/pdfGenerator';
+import { generateMonthlyDataPDF, generatePerformancePDF } from '../utils/pdfGenerator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import AdminAnalytics from '../components/AdminAnalytics';
 import { MonthYearPicker } from '../components/UI';
@@ -446,6 +446,32 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error in handleDownloadKPIPerformance:', error);
       alert('Error generating PDF. Please check the console for details.');
+    }
+  };
+
+  // Helper function to download Performance section as PDF (for admin/director dashboard)
+  const handleDownloadPerformance = () => {
+    try {
+      // Get all reviews for the selected month/year (we'll filter by role inside the PDF generator)
+      const monthlyReviews = reviewItems.filter(review => {
+        const reviewDate = new Date(review.date);
+        const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+        const reviewYear = reviewDate.getFullYear();
+        return reviewMonth === selectedMonth && reviewYear === selectedYear;
+      });
+      
+      generatePerformancePDF(
+        user?.role || '',
+        user?.name || '',
+        kpis,
+        monthlyReviews,
+        userClinicians,
+        selectedMonth,
+        selectedYear
+      );
+    } catch (error) {
+      console.error('Error in handleDownloadPerformance:', error);
+      alert('Error generating Performance PDF. Please try again.');
     }
   };
 
@@ -1650,7 +1676,15 @@ const Dashboard: React.FC = () => {
                   {selectedMonth} {selectedYear} Performance
                 </h3>
               </div>
-
+              
+              <button
+                onClick={handleDownloadPerformance}
+                className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                title="Download Performance Report"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Download Report</span>
+              </button>
             </div>
           </div>
           
