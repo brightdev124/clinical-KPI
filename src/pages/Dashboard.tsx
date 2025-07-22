@@ -428,6 +428,27 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Helper function to download KPI Performance as PDF
+  const handleDownloadKPIPerformance = () => {
+    try {
+      if (user?.role === 'clinician') {
+        const myReviews = getClinicianReviews(user.id);
+        const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
+        const clinician = profiles.find(p => p.id === user.id);
+        const score = getClinicianScore(user.id, selectedMonth, selectedYear);
+        
+        if (clinician) {
+          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score);
+        } else {
+          alert('Error: Clinician profile not found');
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleDownloadKPIPerformance:', error);
+      alert('Error generating PDF. Please check the console for details.');
+    }
+  };
+
   // Helper functions to get all clinicians and directors sorted by highest score
   const getAllClinicians = () => {
     return profiles
@@ -779,10 +800,20 @@ const Dashboard: React.FC = () => {
           {/* Enhanced KPI Performance */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
-              <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {selectedMonth} {selectedYear}</h3>
-              <div className="text-xs sm:text-sm text-gray-600">
-                {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of {kpis.length} KPIs reviewed
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {selectedMonth} {selectedYear}</h3>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">
+                  {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of {kpis.length} KPIs reviewed
+                </div>
               </div>
+              <button
+                onClick={handleDownloadKPIPerformance}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                title="Download KPI Performance Report"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download PDF</span>
+              </button>
             </div>
             
             <div className="space-y-4">
