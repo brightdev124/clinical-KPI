@@ -102,14 +102,27 @@ const Dashboard: React.FC = () => {
   };
 
   // Generate monthly score data for charts
-  const generateMonthlyScoreData = (clinicianId: string) => {
+  const generateMonthlyScoreData = (clinicianId: string, endMonth?: string, endYear?: number) => {
     const monthlyData = [];
-    const currentDate = new Date();
     
-    // Get last 12 months of data
+    // Use selected month/year or default to current date
+    const targetMonth = endMonth || new Date().toLocaleString('default', { month: 'long' });
+    const targetYear = endYear || new Date().getFullYear();
+    
+    // Convert month name to month index
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const targetMonthIndex = months.indexOf(targetMonth);
+    
+    // Create end date from target month/year
+    const endDate = new Date(targetYear, targetMonthIndex, 1);
+    
+    // Get 12 months of data ending at the selected month
     for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(currentDate.getMonth() - i);
+      const date = new Date(endDate);
+      date.setMonth(endDate.getMonth() - i);
       const month = date.toLocaleString('default', { month: 'long' });
       const year = date.getFullYear();
       const score = getClinicianScore(clinicianId, month, year);
@@ -530,7 +543,7 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
-                <LineChart data={generateMonthlyScoreData(user.id)}>
+                <LineChart data={generateMonthlyScoreData(user.id, selectedMonth, selectedYear)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="displayName" 
@@ -568,7 +581,7 @@ const Dashboard: React.FC = () => {
                   />
                 </LineChart>
               ) : (
-                <BarChart data={generateMonthlyScoreData(user.id)}>
+                <BarChart data={generateMonthlyScoreData(user.id, selectedMonth, selectedYear)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="displayName" 
