@@ -377,7 +377,7 @@ ${contactForm.message}
               </div>
               
               <p className="mt-6 text-gray-600 max-w-2xl mx-auto font-medium">
-                Transform reactive management into proactive leadership with structured accountability
+                KPIbrain gives clinical directors a simple, structured way to track KPIs, document conversations, and drive the outcomes your business depends on
               </p>
             </div>
           </div>
