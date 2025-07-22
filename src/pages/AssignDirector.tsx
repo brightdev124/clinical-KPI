@@ -38,24 +38,24 @@ const AssignDirector: React.FC = () => {
 
   // Filter clinicians based on search term
   const filteredUnassignedClinicians = unassignedClinicians.filter(clinician =>
-    formatName(clinician.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    clinician.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     clinician.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredAssignedClinicians = assignedClinicians.filter(clinician =>
-    formatName(clinician.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    clinician.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     clinician.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Filter directors based on search term and exclude the selected director
   const filteredUnassignedDirectors = unassignedDirectors.filter(director =>
     director.id !== selectedDirector && // Prevent self-assignment
-    (formatName(director.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (director.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     director.username.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const filteredAssignedDirectors = assignedDirectors.filter(director =>
-    formatName(director.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    director.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     director.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -249,7 +249,7 @@ const AssignDirector: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium">
-                      {formatName(director.name).split(' ').map(n => n[0]).join('')}
+                      {director.name.split(' ').map(n => n[0]).join('')}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -266,7 +266,7 @@ const AssignDirector: React.FC = () => {
                 
                 <div className="space-y-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{formatName(director.name)}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{director.name}</h3>
                     <p className="text-sm text-gray-600">{director.position_info?.position_title || 'Clinical Director'}</p>
                   </div>
                   
@@ -295,7 +295,7 @@ const AssignDirector: React.FC = () => {
                             <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                               <Crown className="w-3 h-3 text-white" />
                             </div>
-                            <span className="text-sm text-gray-600 truncate">{formatName(director.name)}</span>
+                            <span className="text-sm text-gray-600 truncate">{director.name}</span>
                             <span className="text-xs text-purple-600 bg-purple-100 px-1 rounded">Director</span>
                           </div>
                         ))}
@@ -305,10 +305,10 @@ const AssignDirector: React.FC = () => {
                           <div key={`cli-${clinician.id}`} className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                               <span className="text-white text-xs font-medium">
-                                {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                                {clinician.name.split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
-                            <span className="text-sm text-gray-600 truncate">{formatName(clinician.name)}</span>
+                            <span className="text-sm text-gray-600 truncate">{clinician.name}</span>
                           </div>
                         ))}
                         
@@ -477,11 +477,11 @@ const AssignDirector: React.FC = () => {
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                               <span className="text-white text-sm font-medium">
-                                {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                                {clinician.name.split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{formatName(clinician.name)}</div>
+                              <div className="font-medium text-gray-900">{clinician.name}</div>
                               <div className="text-sm text-gray-600">{clinician.username}</div>
                             </div>
                           </div>
@@ -523,7 +523,7 @@ const AssignDirector: React.FC = () => {
                               <Crown className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{formatName(director.name)}</div>
+                              <div className="font-medium text-gray-900">{director.name}</div>
                               <div className="text-sm text-gray-600">{director.username}</div>
                               <div className="text-xs text-purple-600">{director.director_info?.direction || 'Director'}</div>
                             </div>
@@ -589,11 +589,11 @@ const AssignDirector: React.FC = () => {
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                               <span className="text-white text-sm font-medium">
-                                {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                                {clinician.name.split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{formatName(clinician.name)}</div>
+                              <div className="font-medium text-gray-900">{clinician.name}</div>
                               <div className="text-sm text-gray-600">{clinician.username}</div>
                             </div>
                           </div>
@@ -635,7 +635,7 @@ const AssignDirector: React.FC = () => {
                               <Crown className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{formatName(director.name)}</div>
+                              <div className="font-medium text-gray-900">{director.name}</div>
                               <div className="text-sm text-gray-600">{director.username}</div>
                               <div className="text-xs text-purple-600">{director.director_info?.direction || 'Director'}</div>
                             </div>

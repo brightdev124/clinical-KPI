@@ -241,12 +241,12 @@ const ClinicianManagement: React.FC = () => {
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 ${isDirector ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-gradient-to-r from-green-600 to-blue-600'} rounded-full flex items-center justify-center`}>
                       <span className="text-white font-medium">
-                        {formatName(staffMember.name).split(' ').map(n => n[0]).join('')}
+                        {staffMember.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{formatName(staffMember.name)}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{staffMember.name}</h3>
                         {isDirector && (
                           <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
                             Director
