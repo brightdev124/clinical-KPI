@@ -19,6 +19,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { MonthYearPicker } from './UI';
 
 interface AdminAnalyticsProps {
   className?: string;
@@ -31,9 +32,15 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   // State for controls
   const [userType, setUserType] = useState<'director' | 'clinician'>('clinician');
   const [startMonth, setStartMonth] = useState<string>('');
+  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
   const [endMonth, setEndMonth] = useState<string>('');
+  const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
   const [viewType, setViewType] = useState<'table' | 'chart'>('table');
   const [showSidebar, setShowSidebar] = useState(true);
+  
+  // State for MonthYearPicker dropdowns
+  const [startPickerOpen, setStartPickerOpen] = useState(false);
+  const [endPickerOpen, setEndPickerOpen] = useState(false);
   
   // State for sidebar
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,33 +58,19 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   // Initialize months
   useEffect(() => {
     const currentDate = new Date();
-    const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM format
+    const currentMonthName = currentDate.toLocaleDateString('en-US', { month: 'long' });
+    const currentYear = currentDate.getFullYear();
+    
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(currentDate.getMonth() - 3);
-    const startMonthValue = threeMonthsAgo.toISOString().slice(0, 7);
+    const startMonthName = threeMonthsAgo.toLocaleDateString('en-US', { month: 'long' });
+    const startYearValue = threeMonthsAgo.getFullYear();
     
-    setStartMonth(startMonthValue);
-    setEndMonth(currentMonth);
+    setStartMonth(startMonthName);
+    setStartYear(startYearValue);
+    setEndMonth(currentMonthName);
+    setEndYear(currentYear);
   }, []);
-
-  // Generate available months (last 12 months)
-  const generateAvailableMonths = () => {
-    const months = [];
-    const currentDate = new Date();
-    
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(currentDate.getMonth() - i);
-      months.push({
-        value: date.toISOString().slice(0, 7),
-        label: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-      });
-    }
-    
-    return months;
-  };
-
-  const availableMonths = generateAvailableMonths();
 
   // Calculate director's average score based on assigned members
   const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
@@ -193,9 +186,14 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
     const data = [];
     
-    // Parse start and end dates
-    const [startYear, startMonthNum] = startMonth.split('-').map(Number);
-    const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+    // Convert month names to numbers
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    const startMonthNum = months.indexOf(startMonth) + 1;
+    const endMonthNum = months.indexOf(endMonth) + 1;
     
     // Create current date starting from start month
     let currentYear = startYear;
@@ -283,9 +281,14 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     return selectedUserProfiles.map(user => {
       const monthlyScores: any = { user };
       
-      // Parse start and end dates
-      const [startYear, startMonthNum] = startMonth.split('-').map(Number);
-      const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+      // Convert month names to numbers
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      const startMonthNum = months.indexOf(startMonth) + 1;
+      const endMonthNum = months.indexOf(endMonth) + 1;
       
       // Create current date starting from start month
       let currentYear = startYear;
@@ -336,7 +339,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setCurrentPage(1);
     setSortColumn('');
     setSortDirection('asc');
-  }, [selectedUsers, startMonth, endMonth]);
+  }, [selectedUsers, startMonth, startYear, endMonth, endYear]);
 
   // Pagination handlers
   const handlePageChange = (page: number) => {
@@ -357,6 +360,19 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
       setSortDirection('asc');
     }
     setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  // MonthYearPicker handlers
+  const handleStartMonthSelect = (month: string, year: number) => {
+    setStartMonth(month);
+    setStartYear(year);
+    setStartPickerOpen(false);
+  };
+
+  const handleEndMonthSelect = (month: string, year: number) => {
+    setEndMonth(month);
+    setEndYear(year);
+    setEndPickerOpen(false);
   };
 
   // Generate colors for chart lines
@@ -416,32 +432,21 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
           {/* Month Selectors */}
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <select
-              value={startMonth}
-              onChange={(e) => setStartMonth(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Start Month</option>
-              {availableMonths.map(month => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
+            <MonthYearPicker
+              selectedMonth={startMonth}
+              selectedYear={startYear}
+              onSelect={handleStartMonthSelect}
+              isOpen={startPickerOpen}
+              onToggle={() => setStartPickerOpen(!startPickerOpen)}
+            />
             <span className="text-gray-500">to</span>
-            <select
-              value={endMonth}
-              onChange={(e) => setEndMonth(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">End Month</option>
-              {availableMonths.map(month => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
+            <MonthYearPicker
+              selectedMonth={endMonth}
+              selectedYear={endYear}
+              onSelect={handleEndMonthSelect}
+              isOpen={endPickerOpen}
+              onToggle={() => setEndPickerOpen(!endPickerOpen)}
+            />
           </div>
 
           {/* View Type Toggle */}
