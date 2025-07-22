@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, BarChart3, Users, Target, TrendingUp, CheckCircle, ArrowRight, Star, Shield, Zap, AlertTriangle, MessageSquare, FileX, ArrowDown, Check, X, FileText, BarChart, ClipboardCheck, TrendingDown, Clock, UserCheck, Heart, Award, Lock } from 'lucide-react';
+import { Activity, BarChart3, Users, Target, TrendingUp, CheckCircle, ArrowRight, Star, Shield, Zap, AlertTriangle, MessageSquare, FileX, ArrowDown, Check, X, FileText, BarChart, ClipboardCheck, TrendingDown, Clock, UserCheck, Heart, Award, Lock, Send, Mail } from 'lucide-react';
 import AuthModal from './AuthModal';
 import { useNameFormatter } from '../utils/nameFormatter';
 
@@ -8,6 +8,15 @@ const LandingPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
   const formatName = useNameFormatter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    organization: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const features = [
     {
@@ -141,6 +150,51 @@ const LandingPage: React.FC = () => {
   const handleAuthClick = (mode: 'login' | 'signup') => {
     setAuthMode(mode);
     setShowAuthModal(true);
+  };
+
+  const handleContactClick = () => {
+    setShowContactModal(true);
+  };
+
+  const handleContactFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setContactForm({
+      ...contactForm,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Simulate sending email (in a real app, you'd call an API endpoint)
+      const emailBody = `
+Name: ${contactForm.name}
+Email: ${contactForm.email}
+Organization: ${contactForm.organization}
+
+Message:
+${contactForm.message}
+      `;
+      
+      // Create mailto link with form data
+      const mailtoLink = `mailto:minajoh@yahoo.com?subject=Contact from ${contactForm.name} - Clinical KPI System&body=${encodeURIComponent(emailBody)}`;
+      window.location.href = mailtoLink;
+      
+      // Show success message
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowContactModal(false);
+        setSubmitSuccess(false);
+        setContactForm({ name: '', email: '', organization: '', message: '' });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Auto-advance carousel
@@ -532,11 +586,11 @@ const LandingPage: React.FC = () => {
               Ready to bring structure to clinician leadership?
             </h2>           
             <button
-              onClick={() => handleAuthClick('signup')}
+              onClick={handleContactClick}
               className="bg-white mt-4 text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 inline-flex items-center"
             >
-              Start Free Trial - sign up today
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Contact Us - Get Started Today
+              <Mail className="w-5 h-5 ml-2" />
             </button>
           </div>
         </div>
@@ -564,6 +618,132 @@ const LandingPage: React.FC = () => {
           onClose={() => setShowAuthModal(false)}
           onSwitchMode={(mode) => setAuthMode(mode)}
         />
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Contact Us</h2>
+                    <p className="text-sm text-gray-600">Get started with Clinical KPI System</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowContactModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {submitSuccess ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Message Sent!</h3>
+                  <p className="text-gray-600">Your email client should open with your message. We'll get back to you soon!</p>
+                </div>
+              ) : (
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      required
+                      value={contactForm.name}
+                      onChange={handleContactFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Your full name"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      value={contactForm.email}
+                      onChange={handleContactFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="your.email@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">
+                      Organization
+                    </label>
+                    <input
+                      type="text"
+                      id="organization"
+                      name="organization"
+                      value={contactForm.organization}
+                      onChange={handleContactFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Your healthcare organization"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                      Message *
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      required
+                      rows={4}
+                      value={contactForm.message}
+                      onChange={handleContactFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      placeholder="Tell us about your needs and how we can help you get started..."
+                    />
+                  </div>
+
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowContactModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Send Message
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
