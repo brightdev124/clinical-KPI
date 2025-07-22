@@ -510,7 +510,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                Welcome, {formatName(user?.name || '')}! 👩‍⚕️
+                Welcome, {user?.name || ''}! 👩‍⚕️
               </h1>
               <p className="text-green-100 text-base sm:text-lg">
                 Your performance overview for {selectedMonth} {selectedYear}
@@ -1039,7 +1039,7 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {formatName(user?.name || '').split(' ')[0]}! 👋
+              Welcome back, {(user?.name || '').split(' ')[0]}! 👋
             </h1>
             <p className="text-blue-100 text-lg">
               Here's your team performance overview for {selectedMonth} {selectedYear}
@@ -1472,7 +1472,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs sm:text-sm font-medium">
-                        {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                        {clinician.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -1482,7 +1482,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   
                   <div className="mb-3">
-                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{formatName(clinician.name)}</h4>
+                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
                     <p className="text-xs text-gray-600 truncate">
                       {clinician.position_info?.position_title || 'Clinician'} • 
                       {clinician.clinician_info?.type_info?.title || 'General'}
@@ -1586,7 +1586,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs sm:text-sm font-medium">
-                          {formatName(clinician.name).split(' ').map(n => n[0]).join('')}
+                          {clinician.name.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
@@ -1596,7 +1596,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     
                     <div className="mb-3">
-                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{formatName(clinician.name)}</h4>
+                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
                       <p className="text-xs text-gray-600 truncate">
                         {clinician.position_info?.position_title || 'Clinician'} • 
                         {clinician.clinician_info?.type_info?.title || 'General'}
