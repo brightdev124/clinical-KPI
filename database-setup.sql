@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS kpis (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   description TEXT NOT NULL,
-  weight INTEGER NOT NULL CHECK (weight BETWEEN 1 AND 10),
+  weight INTEGER NOT NULL CHECK (weight BETWEEN 1 AND 20),
   floor TEXT,
   removed BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL

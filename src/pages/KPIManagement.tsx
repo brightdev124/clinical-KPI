@@ -22,7 +22,7 @@ const KPIManagement: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    weight: 5,
+    weight: 10,
     floor: '',
   });
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -34,8 +34,8 @@ const KPIManagement: React.FC = () => {
       return;
     }
     
-    if (formData.weight < 1 || formData.weight > 10) {
-      alert('Weight must be between 1 and 10');
+    if (formData.weight < 1 || formData.weight > 20) {
+      alert('Weight must be between 1 and 20');
       return;
     }
 
@@ -54,7 +54,7 @@ const KPIManagement: React.FC = () => {
           is_removed: false,
         });
       }
-      setFormData({ title: '', description: '', weight: 5, floor: '' });
+      setFormData({ title: '', description: '', weight: 10, floor: '' });
       setShowForm(false);
     } catch (error) {
       console.error('Failed to save KPI:', error);
@@ -262,7 +262,7 @@ const KPIManagement: React.FC = () => {
                       <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full ${showRemovedKPIs ? 'bg-red-600' : 'bg-blue-600'}`}
-                          style={{ width: `${(kpi.weight / 10) * 100}%` }}
+                          style={{ width: `${(kpi.weight / 20) * 100}%` }}
                         />
                       </div>
                     </div>
@@ -364,19 +364,19 @@ const KPIManagement: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Weight (1-10) *
+                  Weight (1-20) *
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max="20"
                   value={formData.weight}
                   onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) || 1 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Weight determines the importance of this KPI (1 = lowest, 10 = highest)
+                  Weight determines the importance of this KPI (1 = lowest, 20 = highest)
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
@@ -385,7 +385,7 @@ const KPIManagement: React.FC = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingKPI(null);
-                    setFormData({ title: '', description: '', weight: 5, floor: '' });
+                    setFormData({ title: '', description: '', weight: 10, floor: '' });
                   }}
                   disabled={submitLoading}
                   className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm sm:text-base"

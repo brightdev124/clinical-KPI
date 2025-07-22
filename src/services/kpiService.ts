@@ -69,9 +69,9 @@ export class KPIService {
    * Create a new KPI
    */
   static async createKPI(kpiData: CreateKPIData): Promise<KPI> {
-    // Validate weight is between 1 and 10
-    if (kpiData.weight < 1 || kpiData.weight > 10) {
-      throw new Error('Weight must be between 1 and 10');
+    // Validate weight is between 1 and 20
+    if (kpiData.weight < 1 || kpiData.weight > 20) {
+      throw new Error('Weight must be between 1 and 20');
     }
 
     const { data, error } = await supabase
@@ -98,8 +98,8 @@ export class KPIService {
    */
   static async updateKPI(id: string, kpiData: UpdateKPIData): Promise<KPI> {
     // Validate weight if provided
-    if (kpiData.weight !== undefined && (kpiData.weight < 1 || kpiData.weight > 10)) {
-      throw new Error('Weight must be between 1 and 10');
+    if (kpiData.weight !== undefined && (kpiData.weight < 1 || kpiData.weight > 20)) {
+      throw new Error('Weight must be between 1 and 20');
     }
 
     // Prepare update data (only include fields that are provided)
