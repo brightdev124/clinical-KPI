@@ -166,8 +166,12 @@ const Dashboard: React.FC = () => {
     }
     
     const scores = allAssignedMembers.map(member => {
-      // For both assigned directors and clinicians, get their individual clinician score
-      return getClinicianScore(member.id, month, year);
+      // For assigned directors, get their director average score; for clinicians, get their individual score
+      if (member.position_info?.role === 'director') {
+        return getDirectorAverageScore(member.id, month, year);
+      } else {
+        return getClinicianScore(member.id, month, year);
+      }
     });
     
     const validScores = scores.filter(score => score > 0);
@@ -1325,7 +1329,7 @@ const Dashboard: React.FC = () => {
                     fontSize: '12px'
                   }}
                   formatter={(value: any, name: string, props: any) => [
-                    `${value} clinician${value !== 1 ? 's' : ''}`, 
+                    `${value} staff member${value !== 1 ? 's' : ''}`, 
                     props.payload.label
                   ]}
                 />
