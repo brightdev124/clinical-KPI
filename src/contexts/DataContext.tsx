@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { KPI, KPIService } from '../services/kpiService';
 import { ReviewItem, ReviewService } from '../services/reviewService';
 import { supabase } from '../lib/supabase';
@@ -828,40 +828,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
   };
 
-  const getClinicianScore = (clinicianId: string, month: string, year: number) => {
+  // Memoized score calculation to avoid expensive recalculations
+  const scoreCache = useMemo(() => new Map<string, number>(), [reviewItems, kpis, profiles]);
+
+  const getClinicianScore = useCallback((clinicianId: string, month: string, year: number) => {
+    const cacheKey = `${clinicianId}-${month}-${year}`;
+    
+    // Check cache first
+    if (scoreCache.has(cacheKey)) {
+      return scoreCache.get(cacheKey)!;
+    }
+
     // Check if the ID belongs to a director and if they are approved
     const profile = profiles.find(p => p.id === clinicianId);
     
     // Only calculate scores for approved users
     if (!profile || !profile.accept) {
+      scoreCache.set(cacheKey, 0);
       return 0;
     }
     
     // For directors, calculate their individual performance score (not team average)
     // Directors are evaluated on their own KPI performance just like clinicians
-    if (profile?.position_info?.role === 'director') {
-      return getClinicianScoreInternal(clinicianId, month, year);
-    }
-    
-    // For regular clinicians, use the standard scoring method
-    return getClinicianScoreInternal(clinicianId, month, year);
-  };
+    const score = getClinicianScoreInternal(clinicianId, month, year);
+    scoreCache.set(cacheKey, score);
+    return score;
+  }, [profiles, scoreCache]);
   
+  // Memoized review data by month/year to avoid repeated filtering
+  const reviewsByMonthYear = useMemo(() => {
+    const grouped = new Map<string, ReviewItem[]>();
+    
+    reviewItems.forEach(r => {
+      const reviewDate = new Date(r.date);
+      const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+      const reviewYear = reviewDate.getFullYear();
+      const key = `${r.clinician}-${reviewMonth}-${reviewYear}`;
+      
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(r);
+    });
+    
+    return grouped;
+  }, [reviewItems]);
+
+  // Memoized KPI lookup for faster access
+  const kpiMap = useMemo(() => {
+    const map = new Map<string, KPIContextType>();
+    kpis.forEach(kpi => map.set(kpi.id, kpi));
+    return map;
+  }, [kpis]);
+
   // Internal function to calculate individual clinician scores
-  const getClinicianScoreInternal = (clinicianId: string, month: string, year: number) => {
+  const getClinicianScoreInternal = useCallback((clinicianId: string, month: string, year: number) => {
     // Ensure the clinician is approved before calculating their score
     const profile = profiles.find(p => p.id === clinicianId);
     if (!profile || !profile.accept) {
       return 0;
     }
 
-    // Filter review items for the specific clinician and period
-    const clinicianReviews = reviewItems.filter(r => {
-      const reviewDate = new Date(r.date);
-      const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-      const reviewYear = reviewDate.getFullYear();
-      return r.clinician === clinicianId && reviewMonth === month && reviewYear === year;
-    });
+    // Get pre-filtered reviews for this clinician/month/year
+    const reviewKey = `${clinicianId}-${month}-${year}`;
+    const clinicianReviews = reviewsByMonthYear.get(reviewKey) || [];
     
     if (clinicianReviews.length === 0) return 0;
     
@@ -869,7 +899,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let earnedWeight = 0;
     
     clinicianReviews.forEach(review => {
-      const kpi = kpis.find(k => k.id === review.kpi);
+      const kpi = kpiMap.get(review.kpi);
       if (kpi) {
         totalPossibleWeight += kpi.weight;
         // Add the KPI weight to earned score only if met_check is true
@@ -882,7 +912,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Calculate percentage: (earned weight / total possible weight) * 100
     return totalPossibleWeight > 0 ? Math.round((earnedWeight / totalPossibleWeight) * 100) : 0;
-  };
+  }, [profiles, reviewsByMonthYear, kpiMap]);
 
   // Assignment functions
   const assignClinician = async (clinicianId: string, directorId: string) => {

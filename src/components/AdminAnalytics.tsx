@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useNameFormatter } from '../utils/nameFormatter';
 import { 

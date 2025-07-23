@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Link } from 'react-router-dom';
@@ -101,8 +101,8 @@ const Dashboard: React.FC = () => {
     });
   };
 
-  // Generate monthly score data for charts
-  const generateMonthlyScoreData = (clinicianId: string, endMonth?: string, endYear?: number) => {
+  // Memoized monthly score data generation to avoid expensive recalculations
+  const generateMonthlyScoreData = useCallback((clinicianId: string, endMonth?: string, endYear?: number) => {
     const monthlyData = [];
     
     // Use selected month/year or default to current date
@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
     }
     
     return monthlyData;
-  };
+  }, [getClinicianScore]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -195,8 +195,8 @@ const Dashboard: React.FC = () => {
     });
   };
 
-  // Get detailed KPI information for clinician
-  const getClinicianKPIDetails = (clinicianId: string, month: string, year: number) => {
+  // Memoized KPI details to avoid expensive filtering and mapping
+  const getClinicianKPIDetails = useCallback((clinicianId: string, month: string, year: number) => {
     // Ensure the clinician is approved before processing their reviews
     const clinician = profiles.find(p => p.id === clinicianId);
     if (!clinician || !clinician.accept) {
@@ -226,7 +226,7 @@ const Dashboard: React.FC = () => {
         hasData: !!kpiReview
       };
     });
-  };
+  }, [profiles, reviewItems, kpis]);
 
   // Helper function to get file name from URL
   const getFileNameFromUrl = (url: string) => {
@@ -288,30 +288,42 @@ const Dashboard: React.FC = () => {
   // Calculate stats for selected month
   const totalTeamMembers = userClinicians.length;
   const totalKPIs = kpis.length;
-  const avgScore = userClinicians.length > 0 
-    ? Math.round(userClinicians.reduce((acc, c) => {
-        const score = c.position_info?.role === 'director' 
-          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-          : getClinicianScore(c.id, selectedMonth, selectedYear);
-        return acc + score;
-      }, 0) / userClinicians.length)
-    : 0;
+  
+  // Memoized calculations that depend on selectedMonth and selectedYear
+  const avgScore = useMemo(() => {
+    if (userClinicians.length === 0) return 0;
+    
+    const totalScore = userClinicians.reduce((acc, c) => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return acc + score;
+    }, 0);
+    
+    return Math.round(totalScore / userClinicians.length);
+  }, [userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
 
-  // Get staff needing attention (score < 70) - clinicians only for admin, clinicians + directors for directors
-  const cliniciansNeedingAttention = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => {
-    const score = c.position_info?.role === 'director' 
-      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-      : getClinicianScore(c.id, selectedMonth, selectedYear);
-    return score < 70;
-  });
+  // Memoized staff needing attention (score < 70)
+  const cliniciansNeedingAttention = useMemo(() => {
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
+    return targetClinicians.filter(c => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return score < 70;
+    });
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
 
-  // Top performers (score >= 90) - clinicians only for admin, clinicians + directors for directors
-  const topPerformers = (user?.role === 'super-admin' ? userCliniciansOnly : userClinicians).filter(c => {
-    const score = c.position_info?.role === 'director' 
-      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-      : getClinicianScore(c.id, selectedMonth, selectedYear);
-    return score >= 90;
-  });
+  // Memoized top performers (score >= 90)
+  const topPerformers = useMemo(() => {
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
+    return targetClinicians.filter(c => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return score >= 90;
+    });
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
 
   // Recent activity based on user role
   const getRecentActivity = () => {
@@ -502,7 +514,18 @@ const Dashboard: React.FC = () => {
 
   // Clinician-specific dashboard
   if (user?.role === 'clinician') {
-    const myScore = getClinicianScore(user.id, selectedMonth, selectedYear);
+    // Memoized clinician score calculation
+    const myScore = useMemo(() => 
+      getClinicianScore(user.id, selectedMonth, selectedYear), 
+      [user.id, selectedMonth, selectedYear, getClinicianScore]
+    );
+    
+    // Memoized chart data to avoid expensive recalculation
+    const chartData = useMemo(() => 
+      generateMonthlyScoreData(user.id, selectedMonth, selectedYear), 
+      [user.id, selectedMonth, selectedYear, generateMonthlyScoreData]
+    );
+    
     const myReviews = getClinicianReviews(user.id);
     const myData = profiles.find(p => p.id === user.id);
     const myDirector = getClinicianDirector(user.id);
@@ -594,7 +617,7 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
-                <LineChart data={generateMonthlyScoreData(user.id, selectedMonth, selectedYear)}>
+                <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="displayName" 
@@ -618,7 +641,7 @@ const Dashboard: React.FC = () => {
                     }}
                     formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
                     labelFormatter={(label) => {
-                      const dataPoint = generateMonthlyScoreData(user.id).find(d => d.displayName === label);
+                      const dataPoint = chartData.find(d => d.displayName === label);
                       return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
                     }}
                   />
@@ -632,7 +655,7 @@ const Dashboard: React.FC = () => {
                   />
                 </LineChart>
               ) : (
-                <BarChart data={generateMonthlyScoreData(user.id, selectedMonth, selectedYear)}>
+                <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="displayName" 
@@ -656,7 +679,7 @@ const Dashboard: React.FC = () => {
                     }}
                     formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
                     labelFormatter={(label) => {
-                      const dataPoint = generateMonthlyScoreData(user.id).find(d => d.displayName === label);
+                      const dataPoint = chartData.find(d => d.displayName === label);
                       return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
                     }}
                   />
@@ -685,7 +708,7 @@ const Dashboard: React.FC = () => {
                 <span className="text-xs sm:text-sm font-medium text-gray-700">12-Month Average</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
-                {Math.round(generateMonthlyScoreData(user.id).reduce((sum, data) => sum + data.score, 0) / 12)}%
+                {Math.round(chartData.reduce((sum, data) => sum + data.score, 0) / 12)}%
               </div>
             </div>
             <div className="bg-purple-50 rounded-lg p-3 sm:p-4">
@@ -694,13 +717,13 @@ const Dashboard: React.FC = () => {
                 <span className="text-xs sm:text-sm font-medium text-gray-700">Best Month</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
-                {Math.max(...generateMonthlyScoreData(user.id).map(d => d.score))}%
+                {Math.max(...chartData.map(d => d.score))}%
               </div>
             </div>
             <div className="bg-orange-50 rounded-lg p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center space-x-2">
                 {(() => {
-                  const trend = calculateTrend(generateMonthlyScoreData(user.id));
+                  const trend = calculateTrend(chartData);
                   const TrendIcon = trend.direction === 'up' ? ArrowUp : trend.direction === 'down' ? ArrowDown : Activity;
                   const trendColor = trend.direction === 'up' ? 'text-green-600' : trend.direction === 'down' ? 'text-red-600' : 'text-orange-600';
                   return <TrendIcon className={`w-4 h-4 ${trendColor}`} />;
@@ -709,7 +732,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="text-xl sm:text-2xl font-bold text-orange-600 mt-1">
                 {(() => {
-                  const trend = calculateTrend(generateMonthlyScoreData(user.id));
+                  const trend = calculateTrend(chartData);
                   if (trend.direction === 'stable') return 'Stable';
                   return `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`;
                 })()}
