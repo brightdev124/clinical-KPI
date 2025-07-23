@@ -282,12 +282,9 @@ ${contactForm.message}
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-100 to-orange-100 rounded-full text-red-800 text-sm font-bold mb-8 shadow-lg border border-red-200">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-                Do Your Clinical Directors Know What Drives Margin?
-            </div>
+            
             <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
-              Do your Clinical Directors:
+              Do Your Clinical Directors Know What Drives Margin?
             </h2>
             <p className="text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed font-medium">
               Most clinical leaders aren’t trained to manage performance. The result? Missed KPIs, unaddressed underperformance, and revenue leakage across your regions.
