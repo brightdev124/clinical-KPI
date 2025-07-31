@@ -225,7 +225,7 @@ ${contactForm.message}
                 Sign In
               </button>
               <button
-                onClick={() => handleAuthClick('signup')}
+                onClick={handleContactClick}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 Get Started

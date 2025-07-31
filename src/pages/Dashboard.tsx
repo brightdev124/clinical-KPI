@@ -78,6 +78,117 @@ const Dashboard: React.FC = () => {
     setShowAllNeedingAttention(false);
   }, [selectedMonth, selectedYear]);
 
+  // Calculate director's average score based on assigned members
+  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+    const assignedClinicians = getAssignedClinicians(directorId);
+    const assignedDirectors = getAssignedDirectors(directorId);
+    const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+    
+    if (allAssignedMembers.length === 0) {
+      return 0; // No assigned members
+    }
+    
+    const scores = allAssignedMembers.map(member => {
+      // For assigned directors, get their director average score; for clinicians, get their individual score
+      if (member.position_info?.role === 'director') {
+        return getDirectorAverageScore(member.id, month, year);
+      } else {
+        return getClinicianScore(member.id, month, year);
+      }
+    });
+    
+    const validScores = scores.filter(score => score > 0);
+    if (validScores.length === 0) {
+      return 0;
+    }
+    
+    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+  };
+
+  // Filter staff based on user role - include both clinicians and directors for directors
+  const userClinicians = useMemo(() => {
+    if (!user) return [];
+    
+    if (user.role === 'super-admin') {
+      return profiles.filter(p => p.accept && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'));
+    } else if (user.role === 'director') {
+      return [...getAssignedClinicians(user.id).filter(p => p.accept), ...getAssignedDirectors(user.id).filter(p => p.accept)];
+    } else {
+      return profiles.filter(p => p.id === user.id && p.accept && p.position_info?.role === 'clinician');
+    }
+  }, [user, profiles, getAssignedClinicians, getAssignedDirectors]);
+
+  // Separate directors and clinicians for admin dashboard - only approved users
+  const userDirectors = useMemo(() => {
+    if (!user) return [];
+    
+    if (user.role === 'super-admin') {
+      return profiles.filter(p => p.accept && p.position_info?.role === 'director');
+    } else if (user.role === 'director') {
+      return profiles.filter(p => p.id === user.id && p.accept && p.position_info?.role === 'director');
+    } else {
+      return [];
+    }
+  }, [user, profiles]);
+
+  const userCliniciansOnly = useMemo(() => {
+    if (!user) return [];
+    
+    if (user.role === 'super-admin') {
+      return profiles.filter(p => p.accept && p.position_info?.role === 'clinician');
+    } else if (user.role === 'director') {
+      return getAssignedClinicians(user.id).filter(p => p.accept && p.position_info?.role === 'clinician');
+    } else {
+      return profiles.filter(p => p.id === user.id && p.accept && p.position_info?.role === 'clinician');
+    }
+  }, [user, profiles, getAssignedClinicians]);
+
+  // Combined assigned staff for directors (both clinicians and directors)
+  const userAssignedDirectors = useMemo(() => {
+    if (!user || user.role !== 'director') return [];
+    return getAssignedDirectors(user.id).filter(p => p.accept);
+  }, [user, getAssignedDirectors]);
+
+  // Calculate stats for selected month
+  const totalTeamMembers = useMemo(() => userClinicians.length, [userClinicians]);
+  const totalKPIs = useMemo(() => kpis.length, [kpis]);
+  
+  // Memoized calculations that depend on selectedMonth and selectedYear
+  const avgScore = useMemo(() => {
+    if (userClinicians.length === 0) return 0;
+    
+    const totalScore = userClinicians.reduce((acc, c) => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return acc + score;
+    }, 0);
+    
+    return Math.round(totalScore / userClinicians.length);
+  }, [userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+
+  // Memoized staff needing attention (score < 70)
+  const cliniciansNeedingAttention = useMemo(() => {
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
+    return targetClinicians.filter(c => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return score < 70;
+    });
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+
+  // Memoized top performers (score >= 90)
+  const topPerformers = useMemo(() => {
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
+    return targetClinicians.filter(c => {
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      return score >= 90;
+    });
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
     return reviews.filter(review => {
@@ -139,6 +250,48 @@ const Dashboard: React.FC = () => {
     return monthlyData;
   }, [getClinicianScore]);
 
+  // Memoized team performance trend data generation
+  const generateTeamTrendData = useCallback((endMonth: string, endYear: number) => {
+    const trendData = [];
+    
+    // Convert month name to month index
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const targetMonthIndex = months.indexOf(endMonth);
+    
+    // Create end date from target month/year
+    const endDate = new Date(endYear, targetMonthIndex, 1);
+    
+    // Get 6 months of data ending at the selected month
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(endDate);
+      date.setMonth(endDate.getMonth() - i);
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+      
+      const monthlyScores = userClinicians.map(c => 
+        c.position_info?.role === 'director' 
+          ? getDirectorAverageScore(c.id, month, year)
+          : getClinicianScore(c.id, month, year)
+      );
+      const avgScore = monthlyScores.length > 0 
+        ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
+        : 0;
+      
+      trendData.push({
+        month: date.toLocaleString('default', { month: 'short' }),
+        fullMonth: month,
+        year: year,
+        avgScore: avgScore,
+        displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
+      });
+    }
+    
+    return trendData;
+  }, [userClinicians, getDirectorAverageScore, getClinicianScore]);
+
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
     if (data.length < 2) return { direction: 'stable', percentage: 0 };
@@ -155,32 +308,7 @@ const Dashboard: React.FC = () => {
     };
   };
 
-  // Calculate director's average score based on assigned members
-  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
-    const assignedClinicians = getAssignedClinicians(directorId);
-    const assignedDirectors = getAssignedDirectors(directorId);
-    const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
-    
-    if (allAssignedMembers.length === 0) {
-      return 0; // No assigned members
-    }
-    
-    const scores = allAssignedMembers.map(member => {
-      // For assigned directors, get their director average score; for clinicians, get their individual score
-      if (member.position_info?.role === 'director') {
-        return getDirectorAverageScore(member.id, month, year);
-      } else {
-        return getClinicianScore(member.id, month, year);
-      }
-    });
-    
-    const validScores = scores.filter(score => score > 0);
-    if (validScores.length === 0) {
-      return 0;
-    }
-    
-    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
-  };
+
 
   // Toggle expanded state for KPIs in clinician dashboard
   const toggleKPIExpanded = (kpiId: string) => {
@@ -228,6 +356,18 @@ const Dashboard: React.FC = () => {
     });
   }, [profiles, reviewItems, kpis]);
 
+  // Memoized clinician score calculation - moved to top level to avoid conditional hook calls
+  const myScore = useMemo(() => {
+    if (!user || user.role !== 'clinician') return 0;
+    return getClinicianScore(user.id, selectedMonth, selectedYear);
+  }, [user, selectedMonth, selectedYear, getClinicianScore]);
+  
+  // Memoized chart data to avoid expensive recalculation - moved to top level
+  const chartData = useMemo(() => {
+    if (!user || user.role !== 'clinician') return [];
+    return generateMonthlyScoreData(user.id, selectedMonth, selectedYear);
+  }, [user, selectedMonth, selectedYear, generateMonthlyScoreData]);
+
   // Helper function to get file name from URL
   const getFileNameFromUrl = (url: string) => {
     try {
@@ -261,69 +401,6 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
-
-  // Filter staff based on user role - include both clinicians and directors for directors
-  const userClinicians = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.accept && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'))
-    : user?.role === 'director'
-    ? [...getAssignedClinicians(user.id).filter(p => p.accept), ...getAssignedDirectors(user.id).filter(p => p.accept)]
-    : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
-
-  // Separate directors and clinicians for admin dashboard - only approved users
-  const userDirectors = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.accept && p.position_info?.role === 'director')
-    : user?.role === 'director'
-    ? profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'director')
-    : [];
-
-  const userCliniciansOnly = user?.role === 'super-admin' 
-    ? profiles.filter(p => p.accept && p.position_info?.role === 'clinician')
-    : user?.role === 'director'
-    ? getAssignedClinicians(user.id).filter(p => p.accept && p.position_info?.role === 'clinician')
-    : profiles.filter(p => p.id === user?.id && p.accept && p.position_info?.role === 'clinician');
-
-  // Combined assigned staff for directors (both clinicians and directors)
-  const userAssignedDirectors = user?.role === 'director' ? getAssignedDirectors(user.id).filter(p => p.accept) : [];
-
-  // Calculate stats for selected month
-  const totalTeamMembers = userClinicians.length;
-  const totalKPIs = kpis.length;
-  
-  // Memoized calculations that depend on selectedMonth and selectedYear
-  const avgScore = useMemo(() => {
-    if (userClinicians.length === 0) return 0;
-    
-    const totalScore = userClinicians.reduce((acc, c) => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
-      return acc + score;
-    }, 0);
-    
-    return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
-
-  // Memoized staff needing attention (score < 70)
-  const cliniciansNeedingAttention = useMemo(() => {
-    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
-    return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
-      return score < 70;
-    });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
-
-  // Memoized top performers (score >= 90)
-  const topPerformers = useMemo(() => {
-    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
-    return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
-      return score >= 90;
-    });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
 
   // Recent activity based on user role
   const getRecentActivity = () => {
@@ -514,18 +591,6 @@ const Dashboard: React.FC = () => {
 
   // Clinician-specific dashboard
   if (user?.role === 'clinician') {
-    // Memoized clinician score calculation
-    const myScore = useMemo(() => 
-      getClinicianScore(user.id, selectedMonth, selectedYear), 
-      [user.id, selectedMonth, selectedYear, getClinicianScore]
-    );
-    
-    // Memoized chart data to avoid expensive recalculation
-    const chartData = useMemo(() => 
-      generateMonthlyScoreData(user.id, selectedMonth, selectedYear), 
-      [user.id, selectedMonth, selectedYear, generateMonthlyScoreData]
-    );
-    
     const myReviews = getClinicianReviews(user.id);
     const myData = profiles.find(p => p.id === user.id);
     const myDirector = getClinicianDirector(user.id);
@@ -1370,7 +1435,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Trend</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Average team performance over last 6 months</p>
+              <p className="text-xs sm:text-sm text-gray-600">Average team performance over 6 months ending {selectedMonth} {selectedYear}</p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <TrendingUp className="w-4 h-4" />
@@ -1381,36 +1446,7 @@ const Dashboard: React.FC = () => {
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={(() => {
-                const trendData = [];
-                const currentDate = new Date();
-                
-                for (let i = 5; i >= 0; i--) {
-                  const date = new Date();
-                  date.setMonth(currentDate.getMonth() - i);
-                  const month = date.toLocaleString('default', { month: 'long' });
-                  const year = date.getFullYear();
-                  
-                  const monthlyScores = userClinicians.map(c => 
-                    c.position_info?.role === 'director' 
-                      ? getDirectorAverageScore(c.id, month, year)
-                      : getClinicianScore(c.id, month, year)
-                  );
-                  const avgScore = monthlyScores.length > 0 
-                    ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
-                    : 0;
-                  
-                  trendData.push({
-                    month: date.toLocaleString('default', { month: 'short' }),
-                    fullMonth: month,
-                    year: year,
-                    avgScore: avgScore,
-                    displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
-                  });
-                }
-                
-                return trendData;
-              })()}>
+              <LineChart data={generateTeamTrendData(selectedMonth, selectedYear)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="displayName" 
@@ -1575,7 +1611,7 @@ const Dashboard: React.FC = () => {
                   <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Performance Review needed</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">KPI Review needed</h3>
                   <p className="text-xs sm:text-sm text-gray-600">
                     {user?.role === 'super-admin' ? 'Clinicians with scores < 70% requiring attention' : 'Team members with scores < 70% requiring attention'}
                   </p>

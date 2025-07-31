@@ -650,7 +650,7 @@ const PermissionManagement: React.FC = () => {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div>
       <div className="mx-auto">
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
