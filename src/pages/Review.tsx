@@ -6,7 +6,7 @@ import { useNameFormatter } from '../utils/nameFormatter';
 import { ReviewService, ReviewItem } from '../services/reviewService';
 import { FileUploadService, UploadedFile } from '../services/fileUploadService';
 import { KPIGroupService } from '../services/kpiGroupService';
-import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, File, Trash2, ExternalLink, Clock, ChevronDown, FolderOpen } from 'lucide-react';
+import { Check, X, Calendar, FileText, Upload, Save, AlertCircle, Target, TrendingUp, Download, RefreshCw, File, Trash2, ExternalLink, Clock, ChevronDown, FolderOpen, ChevronUp, CheckCircle } from 'lucide-react';
 import { EnhancedSelect, MonthYearPicker, WeekPicker } from '../components/UI';
 import { generateReviewPDF } from '../utils/pdfGenerator';
 
@@ -73,6 +73,9 @@ const Review: React.FC = () => {
   // State for picker dropdowns
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [mobileWeekPickerOpen, setMobileWeekPickerOpen] = useState(false);
+  
+  // State for expandable KPIs in My Reviews mode
+  const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
   
   // KPI Group states
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
@@ -213,6 +216,30 @@ const Review: React.FC = () => {
     } else {
       setShowAllKPIs(false);
       await loadGroupKPIs(groupTitle);
+    }
+  };
+
+  // Toggle KPI expanded state for My Reviews mode
+  const toggleKPIExpanded = (kpiId: string) => {
+    setExpandedKPIs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(kpiId)) {
+        newSet.delete(kpiId);
+      } else {
+        newSet.add(kpiId);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper function to get file name from URL
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      return decodeURIComponent(fileName);
+    } catch {
+      return 'Download File';
     }
   };
 
@@ -652,293 +679,441 @@ const Review: React.FC = () => {
           </div>
         )}
 
-        {/* KPI Reviews - Matching original MonthlyReview styling */}
+        {/* KPI Reviews */}
         {!isLoading && (
-          <div className="space-y-6">
-            {filteredKPIs.map((kpi) => {
-              const kpiData = reviewData[kpi.id] || {};
-              const isMet = kpiData.met;
-              const isUploading = uploadingFiles[kpi.id];
-
-              return (
-                <div key={kpi.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-                  {/* KPI Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 mb-6">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Target className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{kpi.title}</h3>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Weight: {kpi.weight}
-                        </span>
-                      </div>
-                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{kpi.description}</p>
+          <>
+            {isMyReviewsMode ? (
+              /* My Reviews Mode - Card-based layout like Dashboard */
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {periodLabel}</h3>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">
+                      {existingReviews.length} of {filteredKPIs.length} KPIs reviewed • Current Score: {score}%
                     </div>
                   </div>
-
-                  {/* KPI Status Selection */}
-                  <div className="mb-6">
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3">
-                      KPI Status {!isMyReviewsMode && '*'}
-                      {isMyReviewsMode && (
-                        <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
-                      )}
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        type="button"
-                        onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', true)}
-                        disabled={isMyReviewsMode}
-                        className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
-                          isMet === true
-                            ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
-                            : isMyReviewsMode
-                            ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
-                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                        }`}
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Met
-                      </button>
-                      <button
-                        type="button"
-                        onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', false)}
-                        disabled={isMyReviewsMode}
-                        className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
-                          isMet === false
-                            ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
-                            : isMyReviewsMode
-                            ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
-                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                        }`}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Not Met
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Additional fields when KPI is not met */}
-                  {isMet === false && (
-                    <div className="space-y-6 pt-6 border-t border-gray-200">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 inline mr-1" />
-                            {isMyReviewsMode ? 'Review Date' : 'Review Date *'}
-                            {isMyReviewsMode && (
-                              <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
-                            )}
-                          </label>
-                          <input
-                            type="date"
-                            value={kpiData.reviewDate || ''}
-                            onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'reviewDate', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
-                              isMyReviewsMode
-                                ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                                : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            }`}
-                            max={new Date().toISOString().split('T')[0]}
-                            required={!isMyReviewsMode}
-                            disabled={isMyReviewsMode}
-                          />
-                        </div>
-
-                        {/* File Upload */}
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                            <Upload className="w-4 h-4 inline mr-1" />
-                            Supporting Documents
-                          </label>
-                          
-                          {/* Existing File */}
-                          {kpiData.existingFileUrl && (
-                            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <File className="w-4 h-4 text-blue-600 mr-2" />
-                                  <span className="text-sm text-blue-800">Existing file attached</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => window.open(kpiData.existingFileUrl, '_blank')}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    <ExternalLink className="w-4 h-4" />
-                                  </button>
-                                  {!isMyReviewsMode && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveExistingFile(kpi.id)}
-                                      className="text-red-600 hover:text-red-800"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    title="Download KPI Performance Report"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download PDF</span>
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {filteredKPIs.map((kpi) => {
+                    const kpiData = reviewData[kpi.id] || {};
+                    const hasData = kpiData.met !== null && kpiData.met !== undefined;
+                    const isExpanded = expandedKPIs.has(kpi.id);
+                    const score = hasData && kpiData.met ? kpi.weight : 0;
+                    
+                    return (
+                      <div key={kpi.id} className="border border-gray-200 rounded-lg">
+                        {/* KPI Header */}
+                        <div className="p-3 sm:p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+                            <div className="flex items-center space-x-2 min-w-0 flex-1">
+                              <Target className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <span className="font-medium text-gray-900 text-sm sm:text-base truncate">{kpi.title}</span>
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+                                Weight: {kpi.weight}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between sm:justify-end space-x-3">
+                              {hasData ? (
+                                <>
+                                  {kpiData.met ? (
+                                    <div className="flex items-center space-x-1 text-green-600">
+                                      <Check className="w-4 h-4" />
+                                      <span className="text-xs sm:text-sm font-medium">Met</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center space-x-1 text-red-600">
+                                      <X className="w-4 h-4" />
+                                      <span className="text-xs sm:text-sm font-medium">Not Met</span>
+                                    </div>
                                   )}
+                                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                                    {score}/{kpi.weight}
+                                  </span>
+                                </>
+                              ) : (
+                                <div className="flex items-center space-x-1 text-gray-400">
+                                  <AlertCircle className="w-4 h-4" />
+                                  <span className="text-xs sm:text-sm">No review</span>
                                 </div>
-                              </div>
+                              )}
+                              
+                              {hasData && (
+                                <button
+                                  onClick={() => toggleKPIExpanded(kpi.id)}
+                                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs sm:text-sm text-gray-600 mb-3">{kpi.description}</p>
+                          
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                hasData && kpiData.met ? 'bg-green-600' : hasData ? 'bg-red-600' : 'bg-gray-300'
+                              }`}
+                              style={{ width: hasData ? (kpiData.met ? '100%' : '0%') : '0%' }}
+                            />
+                          </div>
+                          
+                          {hasData && kpiData.reviewDate && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              Reviewed on {new Date(kpiData.reviewDate).toLocaleDateString()}
                             </div>
                           )}
+                        </div>
 
-                          {/* Uploaded Files */}
-                          {kpiData.uploadedFiles && kpiData.uploadedFiles.length > 0 && (
-                            <div className="mb-3 space-y-2">
-                              {kpiData.uploadedFiles.map((file, index) => (
-                                <div key={index} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        {/* Expandable Details */}
+                        {isExpanded && hasData && (
+                          <div className="border-t border-gray-200 bg-gray-50 p-3 sm:p-4">
+                            {!kpiData.met && (
+                              <div className="space-y-4">
+                                {kpiData.notes && (
+                                  <div>
+                                    <div className="flex items-center space-x-1 mb-2">
+                                      <FileText className="w-4 h-4 text-orange-600" />
+                                      <span className="text-xs sm:text-sm font-medium text-gray-700">Notes:</span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-gray-600 bg-orange-50 p-3 rounded border-l-4 border-orange-200">
+                                      {kpiData.notes}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {kpiData.plan && (
+                                  <div>
+                                    <div className="flex items-center space-x-1 mb-2">
+                                      <TrendingUp className="w-4 h-4 text-blue-600" />
+                                      <span className="text-xs sm:text-sm font-medium text-gray-700">Action Plan:</span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-gray-600 bg-blue-50 p-3 rounded border-l-4 border-blue-200">
+                                      {kpiData.plan}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {(kpiData.existingFileUrl || (kpiData.uploadedFiles && kpiData.uploadedFiles.length > 0)) && (
+                                  <div>
+                                    <div className="flex items-center space-x-1 mb-2">
+                                      <Download className="w-4 h-4 text-green-600" />
+                                      <span className="text-xs sm:text-sm font-medium text-gray-700">Attached Files:</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {kpiData.existingFileUrl && (
+                                        <div className="flex items-center space-x-2 bg-green-50 p-3 rounded border border-green-200">
+                                          <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                          <span className="text-xs sm:text-sm text-green-700 flex-1 truncate">
+                                            {getFileNameFromUrl(kpiData.existingFileUrl)}
+                                          </span>
+                                          <button
+                                            onClick={() => window.open(kpiData.existingFileUrl, '_blank')}
+                                            className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1 flex-shrink-0"
+                                            title="Download file"
+                                          >
+                                            <ExternalLink className="w-4 h-4" />
+                                            <span className="text-xs hidden sm:inline">Open</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                      {kpiData.uploadedFiles && kpiData.uploadedFiles.map((file, index) => (
+                                        <div key={index} className="flex items-center space-x-2 bg-green-50 p-3 rounded border border-green-200">
+                                          <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                          <span className="text-xs sm:text-sm text-green-700 flex-1 truncate">
+                                            {file.name}
+                                          </span>
+                                          <button
+                                            onClick={() => window.open(file.url, '_blank')}
+                                            className="text-green-600 hover:text-green-800 transition-colors flex items-center space-x-1 flex-shrink-0"
+                                            title="Download file"
+                                          >
+                                            <ExternalLink className="w-4 h-4" />
+                                            <span className="text-xs hidden sm:inline">Open</span>
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {kpiData.met && (
+                              <div className="flex items-center space-x-2 text-green-600">
+                                <CheckCircle className="w-4 sm:w-5 h-4 sm:h-5" />
+                                <span className="text-xs sm:text-sm font-medium">
+                                  Great job! You successfully met this KPI target.
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Edit Mode - Original form layout */
+              <div className="space-y-6">
+                {filteredKPIs.map((kpi) => {
+                  const kpiData = reviewData[kpi.id] || {};
+                  const isMet = kpiData.met;
+                  const isUploading = uploadingFiles[kpi.id];
+
+                  return (
+                    <div key={kpi.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                      {/* KPI Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 mb-6">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Target className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{kpi.title}</h3>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Weight: {kpi.weight}
+                            </span>
+                          </div>
+                          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{kpi.description}</p>
+                        </div>
+                      </div>
+
+                      {/* KPI Status Selection */}
+                      <div className="mb-6">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3">
+                          KPI Status *
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleKPIChange(kpi.id, 'met', true)}
+                            className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
+                              isMet === true
+                                ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                            }`}
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Met
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleKPIChange(kpi.id, 'met', false)}
+                            className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
+                              isMet === false
+                                ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                            }`}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Not Met
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Additional fields when KPI is not met */}
+                      {isMet === false && (
+                        <div className="space-y-6 pt-6 border-t border-gray-200">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4 inline mr-1" />
+                                Review Date *
+                              </label>
+                              <input
+                                type="date"
+                                value={kpiData.reviewDate || ''}
+                                onChange={(e) => handleKPIChange(kpi.id, 'reviewDate', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                max={new Date().toISOString().split('T')[0]}
+                                required
+                              />
+                            </div>
+
+                            {/* File Upload */}
+                            <div>
+                              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                                <Upload className="w-4 h-4 inline mr-1" />
+                                Supporting Documents
+                              </label>
+                              
+                              {/* Existing File */}
+                              {kpiData.existingFileUrl && (
+                                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center">
-                                      <File className="w-4 h-4 text-green-600 mr-2" />
-                                      <span className="text-sm text-green-800">{file.name}</span>
+                                      <File className="w-4 h-4 text-blue-600 mr-2" />
+                                      <span className="text-sm text-blue-800">Existing file attached</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <button
                                         type="button"
-                                        onClick={() => window.open(file.url, '_blank')}
-                                        className="text-green-600 hover:text-green-800"
+                                        onClick={() => window.open(kpiData.existingFileUrl, '_blank')}
+                                        className="text-blue-600 hover:text-blue-800"
                                       >
                                         <ExternalLink className="w-4 h-4" />
                                       </button>
-                                      {!isMyReviewsMode && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemoveUploadedFile(kpi.id, index)}
-                                          className="text-red-600 hover:text-red-800"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveExistingFile(kpi.id)}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
                                     </div>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                              )}
 
-                          {/* File Upload Input */}
-                          {!isMyReviewsMode && (
-                            <div className="flex items-center gap-4">
-                              <input
-                                type="file"
-                                id={`file-${kpi.id}`}
-                                onChange={(e) => handleFileUpload(kpi.id, e.target.files)}
-                                className="hidden"
-                                multiple
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                              />
-                              <label
-                                htmlFor={`file-${kpi.id}`}
-                                className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors ${
-                                  isUploading ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              >
-                                {isUploading ? (
-                                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Upload className="w-4 h-4 mr-2" />
-                                )}
-                                {isUploading ? 'Uploading...' : 'Upload Files'}
+                              {/* Uploaded Files */}
+                              {kpiData.uploadedFiles && kpiData.uploadedFiles.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                  {kpiData.uploadedFiles.map((file, index) => (
+                                    <div key={index} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                          <File className="w-4 h-4 text-green-600 mr-2" />
+                                          <span className="text-sm text-green-800">{file.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => window.open(file.url, '_blank')}
+                                            className="text-green-600 hover:text-green-800"
+                                          >
+                                            <ExternalLink className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveUploadedFile(kpi.id, index)}
+                                            className="text-red-600 hover:text-red-800"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* File Upload Input */}
+                              <div className="flex items-center gap-4">
+                                <input
+                                  type="file"
+                                  id={`file-${kpi.id}`}
+                                  onChange={(e) => handleFileUpload(kpi.id, e.target.files)}
+                                  className="hidden"
+                                  multiple
+                                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                />
+                                <label
+                                  htmlFor={`file-${kpi.id}`}
+                                  className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors ${
+                                    isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                >
+                                  {isUploading ? (
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Upload className="w-4 h-4 mr-2" />
+                                  )}
+                                  {isUploading ? 'Uploading...' : 'Upload Files'}
+                                </label>
+                                <span className="text-xs text-gray-500">
+                                  PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                                <FileText className="w-4 h-4 inline mr-1" />
+                                Performance Notes *
                               </label>
-                              <span className="text-xs text-gray-500">
-                                PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
-                              </span>
+                              <textarea
+                                value={kpiData.notes || ''}
+                                onChange={(e) => handleKPIChange(kpi.id, 'notes', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                rows={4}
+                                placeholder="Detailed notes from the performance conversation, including specific examples and context..."
+                                required
+                              />
                             </div>
-                          )}
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                            <FileText className="w-4 h-4 inline mr-1" />
-                            {isMyReviewsMode ? 'Performance Notes' : 'Performance Notes *'}
-                            {isMyReviewsMode && (
-                              <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
-                            )}
-                          </label>
-                          <textarea
-                            value={kpiData.notes || ''}
-                            onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'notes', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
-                              isMyReviewsMode
-                                ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                                : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            }`}
-                            rows={4}
-                            placeholder={isMyReviewsMode
-                              ? "Notes from your supervisor about this KPI performance..."
-                              : "Detailed notes from the performance conversation, including specific examples and context..."
-                            }
-                            required={!isMyReviewsMode}
-                            disabled={isMyReviewsMode}
-                          />
+                            <div>
+                              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                                <TrendingUp className="w-4 h-4 inline mr-1" />
+                                Improvement Plan *
+                              </label>
+                              <textarea
+                                value={kpiData.plan || ''}
+                                onChange={(e) => handleKPIChange(kpi.id, 'plan', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                rows={4}
+                                placeholder="Specific action plan for improvement, including timelines, resources, training, or support needed..."
+                                required
+                              />
+                            </div>
+                          </div>
                         </div>
+                      )}
 
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                            <TrendingUp className="w-4 h-4 inline mr-1" />
-                            {isMyReviewsMode ? 'Improvement Plan' : 'Improvement Plan *'}
-                            {isMyReviewsMode && (
-                              <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
-                            )}
-                          </label>
-                          <textarea
-                            value={kpiData.plan || ''}
-                            onChange={isMyReviewsMode ? undefined : (e) => handleKPIChange(kpi.id, 'plan', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg text-sm sm:text-base ${
-                              isMyReviewsMode
-                                ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                                : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                            }`}
-                            rows={4}
-                            placeholder={isMyReviewsMode
-                              ? "Improvement plan provided by your supervisor..."
-                              : "Specific action plan for improvement, including timelines, resources, training, or support needed..."
-                            }
-                            required={!isMyReviewsMode}
-                            disabled={isMyReviewsMode}
-                          />
+                      {/* Success indicator for met KPIs */}
+                      {isMet === true && (
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <Check className="w-4 sm:w-5 h-4 sm:h-5" />
+                            <span className="text-sm sm:text-base font-medium">KPI successfully met - no additional action required</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Success indicator for met KPIs */}
-                  {isMet === true && (
-                    <div className="pt-4 border-t border-gray-200">
-                      <div className="flex items-center space-x-2 text-green-600">
-                        <Check className="w-4 sm:w-5 h-4 sm:h-5" />
-                        <span className="text-sm sm:text-base font-medium">KPI successfully met - no additional action required</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            
-            {/* No KPIs message */}
-            {filteredKPIs.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-                <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Available</h3>
-                <p className="text-gray-600 mb-4">
-                  {selectedGroup 
-                    ? `The selected group "${selectedGroup}" doesn't contain any KPIs, or the KPIs have been removed.`
-                    : 'No KPIs are available for review at this time.'
-                  }
-                </p>
-                {selectedGroup && (
-                  <button
-                    onClick={() => handleGroupSelection('')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    View All KPIs
-                  </button>
+                  );
+                })}
+                
+                {/* No KPIs message */}
+                {filteredKPIs.length === 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                    <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Available</h3>
+                    <p className="text-gray-600 mb-4">
+                      {selectedGroup 
+                        ? `The selected group "${selectedGroup}" doesn't contain any KPIs, or the KPIs have been removed.`
+                        : 'No KPIs are available for review at this time.'
+                      }
+                    </p>
+                    {selectedGroup && (
+                      <button
+                        onClick={() => handleGroupSelection('')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        View All KPIs
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Submit Section - Matching original MonthlyReview */}
