@@ -36,9 +36,8 @@ export const generateReviewPDF = (
   clinician: Clinician,
   kpis: KPI[],
   reviewData: ReviewData,
-  month: string,
-  year: number,
-  score: number
+  periodLabel: string,
+  reviewType: string = 'Monthly'
 ) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
@@ -47,20 +46,37 @@ export const generateReviewPDF = (
   // Header
   doc.setFontSize(20);
   doc.setTextColor(59, 130, 246); // Blue color
-  doc.text('Monthly KPI Review Report', margin, 30);
+  doc.text(`${reviewType} KPI Review Report`, margin, 30);
 
   // Clinician Information
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
   doc.text('Clinician Information', margin, 50);
   
+  // Calculate score
+  const calculateScore = () => {
+    let totalWeight = 0;
+    let earnedWeight = 0;
+    
+    kpis.forEach(kpi => {
+      totalWeight += kpi.weight;
+      if (reviewData[kpi.id]?.met === true) {
+        earnedWeight += kpi.weight;
+      }
+    });
+    
+    return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+  };
+
+  const score = calculateScore();
+
   doc.setFontSize(11);
   const clinicianInfo = [
     `Name: ${clinician.name}`,
     `Position: ${clinician.position}`,
     `Direction: ${clinician.department}`, // This field contains direction/specialty info
     `Username: ${clinician.email}`, // Using email field to store username
-    `Review Period: ${month} ${year}`,
+    `Review Period: ${periodLabel}`,
     `Overall Score: ${score}%`
   ];
 
@@ -247,7 +263,7 @@ export const generateReviewPDF = (
   }
 
   // Generate filename
-  const filename = `${clinician.name.replace(/\s+/g, '_')}_KPI_Review_${month}_${year}.pdf`;
+  const filename = `${clinician.name.replace(/\s+/g, '_')}_${reviewType}_KPI_Review_${periodLabel.replace(/\s+/g, '_')}.pdf`;
   
   // Download the PDF
   doc.save(filename);

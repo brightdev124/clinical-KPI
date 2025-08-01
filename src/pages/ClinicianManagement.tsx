@@ -3,7 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useNameFormatter } from '../utils/nameFormatter';
-import { User, Mail, Calendar, ChevronRight, ClipboardList, TrendingUp, UserCheck, Navigation, ChevronDown, ChevronUp, Target, Check, X, FileText, Download, ExternalLink, AlertCircle } from 'lucide-react';
+import { User, Mail, Calendar, ChevronRight, ClipboardList, TrendingUp, UserCheck, Navigation, ChevronDown, ChevronUp, Target, Check, X, FileText, Download, ExternalLink, AlertCircle, Clock } from 'lucide-react';
 
 const ClinicianManagement: React.FC = () => {
   const { 
@@ -302,13 +302,22 @@ const ClinicianManagement: React.FC = () => {
                     </Link>
                     
                     {user?.role === 'director' && (
-                      <Link
-                        to={`/review/${staffMember.id}`}
-                        className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center space-x-1"
-                      >
-                        <ClipboardList className="w-4 h-4" />
-                        <span>Review</span>
-                      </Link>
+                      <div className="flex space-x-2">
+                        <Link
+                          to={`/review/${staffMember.id}`}
+                          className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center space-x-1"
+                        >
+                          <ClipboardList className="w-4 h-4" />
+                          <span>Monthly Review</span>
+                        </Link>
+                        <Link
+                          to={`/weekly-review/${staffMember.id}`}
+                          className="bg-green-50 text-green-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center space-x-1"
+                        >
+                          <Clock className="w-4 h-4" />
+                          <span>Weekly Review</span>
+                        </Link>
+                      </div>
                     )}
                   </div>
                   

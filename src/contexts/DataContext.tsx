@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { KPI, KPIService } from '../services/kpiService';
 import { ReviewItem, ReviewService } from '../services/reviewService';
+import { KPIGroupService, KPIGroup } from '../services/kpiGroupService';
 import { supabase } from '../lib/supabase';
 
 interface KPIContextType {
@@ -110,6 +111,10 @@ interface DataContextType {
   getDirectorSupervisor: (directorId: string) => Profile | null;
   refreshProfiles: () => Promise<void>;
   refreshAssignments: () => Promise<void>;
+  // KPI Group functions
+  getKPIGroupsByDirector: (directorId: string) => Promise<KPIGroup[]>;
+  getKPIGroupTitles: (directorId: string) => Promise<string[]>;
+  getKPIsInGroup: (directorId: string, groupTitle: string) => Promise<string[]>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -1099,6 +1104,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // KPI Group functions
+  const getKPIGroupsByDirector = async (directorId: string): Promise<KPIGroup[]> => {
+    try {
+      return await KPIGroupService.getKPIGroupsByDirector(directorId);
+    } catch (err) {
+      console.error('Error fetching KPI groups:', err);
+      return [];
+    }
+  };
+
+  const getKPIGroupTitles = async (directorId: string): Promise<string[]> => {
+    try {
+      return await KPIGroupService.getGroupTitlesByDirector(directorId);
+    } catch (err) {
+      console.error('Error fetching KPI group titles:', err);
+      return [];
+    }
+  };
+
+  const getKPIsInGroup = async (directorId: string, groupTitle: string): Promise<string[]> => {
+    try {
+      return await KPIGroupService.getKPIsInGroup(directorId, groupTitle);
+    } catch (err) {
+      console.error('Error fetching KPIs in group:', err);
+      return [];
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       kpis,
@@ -1137,6 +1170,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshProfiles,
       refreshAssignments,
       refreshReviewItems,
+      getKPIGroupsByDirector,
+      getKPIGroupTitles,
+      getKPIsInGroup,
     }}>
       {children}
     </DataContext.Provider>

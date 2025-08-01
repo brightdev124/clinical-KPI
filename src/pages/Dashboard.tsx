@@ -34,6 +34,129 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import AdminAnalytics from '../components/AdminAnalytics';
 import { MonthYearPicker } from '../components/UI';
 
+// WeekPicker component for dashboard
+interface WeekPickerProps {
+  selectedWeek: { year: number; week: number };
+  onWeekChange: (week: { year: number; week: number }) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const WeekPicker: React.FC<WeekPickerProps> = ({ selectedWeek, onWeekChange, isOpen, onToggle }) => {
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        onToggle();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onToggle]);
+
+  const getWeekOptions = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const weeks = [];
+    
+    // Generate weeks for current year and previous year
+    for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+      const weeksInYear = getWeeksInYear(year);
+      for (let week = 1; week <= weeksInYear; week++) {
+        const weekStart = getWeekStart(year, week);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        weeks.push({
+          year,
+          week,
+          label: `Week ${week}, ${year} (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()})`,
+          value: `${year}-W${week.toString().padStart(2, '0')}`
+        });
+      }
+    }
+    
+    return weeks.reverse(); // Most recent first
+  };
+
+  const getWeeksInYear = (year: number) => {
+    const jan1 = new Date(year, 0, 1);
+    const dec31 = new Date(year, 11, 31);
+    
+    // If Jan 1 is Thu, Fri, Sat, or Sun, then week 1 starts in previous year
+    const jan1Day = jan1.getDay();
+    const firstWeekStart = jan1Day <= 4 ? jan1 : new Date(year, 0, 8 - jan1Day);
+    
+    // Calculate number of weeks
+    const diffTime = dec31.getTime() - firstWeekStart.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffDays / 7);
+  };
+
+  const getWeekStart = (year: number, week: number) => {
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay();
+    
+    // Find the first Monday of the year
+    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
+    
+    // Calculate the start of the specified week
+    const weekStart = new Date(firstMonday);
+    weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+    
+    return weekStart;
+  };
+
+  const weekOptions = getWeekOptions();
+  const selectedOption = weekOptions.find(w => w.year === selectedWeek.year && w.week === selectedWeek.week);
+
+  return (
+    <div className="relative" ref={pickerRef}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center sm:justify-start"
+      >
+        <Calendar className="w-4 h-4" />
+        <span className="text-sm sm:text-base">
+          {selectedOption ? selectedOption.label : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[320px] max-h-60 overflow-auto">
+          {weekOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onWeekChange({ year: option.year, week: option.week });
+                onToggle();
+              }}
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors ${
+                option.year === selectedWeek.year && option.week === selectedWeek.week
+                  ? 'bg-blue-50 text-blue-600 font-medium'
+                  : 'text-gray-900'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { 
@@ -52,11 +175,36 @@ const Dashboard: React.FC = () => {
   } = useData();
   const formatName = useNameFormatter();
 
+  // View toggle state
+  const [viewType, setViewType] = useState<'monthly' | 'weekly'>('monthly');
+  
   // Month selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthSelector, setShowMonthSelector] = useState(false);
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  
+  // Weekly selector state
+  const getCurrentWeek = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay();
+    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
+    const diffTime = now.getTime() - firstMonday.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const week = Math.floor(diffDays / 7) + 1;
+    return { year, week: Math.max(1, week) };
+  };
+  
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
+  const [showWeekSelector, setShowWeekSelector] = useState(false);
+  
+  // State for current score (needed for async weekly score calculation)
+  const [currentScore, setCurrentScore] = useState(0);
+  
+  // State for chart data (needed for async weekly data)
+  const [chartData, setChartData] = useState<any[]>([]);
   
   // State for expanded KPIs in clinician dashboard
   const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
@@ -70,13 +218,156 @@ const Dashboard: React.FC = () => {
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const currentYear = new Date().getFullYear();
 
+  // Helper function to get week date range
+  const getWeekDateRange = (year: number, week: number) => {
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay();
+    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
+    
+    const weekStart = new Date(firstMonday);
+    weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    return { start: weekStart, end: weekEnd };
+  };
 
+  // Weekly score calculation
+  const getWeeklyScore = async (clinicianId: string, year: number, week: number): Promise<number> => {
+    try {
+      const { start, end } = getWeekDateRange(year, week);
+      const reviews = await ReviewService.getReviewsByDateRange(clinicianId, start, end);
+      
+      if (reviews.length === 0) return 0;
+      
+      let totalWeight = 0;
+      let earnedWeight = 0;
+      
+      reviews.forEach(review => {
+        const kpi = kpis.find(k => k.id === review.kpi);
+        if (kpi) {
+          totalWeight += kpi.weight;
+          if (review.met_check) {
+            earnedWeight += kpi.weight;
+          }
+        }
+      });
+      
+      return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+    } catch (error) {
+      console.error('Error calculating weekly score:', error);
+      return 0;
+    }
+  };
+
+  // Memoized weekly score data generation
+  const generateWeeklyScoreData = useCallback(async (clinicianId: string, endYear?: number, endWeek?: number) => {
+    const weeklyData = [];
+    
+    // Use selected week/year or default to current date
+    const targetYear = endYear || selectedWeek.year;
+    const targetWeek = endWeek || selectedWeek.week;
+    
+    // Get 12 weeks of data ending at the selected week
+    for (let i = 11; i >= 0; i--) {
+      const weekNum = targetWeek - i;
+      let year = targetYear;
+      
+      // Handle week overflow/underflow
+      if (weekNum <= 0) {
+        year = targetYear - 1;
+        // Get weeks in previous year and adjust
+        const weeksInPrevYear = 52; // Simplified - could be 53 in some years
+        const adjustedWeek = weeksInPrevYear + weekNum;
+        const score = await getWeeklyScore(clinicianId, year, adjustedWeek);
+        weeklyData.push({
+          week: adjustedWeek,
+          year: year,
+          score: score,
+          displayName: `W${adjustedWeek} ${year.toString().slice(-2)}`
+        });
+      } else {
+        const score = await getWeeklyScore(clinicianId, year, weekNum);
+        weeklyData.push({
+          week: weekNum,
+          year: year,
+          score: score,
+          displayName: `W${weekNum} ${year.toString().slice(-2)}`
+        });
+      }
+    }
+    
+    return weeklyData;
+  }, [selectedWeek, kpis]);
+
+  // Memoized monthly score data generation to avoid expensive recalculations
+  const generateMonthlyScoreData = useCallback((clinicianId: string, endMonth?: string, endYear?: number) => {
+    const monthlyData = [];
+    
+    // Use selected month/year or default to current date
+    const targetMonth = endMonth || new Date().toLocaleString('default', { month: 'long' });
+    const targetYear = endYear || new Date().getFullYear();
+    
+    // Convert month name to month index
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const targetMonthIndex = months.indexOf(targetMonth);
+    
+    // Create end date from target month/year
+    const endDate = new Date(targetYear, targetMonthIndex, 1);
+    
+    // Get 12 months of data ending at the selected month
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(endDate);
+      date.setMonth(endDate.getMonth() - i);
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+      const score = getClinicianScore(clinicianId, month, year);
+      
+      monthlyData.push({
+        month: date.toLocaleString('default', { month: 'short' }),
+        fullMonth: month,
+        year: year,
+        score: score,
+        displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
+      });
+    }
+    
+    return monthlyData;
+  }, [getClinicianScore]);
 
   // Reset "Show All" states when month/year changes
   useEffect(() => {
     setShowAllTopPerformers(false);
     setShowAllNeedingAttention(false);
   }, [selectedMonth, selectedYear]);
+
+  // Calculate current score and chart data based on view type
+  useEffect(() => {
+    const calculateData = async () => {
+      if (!user?.id) return;
+      
+      let score = 0;
+      let data: any[] = [];
+      
+      if (viewType === 'monthly') {
+        score = getClinicianScore(user.id, selectedMonth, selectedYear);
+        data = generateMonthlyScoreData(user.id, selectedMonth, selectedYear);
+      } else {
+        score = await getWeeklyScore(user.id, selectedWeek.year, selectedWeek.week);
+        data = await generateWeeklyScoreData(user.id, selectedWeek.year, selectedWeek.week);
+      }
+      
+      setCurrentScore(score);
+      setChartData(data);
+    };
+    
+    calculateData();
+  }, [viewType, selectedMonth, selectedYear, selectedWeek, user?.id, kpis, generateMonthlyScoreData, generateWeeklyScoreData]);
 
   // Calculate director's average score based on assigned members
   const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
@@ -212,44 +503,6 @@ const Dashboard: React.FC = () => {
     });
   };
 
-  // Memoized monthly score data generation to avoid expensive recalculations
-  const generateMonthlyScoreData = useCallback((clinicianId: string, endMonth?: string, endYear?: number) => {
-    const monthlyData = [];
-    
-    // Use selected month/year or default to current date
-    const targetMonth = endMonth || new Date().toLocaleString('default', { month: 'long' });
-    const targetYear = endYear || new Date().getFullYear();
-    
-    // Convert month name to month index
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const targetMonthIndex = months.indexOf(targetMonth);
-    
-    // Create end date from target month/year
-    const endDate = new Date(targetYear, targetMonthIndex, 1);
-    
-    // Get 12 months of data ending at the selected month
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(endDate);
-      date.setMonth(endDate.getMonth() - i);
-      const month = date.toLocaleString('default', { month: 'long' });
-      const year = date.getFullYear();
-      const score = getClinicianScore(clinicianId, month, year);
-      
-      monthlyData.push({
-        month: date.toLocaleString('default', { month: 'short' }),
-        fullMonth: month,
-        year: year,
-        score: score,
-        displayName: `${date.toLocaleString('default', { month: 'short' })} ${year.toString().slice(-2)}`
-      });
-    }
-    
-    return monthlyData;
-  }, [getClinicianScore]);
-
   // Memoized team performance trend data generation
   const generateTeamTrendData = useCallback((endMonth: string, endYear: number) => {
     const trendData = [];
@@ -362,11 +615,7 @@ const Dashboard: React.FC = () => {
     return getClinicianScore(user.id, selectedMonth, selectedYear);
   }, [user, selectedMonth, selectedYear, getClinicianScore]);
   
-  // Memoized chart data to avoid expensive recalculation - moved to top level
-  const chartData = useMemo(() => {
-    if (!user || user.role !== 'clinician') return [];
-    return generateMonthlyScoreData(user.id, selectedMonth, selectedYear);
-  }, [user, selectedMonth, selectedYear, generateMonthlyScoreData]);
+
 
   // Helper function to get file name from URL
   const getFileNameFromUrl = (url: string) => {
@@ -605,47 +854,94 @@ const Dashboard: React.FC = () => {
                 Welcome, {user?.name || ''}! 👩‍⚕️
               </h1>
               <p className="text-green-100 text-base sm:text-lg">
-                Your performance overview for {selectedMonth} {selectedYear}
+                Your performance overview for {viewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
               </p>
             </div>
             <div className="text-center sm:text-right">
-              <div className="text-3xl sm:text-4xl font-bold">{myScore}%</div>
+              <div className="text-3xl sm:text-4xl font-bold">{currentScore}%</div>
               <div className="text-green-100 text-sm">Your Score</div>
             </div>
           </div>
         </div>
 
-        {/* Month Selector and Download Controls */}
+        {/* View Toggle and Period Selector */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <h3 className="text-lg font-semibold text-gray-900">View Data By Month</h3>
-              <MonthYearPicker
-                selectedMonth={selectedMonth}
-                selectedYear={selectedYear}
-                onSelect={handleMonthSelect}
-                isOpen={showMonthSelector}
-                onToggle={() => setShowMonthSelector(!showMonthSelector)}
-              />
+          <div className="flex flex-col space-y-4">
+            {/* View Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewType('monthly')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewType === 'monthly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setViewType('weekly')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewType === 'weekly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Weekly
+                </button>
+              </div>
             </div>
             
-            <button
-              onClick={handleDownloadMonthlyData}
-              className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-sm sm:text-base"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Download {selectedMonth} Data</span>
-              <span className="sm:hidden">Download Data</span>
-            </button>
+            {/* Period Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <span className="text-sm text-gray-600">
+                  View data by {viewType === 'monthly' ? 'month' : 'week'}:
+                </span>
+                {viewType === 'monthly' ? (
+                  <MonthYearPicker
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onSelect={handleMonthSelect}
+                    isOpen={showMonthSelector}
+                    onToggle={() => setShowMonthSelector(!showMonthSelector)}
+                  />
+                ) : (
+                  <WeekPicker
+                    selectedWeek={selectedWeek}
+                    onWeekChange={setSelectedWeek}
+                    isOpen={showWeekSelector}
+                    onToggle={() => setShowWeekSelector(!showWeekSelector)}
+                  />
+                )}
+              </div>
+            
+              <button
+                onClick={handleDownloadMonthlyData}
+                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-sm sm:text-base"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  Download {viewType === 'monthly' ? selectedMonth : `Week ${selectedWeek.week}`} Data
+                </span>
+                <span className="sm:hidden">Download Data</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Monthly Performance Chart */}
+        {/* Performance Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance Trend</h3>
-              <p className="text-sm text-gray-600">Your monthly performance scores over the last 12 months</p>
+              <p className="text-sm text-gray-600">
+                Your {viewType} performance scores over the last {viewType === 'monthly' ? '12 months' : '12 weeks'}
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               {/* Chart Type Toggle */}
@@ -707,7 +1003,13 @@ const Dashboard: React.FC = () => {
                     formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
                     labelFormatter={(label) => {
                       const dataPoint = chartData.find(d => d.displayName === label);
-                      return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                      if (!dataPoint) return label;
+                      
+                      if (viewType === 'monthly') {
+                        return dataPoint.fullMonth ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                      } else {
+                        return `Week ${dataPoint.week}, ${dataPoint.year}`;
+                      }
                     }}
                   />
                   <Line 
@@ -745,7 +1047,13 @@ const Dashboard: React.FC = () => {
                     formatter={(value: any, name: string) => [`${value}%`, 'Performance Score']}
                     labelFormatter={(label) => {
                       const dataPoint = chartData.find(d => d.displayName === label);
-                      return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                      if (!dataPoint) return label;
+                      
+                      if (viewType === 'monthly') {
+                        return dataPoint.fullMonth ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                      } else {
+                        return `Week ${dataPoint.week}, ${dataPoint.year}`;
+                      }
                     }}
                   />
                   <Bar 
@@ -763,26 +1071,26 @@ const Dashboard: React.FC = () => {
             <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className="text-xs sm:text-sm font-medium text-gray-700">Current Month</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Current {viewType === 'monthly' ? 'Month' : 'Week'}</span>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{myScore}%</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{currentScore}%</div>
             </div>
             <div className="bg-green-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700">12-Month Average</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">12-{viewType === 'monthly' ? 'Month' : 'Week'} Average</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
-                {Math.round(chartData.reduce((sum, data) => sum + data.score, 0) / 12)}%
+                {chartData.length > 0 ? Math.round(chartData.reduce((sum, data) => sum + data.score, 0) / chartData.length) : 0}%
               </div>
             </div>
             <div className="bg-purple-50 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <Award className="w-4 h-4 text-purple-600" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700">Best Month</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">Best {viewType === 'monthly' ? 'Month' : 'Week'}</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
-                {Math.max(...chartData.map(d => d.score))}%
+                {chartData.length > 0 ? Math.max(...chartData.map(d => d.score)) : 0}%
               </div>
             </div>
             <div className="bg-orange-50 rounded-lg p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
@@ -793,7 +1101,7 @@ const Dashboard: React.FC = () => {
                   const trendColor = trend.direction === 'up' ? 'text-green-600' : trend.direction === 'down' ? 'text-red-600' : 'text-orange-600';
                   return <TrendIcon className={`w-4 h-4 ${trendColor}`} />;
                 })()}
-                <span className="text-xs sm:text-sm font-medium text-gray-700">Monthly Trend</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-700">{viewType === 'monthly' ? 'Monthly' : 'Weekly'} Trend</span>
               </div>
               <div className="text-xl sm:text-2xl font-bold text-orange-600 mt-1">
                 {(() => {
@@ -870,7 +1178,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600">Current Score</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{myScore}%</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{currentScore}%</p>
                 <p className="text-xs sm:text-sm text-green-600 mt-1 flex items-center">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   Performance tracking

@@ -350,6 +350,85 @@ export class ReviewService {
     // Then create the new review
     return await this.createReviewItem(reviewData);
   }
+
+  /**
+   * Get review items for a specific date range (for weekly reviews)
+   */
+  static async getReviewsByDateRange(
+    clinicianId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<ReviewItem[]> {
+    const { data, error } = await supabase
+      .from('review_items')
+      .select(`
+        *,
+        kpis!inner(id, title, description, weight),
+        clinician_profile:profiles!clinician(id, name, accept),
+        director_profile:profiles!director(id, name, accept)
+      `)
+      .eq('clinician', clinicianId)
+      .eq('clinician_profile.accept', true)
+      .gte('date', startDate.toISOString())
+      .lte('date', endDate.toISOString())
+      .order('date', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch reviews by date range: ${error.message}`);
+    }
+
+    // Additional filtering to ensure only reviews from approved directors are included
+    const filteredData = (data || []).filter(review => 
+      !review.director_profile || review.director_profile.accept === true
+    );
+
+    return filteredData;
+  }
+
+  /**
+   * Replace or create a review for a specific clinician, KPI, and date range
+   * This ensures only one review exists per clinician per KPI per date range (for weekly reviews)
+   */
+  static async replaceReviewForDateRange(
+    clinicianId: string,
+    kpiId: string,
+    startDate: Date,
+    endDate: Date,
+    reviewData: CreateReviewItemData
+  ): Promise<ReviewItem> {
+    // First, get existing reviews to ensure we only delete reviews from approved users
+    const existingReviews = await supabase
+      .from('review_items')
+      .select(`
+        id,
+        clinician_profile:profiles!clinician(accept)
+      `)
+      .eq('clinician', clinicianId)
+      .eq('kpi', kpiId)
+      .eq('clinician_profile.accept', true)
+      .gte('date', startDate.toISOString())
+      .lte('date', endDate.toISOString());
+
+    if (existingReviews.error) {
+      throw new Error(`Failed to fetch existing reviews: ${existingReviews.error.message}`);
+    }
+
+    // Delete existing reviews from approved users only
+    if (existingReviews.data && existingReviews.data.length > 0) {
+      const reviewIds = existingReviews.data.map(review => review.id);
+      const { error: deleteError } = await supabase
+        .from('review_items')
+        .delete()
+        .in('id', reviewIds);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete existing reviews: ${deleteError.message}`);
+      }
+    }
+
+    // Then create the new review
+    return await this.createReviewItem(reviewData);
+  }
 }
 
 export default ReviewService;

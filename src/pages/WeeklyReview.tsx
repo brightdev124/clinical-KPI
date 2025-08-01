@@ -1,8 +1,8 @@
 import React from 'react';
 import Review from './Review';
 
-const MonthlyReview: React.FC = () => {
+const WeeklyReview: React.FC = () => {
   return <Review />;
 };
 
-export default MonthlyReview;
+export default WeeklyReview;
