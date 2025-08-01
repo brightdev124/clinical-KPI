@@ -81,20 +81,10 @@ const AppContent: React.FC = () => {
         <Route path="clinician/:id" element={<ClinicianProfile />} />
         <Route path="review/:clinicianId" element={
           <RoleBasedRoute allowedRoles={['director']}>
-            <MonthlyReview />
-          </RoleBasedRoute>
-        } />
-        <Route path="my-reviews" element={
-          <RoleBasedRoute allowedRoles={['director']}>
-            <MonthlyReview />
-          </RoleBasedRoute>
-        } />
-        <Route path="weekly-review/:clinicianId" element={
-          <RoleBasedRoute allowedRoles={['director']}>
             <WeeklyReview />
           </RoleBasedRoute>
         } />
-        <Route path="my-weekly-reviews" element={
+        <Route path="my-reviews" element={
           <RoleBasedRoute allowedRoles={['director']}>
             <WeeklyReview />
           </RoleBasedRoute>

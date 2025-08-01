@@ -37,7 +37,6 @@ const Sidebar: React.FC = () => {
       { name: 'KPI Groups', href: '/kpi-groups', icon: FolderOpen, roles: ['director'] },
       { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
       { name: 'My Reviews', href: '/my-reviews', icon: ClipboardList, roles: ['director'] },
-      { name: 'My Weekly Reviews', href: '/my-weekly-reviews', icon: Clock, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
       { name: 'Clinician Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
       { name: 'Positions', href: '/positions', icon: Briefcase, roles: ['super-admin'] },

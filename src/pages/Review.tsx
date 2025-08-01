@@ -155,15 +155,15 @@ const Review: React.FC = () => {
   const { user } = useAuth();
   const formatName = useNameFormatter();
   
-  // Determine review type from URL path
-  const reviewType: ReviewType = location.pathname.includes('weekly') ? 'weekly' : 'monthly';
+  // All reviews are now weekly - monthly scores are calculated from weekly averages
+  const reviewType: ReviewType = 'weekly';
   
   // Determine if this is "My Reviews" mode (viewing own reviews) or reviewing someone else
   const isMyReviewsMode = !clinicianId && (location.pathname === '/my-reviews' || location.pathname === '/my-weekly-reviews');
   const targetStaffId = isMyReviewsMode ? user?.id : clinicianId;
   const clinician = profiles.find(c => c.id === targetStaffId);
   
-  // Monthly review states
+  // Monthly review states (kept for compatibility but not used)
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
@@ -193,8 +193,6 @@ const Review: React.FC = () => {
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   
   // State for picker dropdowns
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
-  const [mobileMonthPickerOpen, setMobileMonthPickerOpen] = useState(false);
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [mobileWeekPickerOpen, setMobileWeekPickerOpen] = useState(false);
   
@@ -226,16 +224,9 @@ const Review: React.FC = () => {
     
     setIsLoading(true);
     try {
-      let reviews: ReviewItem[];
-      
-      if (reviewType === 'monthly') {
-        const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
-        reviews = await ReviewService.getReviewsByPeriod(targetStaffId, monthNumber, selectedYear);
-      } else {
-        // Weekly reviews
-        const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
-        reviews = await ReviewService.getReviewsByDateRange(targetStaffId, start, end);
-      }
+      // Weekly reviews only
+      const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
+      const reviews = await ReviewService.getReviewsByDateRange(targetStaffId, start, end);
       
       setExistingReviews(reviews);
       
@@ -355,9 +346,7 @@ const Review: React.FC = () => {
       setExistingReviews([]);
       loadReviewsForPeriod();
     }
-  }, [reviewType === 'monthly' ? selectedMonth : selectedWeek.week, 
-      reviewType === 'monthly' ? selectedYear : selectedWeek.year, 
-      targetStaffId, kpis.length, reviewType]);
+  }, [selectedWeek.week, selectedWeek.year, targetStaffId, kpis.length]);
 
   // Load most recent data as defaults if no existing reviews found
   useEffect(() => {
@@ -633,27 +622,15 @@ const Review: React.FC = () => {
             director: reviewItemData.director
           });
         } else {
-          // For new reviews, use replaceReviewForPeriod to ensure uniqueness
-          if (reviewType === 'monthly') {
-            const monthNumber = new Date(Date.parse(selectedMonth + " 1, 2000")).getMonth() + 1;
-            await ReviewService.replaceReviewForPeriod(
-              targetStaffId,
-              kpiId,
-              monthNumber,
-              selectedYear,
-              reviewItemData
-            );
-          } else {
-            // For weekly reviews, use date range replacement
-            const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
-            await ReviewService.replaceReviewForDateRange(
-              targetStaffId,
-              kpiId,
-              start,
-              end,
-              reviewItemData
-            );
-          }
+          // For new reviews, use date range replacement for weekly reviews
+          const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
+          await ReviewService.replaceReviewForDateRange(
+            targetStaffId,
+            kpiId,
+            start,
+            end,
+            reviewItemData
+          );
         }
       }
 
@@ -661,7 +638,7 @@ const Review: React.FC = () => {
       await loadReviewsForPeriod();
       
       // Show success message
-      alert(`${reviewType === 'weekly' ? 'Weekly' : 'Monthly'} review submitted successfully!`);
+      alert('Weekly review submitted successfully!');
       
     } catch (error) {
       console.error('Error submitting review:', error);
@@ -671,9 +648,7 @@ const Review: React.FC = () => {
     }
   };
 
-  const periodLabel = reviewType === 'monthly' 
-    ? `${selectedMonth} ${selectedYear}`
-    : `Week ${selectedWeek.week}, ${selectedWeek.year}`;
+  const periodLabel = `Week ${selectedWeek.week}, ${selectedWeek.year}`;
 
   if (loading) {
     return (
@@ -706,8 +681,8 @@ const Review: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-                {reviewType === 'weekly' ? <Clock className="w-6 sm:w-8 h-6 sm:h-8 text-blue-600" /> : <Calendar className="w-6 sm:w-8 h-6 sm:h-8 text-blue-600" />}
-                {reviewType === 'weekly' ? 'Weekly' : 'Monthly'} Review
+                <Clock className="w-6 sm:w-8 h-6 sm:h-8 text-blue-600" />
+                Weekly Review
               </h1>
               <p className="mt-1 sm:mt-2 text-base sm:text-lg text-gray-600">
                 {isMyReviewsMode ? 'My Reviews' : `${formatName(clinician.name)} - ${periodLabel}`}
@@ -722,66 +697,30 @@ const Review: React.FC = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Review Period</h2>
               <p className="text-sm text-gray-600">
-                Select the {reviewType} period for this review
+                Select the week for this review
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              {reviewType === 'monthly' ? (
-                <>
-                  {/* Desktop Month/Year Picker */}
-                  <div className="hidden sm:block">
-                    <MonthYearPicker
-                      selectedMonth={selectedMonth}
-                      selectedYear={selectedYear}
-                      onSelect={(month, year) => {
-                        setSelectedMonth(month);
-                        setSelectedYear(year);
-                        setMonthPickerOpen(false);
-                      }}
-                      isOpen={monthPickerOpen}
-                      onToggle={() => setMonthPickerOpen(!monthPickerOpen)}
-                    />
-                  </div>
-                  
-                  {/* Mobile Month/Year Picker */}
-                  <div className="sm:hidden">
-                    <MonthYearPicker
-                      selectedMonth={selectedMonth}
-                      selectedYear={selectedYear}
-                      onSelect={(month, year) => {
-                        setSelectedMonth(month);
-                        setSelectedYear(year);
-                        setMobileMonthPickerOpen(false);
-                      }}
-                      isOpen={mobileMonthPickerOpen}
-                      onToggle={() => setMobileMonthPickerOpen(!mobileMonthPickerOpen)}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Desktop Week Picker */}
-                  <div className="hidden sm:block">
-                    <WeekPicker
-                      selectedWeek={selectedWeek}
-                      onWeekChange={setSelectedWeek}
-                      isOpen={weekPickerOpen}
-                      onToggle={() => setWeekPickerOpen(!weekPickerOpen)}
-                    />
-                  </div>
-                  
-                  {/* Mobile Week Picker */}
-                  <div className="sm:hidden">
-                    <WeekPicker
-                      selectedWeek={selectedWeek}
-                      onWeekChange={setSelectedWeek}
-                      isOpen={mobileWeekPickerOpen}
-                      onToggle={() => setMobileWeekPickerOpen(!mobileWeekPickerOpen)}
-                    />
-                  </div>
-                </>
-              )}
+              {/* Desktop Week Picker */}
+              <div className="hidden sm:block">
+                <WeekPicker
+                  selectedWeek={selectedWeek}
+                  onWeekChange={setSelectedWeek}
+                  isOpen={weekPickerOpen}
+                  onToggle={() => setWeekPickerOpen(!weekPickerOpen)}
+                />
+              </div>
+              
+              {/* Mobile Week Picker */}
+              <div className="sm:hidden">
+                <WeekPicker
+                  selectedWeek={selectedWeek}
+                  onWeekChange={setSelectedWeek}
+                  isOpen={mobileWeekPickerOpen}
+                  onToggle={() => setMobileWeekPickerOpen(!mobileWeekPickerOpen)}
+                />
+              </div>
             </div>
           </div>
         </div>

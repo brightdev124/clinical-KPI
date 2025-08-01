@@ -429,6 +429,87 @@ export class ReviewService {
     // Then create the new review
     return await this.createReviewItem(reviewData);
   }
+
+  /**
+   * Calculate monthly averages from weekly reviews
+   */
+  static async getMonthlyAverageFromWeeklyReviews(
+    clinicianId: string, 
+    month: number, 
+    year: number
+  ): Promise<{ kpiId: string; averageScore: number; totalWeight: number; metPercentage: number }[]> {
+    // Get the start and end of the month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const { data, error } = await supabase
+      .from('review_items')
+      .select(`
+        kpi,
+        met_check,
+        score,
+        kpi_info:kpis(weight)
+      `)
+      .eq('clinician', clinicianId)
+      .gte('date', startDate.toISOString())
+      .lte('date', endDate.toISOString());
+
+    if (error) {
+      throw new Error(`Failed to fetch weekly reviews for monthly average: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Group by KPI and calculate averages
+    const kpiGroups: Record<string, { scores: number[]; metCount: number; totalCount: number; weight: number }> = {};
+
+    data.forEach(review => {
+      if (!kpiGroups[review.kpi]) {
+        kpiGroups[review.kpi] = {
+          scores: [],
+          metCount: 0,
+          totalCount: 0,
+          weight: review.kpi_info?.weight || 0
+        };
+      }
+
+      kpiGroups[review.kpi].scores.push(review.score || 0);
+      kpiGroups[review.kpi].totalCount++;
+      if (review.met_check) {
+        kpiGroups[review.kpi].metCount++;
+      }
+    });
+
+    // Calculate averages for each KPI
+    return Object.entries(kpiGroups).map(([kpiId, group]) => ({
+      kpiId,
+      averageScore: group.scores.length > 0 ? group.scores.reduce((sum, score) => sum + score, 0) / group.scores.length : 0,
+      totalWeight: group.weight,
+      metPercentage: group.totalCount > 0 ? (group.metCount / group.totalCount) * 100 : 0
+    }));
+  }
+
+  /**
+   * Get monthly score from weekly averages
+   */
+  static async getMonthlyScoreFromWeeklyReviews(
+    clinicianId: string, 
+    month: number, 
+    year: number
+  ): Promise<number> {
+    const averages = await this.getMonthlyAverageFromWeeklyReviews(clinicianId, month, year);
+    
+    if (averages.length === 0) {
+      return 0;
+    }
+
+    const totalPossibleWeight = averages.reduce((sum, avg) => sum + avg.totalWeight, 0);
+    const totalEarnedWeight = averages.reduce((sum, avg) => sum + avg.averageScore, 0);
+
+    return totalPossibleWeight > 0 ? Math.round((totalEarnedWeight / totalPossibleWeight) * 100) : 0;
+  }
 }
 
 export default ReviewService;
