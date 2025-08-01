@@ -32,130 +32,10 @@ import {
 import { generateMonthlyDataPDF, generatePerformancePDF } from '../utils/pdfGenerator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import AdminAnalytics from '../components/AdminAnalytics';
-import { MonthYearPicker } from '../components/UI';
+import { MonthYearPicker, WeekPicker } from '../components/UI';
+import { ReviewService } from '../services/reviewService';
 
-// WeekPicker component for dashboard
-interface WeekPickerProps {
-  selectedWeek: { year: number; week: number };
-  onWeekChange: (week: { year: number; week: number }) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-}
 
-const WeekPicker: React.FC<WeekPickerProps> = ({ selectedWeek, onWeekChange, isOpen, onToggle }) => {
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  // Close picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        onToggle();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onToggle]);
-
-  const getWeekOptions = () => {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const weeks = [];
-    
-    // Generate weeks for current year and previous year
-    for (let year = currentYear - 1; year <= currentYear + 1; year++) {
-      const weeksInYear = getWeeksInYear(year);
-      for (let week = 1; week <= weeksInYear; week++) {
-        const weekStart = getWeekStart(year, week);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        weeks.push({
-          year,
-          week,
-          label: `Week ${week}, ${year} (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()})`,
-          value: `${year}-W${week.toString().padStart(2, '0')}`
-        });
-      }
-    }
-    
-    return weeks.reverse(); // Most recent first
-  };
-
-  const getWeeksInYear = (year: number) => {
-    const jan1 = new Date(year, 0, 1);
-    const dec31 = new Date(year, 11, 31);
-    
-    // If Jan 1 is Thu, Fri, Sat, or Sun, then week 1 starts in previous year
-    const jan1Day = jan1.getDay();
-    const firstWeekStart = jan1Day <= 4 ? jan1 : new Date(year, 0, 8 - jan1Day);
-    
-    // Calculate number of weeks
-    const diffTime = dec31.getTime() - firstWeekStart.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.ceil(diffDays / 7);
-  };
-
-  const getWeekStart = (year: number, week: number) => {
-    const jan1 = new Date(year, 0, 1);
-    const jan1Day = jan1.getDay();
-    
-    // Find the first Monday of the year
-    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
-    
-    // Calculate the start of the specified week
-    const weekStart = new Date(firstMonday);
-    weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
-    
-    return weekStart;
-  };
-
-  const weekOptions = getWeekOptions();
-  const selectedOption = weekOptions.find(w => w.year === selectedWeek.year && w.week === selectedWeek.week);
-
-  return (
-    <div className="relative" ref={pickerRef}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center sm:justify-start"
-      >
-        <Calendar className="w-4 h-4" />
-        <span className="text-sm sm:text-base">
-          {selectedOption ? selectedOption.label : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
-        </span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[320px] max-h-60 overflow-auto">
-          {weekOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onWeekChange({ year: option.year, week: option.week });
-                onToggle();
-              }}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors ${
-                option.year === selectedWeek.year && option.week === selectedWeek.week
-                  ? 'bg-blue-50 text-blue-600 font-medium'
-                  : 'text-gray-900'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -177,6 +57,9 @@ const Dashboard: React.FC = () => {
 
   // View toggle state
   const [viewType, setViewType] = useState<'monthly' | 'weekly'>('monthly');
+  
+  // Team data view toggle state
+  const [teamDataViewType, setTeamDataViewType] = useState<'monthly' | 'weekly'>('monthly');
   
   // Month selector state
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
@@ -232,6 +115,24 @@ const Dashboard: React.FC = () => {
     weekEnd.setHours(23, 59, 59, 999);
     
     return { start: weekStart, end: weekEnd };
+  };
+
+  // Helper function to get month from week
+  const getMonthFromWeek = (year: number, week: number) => {
+    const { start } = getWeekDateRange(year, week);
+    return {
+      month: start.toLocaleString('default', { month: 'long' }),
+      year: start.getFullYear()
+    };
+  };
+
+  // Handler for team data week selection
+  const handleTeamWeekSelect = (week: { year: number; week: number }) => {
+    setSelectedWeek(week);
+    // Update month/year based on the selected week
+    const monthData = getMonthFromWeek(week.year, week.week);
+    setSelectedMonth(monthData.month);
+    setSelectedYear(monthData.year);
   };
 
   // Weekly score calculation
@@ -1459,28 +1360,80 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Month Selector and Download Controls for Directors/Admins */}
+      {/* Team Data Selector and Download Controls for Directors/Admins */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900">View Team Data By Month</h3>
-            <MonthYearPicker
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onSelect={handleMonthSelect}
-              isOpen={showMonthSelector}
-              onToggle={() => setShowMonthSelector(!showMonthSelector)}
-            />
+        <div className="flex flex-col space-y-4">
+          {/* Header and Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">View Team Data</h3>
+            
+              {/* View Type Toggle */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setTeamDataViewType('monthly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    teamDataViewType === 'monthly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setTeamDataViewType('weekly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    teamDataViewType === 'weekly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Weekly
+                </button>
+                </div>
+            </div>
+            
+            <button
+              onClick={handleDownloadMonthlyData}
+              className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Download {selectedMonth} Team Data</span>
+              <span className="sm:hidden">Download Data</span>
+            </button>
           </div>
-          
-          <button
-            onClick={handleDownloadMonthlyData}
-            className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Download {selectedMonth} Team Data</span>
-            <span className="sm:hidden">Download Data</span>
-          </button>
+
+          {/* Date Selectors */}
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            {teamDataViewType === 'monthly' ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">Select Month:</span>
+                <MonthYearPicker
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  onSelect={handleMonthSelect}
+                  isOpen={showMonthSelector}
+                  onToggle={() => setShowMonthSelector(!showMonthSelector)}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">Select Week:</span>
+                <WeekPicker
+                  selectedWeek={selectedWeek}
+                  onWeekChange={handleTeamWeekSelect}
+                  isOpen={showWeekSelector}
+                  onToggle={() => setShowWeekSelector(!showWeekSelector)}
+                />
+              </div>
+            )}
+            
+            {teamDataViewType === 'weekly' && (
+              <div className="text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
+                📅 Showing monthly data for {selectedMonth} {selectedYear}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
