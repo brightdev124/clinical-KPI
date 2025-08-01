@@ -603,8 +603,8 @@ const Review: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI Group Selector */}
-        {availableGroups.length > 0 && (
+        {/* KPI Group Selector - Only show when not in My Reviews mode */}
+        {!isMyReviewsMode && availableGroups.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
@@ -679,15 +679,21 @@ const Review: React.FC = () => {
                   {/* KPI Status Selection */}
                   <div className="mb-6">
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3">
-                      KPI Status *
+                      KPI Status {!isMyReviewsMode && '*'}
+                      {isMyReviewsMode && (
+                        <span className="text-xs text-gray-500 ml-2">(From your supervisor)</span>
+                      )}
                     </label>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         type="button"
-                        onClick={() => handleKPIChange(kpi.id, 'met', true)}
+                        onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', true)}
+                        disabled={isMyReviewsMode}
                         className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
                           isMet === true
                             ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
+                            : isMyReviewsMode
+                            ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                         }`}
                       >
@@ -696,10 +702,13 @@ const Review: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleKPIChange(kpi.id, 'met', false)}
+                        onClick={isMyReviewsMode ? undefined : () => handleKPIChange(kpi.id, 'met', false)}
+                        disabled={isMyReviewsMode}
                         className={`flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all text-sm sm:text-base font-medium ${
                           isMet === false
                             ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                            : isMyReviewsMode
+                            ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                         }`}
                       >
