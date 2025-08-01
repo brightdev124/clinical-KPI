@@ -19,7 +19,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { MonthYearPicker } from './UI';
+import { MonthYearPicker, WeekPicker } from './UI';
 
 interface AdminAnalyticsProps {
   className?: string;
@@ -31,6 +31,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
 
   // State for controls
   const [userType, setUserType] = useState<'director' | 'clinician'>('clinician');
+  const [dateSelectionType, setDateSelectionType] = useState<'monthly' | 'weekly'>('monthly');
   const [startMonth, setStartMonth] = useState<string>('');
   const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
   const [endMonth, setEndMonth] = useState<string>('');
@@ -41,6 +42,29 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   // State for MonthYearPicker dropdowns
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [endPickerOpen, setEndPickerOpen] = useState(false);
+  
+  // State for WeekPicker dropdowns
+  const [startWeekPickerOpen, setStartWeekPickerOpen] = useState(false);
+  const [endWeekPickerOpen, setEndWeekPickerOpen] = useState(false);
+  
+  // Week selection states
+  const getCurrentWeek = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay();
+    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
+    const diffTime = now.getTime() - firstMonday.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const week = Math.floor(diffDays / 7) + 1;
+    return { year, week: Math.max(1, week) };
+  };
+  
+  const [startWeek, setStartWeek] = useState(() => {
+    const current = getCurrentWeek();
+    return { year: current.year, week: Math.max(1, current.week - 12) }; // 12 weeks ago
+  });
+  const [endWeek, setEndWeek] = useState(getCurrentWeek());
   
   // State for sidebar
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +95,31 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setEndMonth(currentMonthName);
     setEndYear(currentYear);
   }, []);
+
+  // Helper function to get week date range
+  const getWeekDateRange = (year: number, week: number) => {
+    const jan1 = new Date(year, 0, 1);
+    const jan1Day = jan1.getDay();
+    const firstMonday = new Date(year, 0, 1 + (jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day));
+    
+    const weekStart = new Date(firstMonday);
+    weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    return { start: weekStart, end: weekEnd };
+  };
+
+  // Helper function to get month from week
+  const getMonthFromWeek = (year: number, week: number) => {
+    const { start } = getWeekDateRange(year, week);
+    return {
+      month: start.toLocaleString('default', { month: 'long' }),
+      year: start.getFullYear()
+    };
+  };
 
   // Calculate director's average score based on assigned members
   const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
@@ -341,6 +390,17 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setSortDirection('asc');
   }, [selectedUsers, startMonth, startYear, endMonth, endYear]);
 
+  // Handle date selection type changes
+  useEffect(() => {
+    if (dateSelectionType === 'weekly') {
+      // When switching to weekly, set weeks that correspond to current month range
+      // This is a simplified approach - you might want more sophisticated logic
+      const currentWeek = getCurrentWeek();
+      setStartWeek({ year: currentWeek.year, week: Math.max(1, currentWeek.week - 12) });
+      setEndWeek(currentWeek);
+    }
+  }, [dateSelectionType]);
+
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -373,6 +433,25 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
     setEndMonth(month);
     setEndYear(year);
     setEndPickerOpen(false);
+  };
+
+  // WeekPicker handlers
+  const handleStartWeekSelect = (week: { year: number; week: number }) => {
+    setStartWeek(week);
+    setStartWeekPickerOpen(false);
+    // Update corresponding month/year for data display
+    const monthData = getMonthFromWeek(week.year, week.week);
+    setStartMonth(monthData.month);
+    setStartYear(monthData.year);
+  };
+
+  const handleEndWeekSelect = (week: { year: number; week: number }) => {
+    setEndWeek(week);
+    setEndWeekPickerOpen(false);
+    // Update corresponding month/year for data display
+    const monthData = getMonthFromWeek(week.year, week.week);
+    setEndMonth(monthData.month);
+    setEndYear(monthData.year);
   };
 
   // Generate colors for chart lines
@@ -430,24 +509,75 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
             </button>
           </div>
 
-          {/* Month Selectors */}
-          <div className="flex items-center gap-2">
-            <MonthYearPicker
-              selectedMonth={startMonth}
-              selectedYear={startYear}
-              onSelect={handleStartMonthSelect}
-              isOpen={startPickerOpen}
-              onToggle={() => setStartPickerOpen(!startPickerOpen)}
-            />
-            <span className="text-gray-500">to</span>
-            <MonthYearPicker
-              selectedMonth={endMonth}
-              selectedYear={endYear}
-              onSelect={handleEndMonthSelect}
-              isOpen={endPickerOpen}
-              onToggle={() => setEndPickerOpen(!endPickerOpen)}
-            />
+          {/* Date Selection Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setDateSelectionType('monthly')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                dateSelectionType === 'monthly'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setDateSelectionType('weekly')}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                dateSelectionType === 'weekly'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Weekly
+            </button>
           </div>
+
+          {/* Date Selectors */}
+          <div className="flex items-center gap-2">
+            {dateSelectionType === 'monthly' ? (
+              <>
+                <MonthYearPicker
+                  selectedMonth={startMonth}
+                  selectedYear={startYear}
+                  onSelect={handleStartMonthSelect}
+                  isOpen={startPickerOpen}
+                  onToggle={() => setStartPickerOpen(!startPickerOpen)}
+                />
+                <span className="text-gray-500">to</span>
+                <MonthYearPicker
+                  selectedMonth={endMonth}
+                  selectedYear={endYear}
+                  onSelect={handleEndMonthSelect}
+                  isOpen={endPickerOpen}
+                  onToggle={() => setEndPickerOpen(!endPickerOpen)}
+                />
+              </>
+            ) : (
+              <>
+                <WeekPicker
+                  selectedWeek={startWeek}
+                  onWeekChange={handleStartWeekSelect}
+                  isOpen={startWeekPickerOpen}
+                  onToggle={() => setStartWeekPickerOpen(!startWeekPickerOpen)}
+                />
+                <span className="text-gray-500">to</span>
+                <WeekPicker
+                  selectedWeek={endWeek}
+                  onWeekChange={handleEndWeekSelect}
+                  isOpen={endWeekPickerOpen}
+                  onToggle={() => setEndWeekPickerOpen(!endWeekPickerOpen)}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Info about weekly selection */}
+          {dateSelectionType === 'weekly' && (
+            <div className="text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
+              📅 Showing monthly data from {startMonth} {startYear} to {endMonth} {endYear}
+            </div>
+          )}
 
           {/* View Type Toggle */}
           <div className="flex bg-gray-100 rounded-lg p-1">
