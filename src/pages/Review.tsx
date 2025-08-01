@@ -490,6 +490,40 @@ const Review: React.FC = () => {
     setSubmitError(null);
 
     try {
+      // Validate that all KPIs in the filtered group are reviewed
+      const unreviewed = filteredKPIs.filter(kpi => {
+        const kpiData = reviewData[kpi.id];
+        return !kpiData || kpiData.met === null || kpiData.met === undefined;
+      });
+
+      if (unreviewed.length > 0) {
+        const unreviewedTitles = unreviewed.map(kpi => kpi.title).join(', ');
+        setSubmitError(
+          `Please complete reviews for all KPIs in the selected group before submitting. Missing reviews for: ${unreviewedTitles}`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Additional validation for KPIs marked as "Not Met"
+      const invalidNotMetKPIs = filteredKPIs.filter(kpi => {
+        const kpiData = reviewData[kpi.id];
+        if (kpiData?.met === false) {
+          // Check if required fields are filled for "Not Met" KPIs
+          return !kpiData.reviewDate || !kpiData.notes || !kpiData.plan;
+        }
+        return false;
+      });
+
+      if (invalidNotMetKPIs.length > 0) {
+        const invalidTitles = invalidNotMetKPIs.map(kpi => kpi.title).join(', ');
+        setSubmitError(
+          `For KPIs marked as "Not Met", please fill in Review Date, Performance Notes, and Improvement Plan. Missing information for: ${invalidTitles}`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const reviewItems = [];
       
       for (const kpiId of Object.keys(reviewData)) {
@@ -1141,7 +1175,7 @@ const Review: React.FC = () => {
               {!isMyReviewsMode && (
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || completedKPIs === 0}
+                  disabled={isSubmitting || completedKPIs < totalKPIs}
                   className="px-4 sm:px-6 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {isSubmitting ? (
@@ -1173,23 +1207,27 @@ const Review: React.FC = () => {
             </div>
           )}
 
-          {completedKPIs === 0 && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          {!isMyReviewsMode && completedKPIs < totalKPIs && (
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-yellow-700">
-                  Please complete at least one KPI review before saving changes.
+                <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-orange-700">
+                  All KPIs in the selected group must be reviewed before submitting. 
+                  {completedKPIs === 0 
+                    ? `Please complete all ${totalKPIs} KPI reviews.`
+                    : `${totalKPIs - completedKPIs} KPI${totalKPIs - completedKPIs > 1 ? 's' : ''} remaining to complete.`
+                  }
                 </span>
               </div>
             </div>
           )}
 
-          {completedKPIs > 0 && completedKPIs < totalKPIs && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          {!isMyReviewsMode && completedKPIs === totalKPIs && totalKPIs > 0 && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-blue-700">
-                  You can save changes with {completedKPIs} of {totalKPIs} KPIs completed. Remaining KPIs can be completed later.
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-green-700">
+                  All {totalKPIs} KPIs have been reviewed and are ready to submit.
                 </span>
               </div>
             </div>
