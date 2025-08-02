@@ -1601,9 +1601,11 @@ const Dashboard: React.FC = () => {
               <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
                 name: formatName(person.name), // Use formatted name for all roles
                 fullName: formatName(person.name),
-                score: person.position_info?.role === 'director' 
-                  ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
-                  : getClinicianScore(person.id, selectedMonth, selectedYear),
+                score: user?.role === 'super-admin' 
+                  ? (person.position_info?.role === 'director' 
+                      ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
+                      : getClinicianScore(person.id, selectedMonth, selectedYear))
+                  : getClinicianScore(person.id, selectedMonth, selectedYear), // For directors viewing their assigned staff, always show individual scores
                 position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
                 role: person.position_info?.role || 'clinician',
                 isDirector: person.position_info?.role === 'director'
