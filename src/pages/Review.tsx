@@ -630,39 +630,7 @@ const Review: React.FC = () => {
           </div>
         </div>
 
-        {/* Period Selector - Matching original style */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Review Period</h2>
-              <p className="text-sm text-gray-600">
-                Select the week for this review
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Desktop Week Picker */}
-              <div className="hidden sm:block">
-                <WeekPicker
-                  selectedWeek={selectedWeek}
-                  onWeekChange={setSelectedWeek}
-                  isOpen={weekPickerOpen}
-                  onToggle={() => setWeekPickerOpen(!weekPickerOpen)}
-                />
-              </div>
-              
-              {/* Mobile Week Picker */}
-              <div className="sm:hidden">
-                <WeekPicker
-                  selectedWeek={selectedWeek}
-                  onWeekChange={setSelectedWeek}
-                  isOpen={mobileWeekPickerOpen}
-                  onToggle={() => setMobileWeekPickerOpen(!mobileWeekPickerOpen)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* KPI Group Selector - Only show when not in My Reviews mode */}
         {!isMyReviewsMode && availableGroups.length > 0 && (
