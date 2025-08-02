@@ -218,9 +218,7 @@ const ClinicianManagement: React.FC = () => {
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">
               {allAssignedStaff.filter(s => {
-                const score = s.position_info?.role === 'director' 
-                  ? getDirectorAverageScore(s.id, currentMonth, currentYear)
-                  : getClinicianScore(s.id, currentMonth, currentYear);
+                const score = getClinicianScore(s.id, currentMonth, currentYear); // Always use individual scores for assigned staff
                 return score >= 90;
               }).length}
             </div>
@@ -229,9 +227,7 @@ const ClinicianManagement: React.FC = () => {
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className="text-2xl font-bold text-red-600">
               {allAssignedStaff.filter(s => {
-                const score = s.position_info?.role === 'director' 
-                  ? getDirectorAverageScore(s.id, currentMonth, currentYear)
-                  : getClinicianScore(s.id, currentMonth, currentYear);
+                const score = getClinicianScore(s.id, currentMonth, currentYear); // Always use individual scores for assigned staff
                 return score < 70;
               }).length}
             </div>
@@ -243,9 +239,7 @@ const ClinicianManagement: React.FC = () => {
       {/* Staff Grid */}
       <div className="grid grid-cols-1 gap-6">
         {allAssignedStaff.map((staffMember) => {
-          const currentScore = staffMember.position_info?.role === 'director' 
-            ? getDirectorAverageScore(staffMember.id, currentMonth, currentYear)
-            : getClinicianScore(staffMember.id, currentMonth, currentYear);
+          const currentScore = getClinicianScore(staffMember.id, currentMonth, currentYear); // Always use individual scores for assigned staff
           const scoreColorClass = getPerformanceColor(currentScore);
           const isExpanded = expandedStaff.has(staffMember.id);
           const kpiDetails = getStaffKPIDetails(staffMember.id);
