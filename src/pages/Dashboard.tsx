@@ -135,7 +135,7 @@ const Dashboard: React.FC = () => {
     setSelectedYear(monthData.year);
   };
 
-  // Weekly score calculation
+  // Weekly score calculation for individuals
   const getWeeklyScore = async (clinicianId: string, year: number, week: number): Promise<number> => {
     try {
       const { start, end } = getWeekDateRange(year, week);
@@ -163,13 +163,56 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Weekly score calculation for directors (team average)
+  const getDirectorWeeklyScore = async (directorId: string, year: number, week: number, visited: Set<string> = new Set()): Promise<number> => {
+    // Prevent infinite recursion
+    if (visited.has(directorId)) {
+      return 0;
+    }
+    
+    const newVisited = new Set(visited);
+    newVisited.add(directorId);
+    
+    try {
+      const assignedClinicians = getAssignedClinicians(directorId);
+      const assignedDirectors = getAssignedDirectors(directorId);
+      const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+      
+      if (allAssignedMembers.length === 0) {
+        return 0;
+      }
+      
+      const scores = await Promise.all(allAssignedMembers.map(async (member) => {
+        if (member.position_info?.role === 'director') {
+          return await getDirectorWeeklyScore(member.id, year, week, newVisited);
+        } else {
+          return await getWeeklyScore(member.id, year, week);
+        }
+      }));
+      
+      const validScores = scores.filter(score => score > 0);
+      if (validScores.length === 0) {
+        return 0;
+      }
+      
+      return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+    } catch (error) {
+      console.error('Error calculating director weekly score:', error);
+      return 0;
+    }
+  };
+
   // Memoized weekly score data generation
-  const generateWeeklyScoreData = useCallback(async (clinicianId: string, endYear?: number, endWeek?: number) => {
+  const generateWeeklyScoreData = useCallback(async (userId: string, endYear?: number, endWeek?: number) => {
     const weeklyData = [];
     
     // Use selected week/year or default to current date
     const targetYear = endYear || selectedWeek.year;
     const targetWeek = endWeek || selectedWeek.week;
+    
+    // Determine if this user is a director
+    const userProfile = profiles.find(p => p.id === userId);
+    const isDirector = userProfile?.position_info?.role === 'director';
     
     // Get 12 weeks of data ending at the selected week
     for (let i = 11; i >= 0; i--) {
@@ -182,7 +225,9 @@ const Dashboard: React.FC = () => {
         // Get weeks in previous year and adjust
         const weeksInPrevYear = 52; // Simplified - could be 53 in some years
         const adjustedWeek = weeksInPrevYear + weekNum;
-        const score = await getWeeklyScore(clinicianId, year, adjustedWeek);
+        const score = isDirector 
+          ? await getDirectorWeeklyScore(userId, year, adjustedWeek)
+          : await getWeeklyScore(userId, year, adjustedWeek);
         weeklyData.push({
           week: adjustedWeek,
           year: year,
@@ -190,7 +235,9 @@ const Dashboard: React.FC = () => {
           displayName: `W${adjustedWeek} ${year.toString().slice(-2)}`
         });
       } else {
-        const score = await getWeeklyScore(clinicianId, year, weekNum);
+        const score = isDirector
+          ? await getDirectorWeeklyScore(userId, year, weekNum)
+          : await getWeeklyScore(userId, year, weekNum);
         weeklyData.push({
           week: weekNum,
           year: year,
@@ -201,7 +248,7 @@ const Dashboard: React.FC = () => {
     }
     
     return weeklyData;
-  }, [selectedWeek, kpis]);
+  }, [selectedWeek, kpis, profiles]);
 
   // Memoized monthly score data generation to avoid expensive recalculations
   const generateMonthlyScoreData = useCallback((clinicianId: string, endMonth?: string, endYear?: number) => {
@@ -256,10 +303,14 @@ const Dashboard: React.FC = () => {
       let data: any[] = [];
       
       if (viewType === 'monthly') {
-        score = getClinicianScore(user.id, selectedMonth, selectedYear);
+        score = user.role === 'director' 
+          ? getDirectorAverageScore(user.id, selectedMonth, selectedYear)
+          : getClinicianScore(user.id, selectedMonth, selectedYear);
         data = generateMonthlyScoreData(user.id, selectedMonth, selectedYear);
       } else {
-        score = await getWeeklyScore(user.id, selectedWeek.year, selectedWeek.week);
+        score = user.role === 'director'
+          ? await getDirectorWeeklyScore(user.id, selectedWeek.year, selectedWeek.week)
+          : await getWeeklyScore(user.id, selectedWeek.year, selectedWeek.week);
         data = await generateWeeklyScoreData(user.id, selectedWeek.year, selectedWeek.week);
       }
       
@@ -524,11 +575,16 @@ const Dashboard: React.FC = () => {
     });
   }, [profiles, reviewItems, kpis]);
 
-  // Memoized clinician score calculation - moved to top level to avoid conditional hook calls
+  // Memoized score calculation for current user - moved to top level to avoid conditional hook calls
   const myScore = useMemo(() => {
-    if (!user || user.role !== 'clinician') return 0;
-    return getClinicianScore(user.id, selectedMonth, selectedYear);
-  }, [user, selectedMonth, selectedYear, getClinicianScore]);
+    if (!user) return 0;
+    if (user.role === 'director') {
+      return getDirectorAverageScore(user.id, selectedMonth, selectedYear);
+    } else if (user.role === 'clinician') {
+      return getClinicianScore(user.id, selectedMonth, selectedYear);
+    }
+    return 0;
+  }, [user, selectedMonth, selectedYear, getClinicianScore, getDirectorAverageScore]);
   
 
 
@@ -619,7 +675,9 @@ const Dashboard: React.FC = () => {
             clinician: clinician.name,
             action: review.met ? `${kpi?.title} - Target achieved` : `${kpi?.title} - Improvement plan created`,
             time: timeText,
-            score: getClinicianScore(clinician.id, review.month, review.year),
+            score: clinician.position_info?.role === 'director' 
+              ? getDirectorAverageScore(clinician.id, review.month, review.year)
+              : getClinicianScore(clinician.id, review.month, review.year),
             reviewDate: reviewDate
           });
         });
@@ -673,7 +731,9 @@ const Dashboard: React.FC = () => {
         // For directors/admins, generate team summary
         const teamData = userClinicians.map(clinician => ({
           clinician,
-          score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
+          score: clinician.position_info?.role === 'director' 
+            ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
+            : getClinicianScore(clinician.id, selectedMonth, selectedYear),
           reviews: getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear)
         }));
         
@@ -747,8 +807,8 @@ const Dashboard: React.FC = () => {
     return profiles
       .filter(p => p.position_info?.role === 'director')
       .sort((a, b) => {
-        const scoreA = getClinicianScore(a.id, selectedMonth, selectedYear);
-        const scoreB = getClinicianScore(b.id, selectedMonth, selectedYear);
+        const scoreA = getDirectorAverageScore(a.id, selectedMonth, selectedYear);
+        const scoreB = getDirectorAverageScore(b.id, selectedMonth, selectedYear);
         return scoreB - scoreA; // Sort by highest score first
       });
   };
@@ -1790,7 +1850,12 @@ const Dashboard: React.FC = () => {
                 <div className="text-center">
                   <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {topPerformers.length > 0 
-                      ? Math.round(topPerformers.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / topPerformers.length)
+                      ? Math.round(topPerformers.reduce((acc, c) => {
+                          const score = c.position_info?.role === 'director' 
+                            ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                          return acc + score;
+                        }, 0) / topPerformers.length)
                       : 0}%
                   </div>
                   <div className="text-xs text-gray-500">Avg Score</div>
@@ -1801,7 +1866,9 @@ const Dashboard: React.FC = () => {
             {topPerformers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {(showAllTopPerformers ? topPerformers : topPerformers.slice(0, 6)).map((clinician) => {
-              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+              const score = clinician.position_info?.role === 'director' 
+                ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
+                : getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
@@ -1900,7 +1967,12 @@ const Dashboard: React.FC = () => {
                 <div className="text-center">
                   <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {cliniciansNeedingAttention.length > 0 
-                      ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => acc + getClinicianScore(c.id, selectedMonth, selectedYear), 0) / cliniciansNeedingAttention.length)
+                      ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => {
+                          const score = c.position_info?.role === 'director' 
+                            ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                          return acc + score;
+                        }, 0) / cliniciansNeedingAttention.length)
                       : 0}%
                   </div>
                   <div className="text-xs text-gray-500">Avg Score</div>
@@ -1912,7 +1984,9 @@ const Dashboard: React.FC = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
-                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                const score = clinician.position_info?.role === 'director' 
+                  ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
+                  : getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
                 const reviews = getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear);
