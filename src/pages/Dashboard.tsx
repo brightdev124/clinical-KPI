@@ -270,8 +270,17 @@ const Dashboard: React.FC = () => {
     calculateData();
   }, [viewType, selectedMonth, selectedYear, selectedWeek, user?.id, kpis, generateMonthlyScoreData, generateWeeklyScoreData]);
 
-  // Calculate director's average score based on assigned members
-  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+  // Helper function to calculate director's average score with recursion protection
+  const getDirectorAverageScoreInternal = (directorId: string, month: string, year: number, visited: Set<string>): number => {
+    // Prevent infinite recursion by checking if we've already visited this director
+    if (visited.has(directorId)) {
+      return 0; // Return 0 to avoid circular references
+    }
+    
+    // Add current director to visited set
+    const newVisited = new Set(visited);
+    newVisited.add(directorId);
+    
     const assignedClinicians = getAssignedClinicians(directorId);
     const assignedDirectors = getAssignedDirectors(directorId);
     const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
@@ -283,7 +292,7 @@ const Dashboard: React.FC = () => {
     const scores = allAssignedMembers.map(member => {
       // For assigned directors, get their director average score; for clinicians, get their individual score
       if (member.position_info?.role === 'director') {
-        return getDirectorAverageScore(member.id, month, year);
+        return getDirectorAverageScoreInternal(member.id, month, year, newVisited);
       } else {
         return getClinicianScore(member.id, month, year);
       }
@@ -295,6 +304,11 @@ const Dashboard: React.FC = () => {
     }
     
     return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+  };
+
+  // Calculate director's average score based on assigned members
+  const getDirectorAverageScore = (directorId: string, month: string, year: number): number => {
+    return getDirectorAverageScoreInternal(directorId, month, year, new Set());
   };
 
   // Filter staff based on user role - include both clinicians and directors for directors
