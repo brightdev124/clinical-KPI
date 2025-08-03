@@ -95,6 +95,17 @@ const Dashboard: React.FC = () => {
   // State for showing all performers
   const [showAllTopPerformers, setShowAllTopPerformers] = useState(false);
   const [showAllNeedingAttention, setShowAllNeedingAttention] = useState(false);
+  
+  // State for weekly team data calculations
+  const [weeklyTeamAvgScore, setWeeklyTeamAvgScore] = useState(0);
+  const [weeklyTopPerformers, setWeeklyTopPerformers] = useState<any[]>([]);
+  const [weeklyNeedingAttention, setWeeklyNeedingAttention] = useState<any[]>([]);
+  
+  // State for weekly KPI details for individual clinicians
+  const [weeklyKPIDetails, setWeeklyKPIDetails] = useState<any[]>([]);
+  
+  // State for weekly team chart data
+  const [weeklyTeamChartData, setWeeklyTeamChartData] = useState<any[]>([]);
 
 
 
@@ -321,6 +332,10 @@ const Dashboard: React.FC = () => {
     calculateData();
   }, [viewType, selectedMonth, selectedYear, selectedWeek, user?.id, kpis, generateMonthlyScoreData, generateWeeklyScoreData]);
 
+
+
+
+
   // Helper function to calculate director's average score with recursion protection
   const getDirectorAverageScoreInternal = (directorId: string, month: string, year: number, visited: Set<string>): number => {
     // Prevent infinite recursion by checking if we've already visited this director
@@ -409,36 +424,116 @@ const Dashboard: React.FC = () => {
   // Calculate stats for selected month
   const totalTeamMembers = useMemo(() => userClinicians.length, [userClinicians]);
   const totalKPIs = useMemo(() => kpis.length, [kpis]);
+
+  // Calculate weekly team data when teamDataViewType is weekly
+  useEffect(() => {
+    const calculateWeeklyTeamData = async () => {
+      if (teamDataViewType !== 'weekly' || userClinicians.length === 0) return;
+      
+      try {
+        // Calculate scores for all team members
+        const scoresWithMembers = await Promise.all(userClinicians.map(async (member) => {
+          const score = member.position_info?.role === 'director'
+            ? await getDirectorWeeklyScore(member.id, selectedWeek.year, selectedWeek.week)
+            : await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+          return { member, score };
+        }));
+        
+        // Calculate average score
+        const validScores = scoresWithMembers.filter(item => item.score > 0);
+        const avgScore = validScores.length > 0 
+          ? Math.round(validScores.reduce((sum, item) => sum + item.score, 0) / validScores.length)
+          : 0;
+        
+        // Find top performers (score >= 90)
+        const topPerformers = scoresWithMembers
+          .filter(item => item.score >= 90)
+          .map(item => item.member);
+        
+        // Find those needing attention (score < 70)
+        const needingAttention = scoresWithMembers
+          .filter(item => item.score < 70 && item.score > 0)
+          .map(item => item.member);
+        
+        setWeeklyTeamAvgScore(avgScore);
+        setWeeklyTopPerformers(topPerformers);
+        setWeeklyNeedingAttention(needingAttention);
+        
+        // Generate chart data for weekly view
+        const chartData = scoresWithMembers.map(({ member, score }) => ({
+          name: formatName(member.name),
+          fullName: formatName(member.name),
+          score: score,
+          position: member.position_info?.position_title || (member.position_info?.role === 'director' ? 'Director' : 'Clinician'),
+          role: member.position_info?.role || 'clinician',
+          isDirector: member.position_info?.role === 'director'
+        }));
+        
+        setWeeklyTeamChartData(chartData);
+      } catch (error) {
+        console.error('Error calculating weekly team data:', error);
+        setWeeklyTeamAvgScore(0);
+        setWeeklyTopPerformers([]);
+        setWeeklyNeedingAttention([]);
+        setWeeklyTeamChartData([]);
+      }
+    };
+    
+    calculateWeeklyTeamData();
+  }, [teamDataViewType, selectedWeek, userClinicians, getDirectorWeeklyScore, getWeeklyScore, formatName]);
   
-  // Memoized calculations that depend on selectedMonth and selectedYear
+  // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
     if (userClinicians.length === 0) return 0;
     
+    // For weekly view, use the calculated weekly average score
+    if (teamDataViewType === 'weekly') {
+      return weeklyTeamAvgScore;
+    }
+    
+    // For monthly view, calculate synchronously
     const totalScore = userClinicians.reduce((acc, c) => {
-      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = c.position_info?.role === 'director' 
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
       return acc + score;
     }, 0);
-    
     return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, getClinicianScore]);
+  }, [userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTeamAvgScore, getClinicianScore, getDirectorAverageScore]);
 
   // Memoized staff needing attention (score < 70)
   const cliniciansNeedingAttention = useMemo(() => {
+    // For weekly view, use the calculated weekly data
+    if (teamDataViewType === 'weekly') {
+      return weeklyNeedingAttention;
+    }
+    
+    // For monthly view, calculate synchronously
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
-      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = c.position_info?.role === 'director'
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
       return score < 70;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyNeedingAttention, getClinicianScore, getDirectorAverageScore]);
 
   // Memoized top performers (score >= 90)
   const topPerformers = useMemo(() => {
+    // For weekly view, use the calculated weekly data
+    if (teamDataViewType === 'weekly') {
+      return weeklyTopPerformers;
+    }
+    
+    // For monthly view, calculate synchronously
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
-      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = c.position_info?.role === 'director'
+        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+        : getClinicianScore(c.id, selectedMonth, selectedYear);
       return score >= 90;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTopPerformers, getClinicianScore, getDirectorAverageScore]);
 
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
@@ -568,6 +663,60 @@ const Dashboard: React.FC = () => {
       };
     });
   }, [profiles, reviewItems, kpis]);
+
+  // Weekly KPI details for clinicians
+  const getClinicianWeeklyKPIDetails = useCallback(async (clinicianId: string, year: number, week: number) => {
+    // Ensure the clinician is approved before processing their reviews
+    const clinician = profiles.find(p => p.id === clinicianId);
+    if (!clinician || !clinician.accept) {
+      return kpis.map(kpi => ({
+        kpi,
+        review: null,
+        score: null,
+        hasData: false
+      }));
+    }
+
+    try {
+      const { start, end } = getWeekDateRange(year, week);
+      const weekReviews = await ReviewService.getReviewsByDateRange(clinicianId, start, end);
+
+      return kpis.map(kpi => {
+        const kpiReview = weekReviews.find(review => review.kpi === kpi.id);
+        return {
+          kpi,
+          review: kpiReview,
+          score: kpiReview ? (kpiReview.met_check ? kpi.weight : 0) : null,
+          hasData: !!kpiReview
+        };
+      });
+    } catch (error) {
+      console.error('Error getting weekly KPI details:', error);
+      return kpis.map(kpi => ({
+        kpi,
+        review: null,
+        score: null,
+        hasData: false
+      }));
+    }
+  }, [profiles, kpis]);
+
+  // Calculate weekly KPI details for individual clinicians
+  useEffect(() => {
+    const calculateWeeklyKPIDetails = async () => {
+      if (viewType !== 'weekly' || !user?.id || user.role !== 'clinician') return;
+      
+      try {
+        const details = await getClinicianWeeklyKPIDetails(user.id, selectedWeek.year, selectedWeek.week);
+        setWeeklyKPIDetails(details);
+      } catch (error) {
+        console.error('Error calculating weekly KPI details:', error);
+        setWeeklyKPIDetails([]);
+      }
+    };
+    
+    calculateWeeklyKPIDetails();
+  }, [viewType, selectedWeek, user?.id, user?.role, getClinicianWeeklyKPIDetails]);
 
   // Memoized score calculation for current user - moved to top level to avoid conditional hook calls
   const myScore = useMemo(() => {
@@ -1192,9 +1341,14 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-2 sm:space-y-0">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">My KPI Performance - {selectedMonth} {selectedYear}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  My KPI Performance - {viewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
+                </h3>
                 <div className="text-xs sm:text-sm text-gray-600 mt-1">
-                  {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of {kpis.length} KPIs reviewed
+                  {viewType === 'monthly' 
+                    ? `${getClinicianKPIDetails(user.id, selectedMonth, selectedYear).filter(kpi => kpi.hasData).length} of ${kpis.length} KPIs reviewed`
+                    : `${weeklyKPIDetails.filter(kpi => kpi.hasData).length} of ${kpis.length} KPIs reviewed`
+                  }
                 </div>
               </div>
               <button
@@ -1208,7 +1362,10 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              {getClinicianKPIDetails(user.id, selectedMonth, selectedYear).map((kpiDetail) => {
+              {(viewType === 'monthly' 
+                ? getClinicianKPIDetails(user.id, selectedMonth, selectedYear)
+                : weeklyKPIDetails
+              ).map((kpiDetail) => {
                 const { kpi, review, score, hasData } = kpiDetail;
                 const isExpanded = expandedKPIs.has(kpi.id);
                 
@@ -1356,38 +1513,80 @@ const Dashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review results for {selectedMonth} {selectedYear}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Review results for {viewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
+            </h3>
             <div className="space-y-4">
-              {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).slice(0, 5).map((review) => {
-                const kpi = kpis.find(k => k.id === review.kpiId);
-                return (
-                  <div key={review.id} className="flex items-start space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      review.met ? 'bg-green-100' : 'bg-yellow-100'
-                    }`}>
-                      {review.met ? 
-                        <CheckCircle className="w-4 h-4 text-green-600" /> : 
-                        <Clock className="w-4 h-4 text-yellow-600" />
-                      }
+              {viewType === 'monthly' ? (
+                // Monthly reviews
+                <>
+                  {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).slice(0, 5).map((review) => {
+                    const kpi = kpis.find(k => k.id === review.kpiId);
+                    return (
+                      <div key={review.id} className="flex items-start space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          review.met ? 'bg-green-100' : 'bg-yellow-100'
+                        }`}>
+                          {review.met ? 
+                            <CheckCircle className="w-4 h-4 text-green-600" /> : 
+                            <Clock className="w-4 h-4 text-yellow-600" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-gray-900">{kpi?.title} - {review.met ? 'Target Met' : 'Improvement Plan'}</p>
+                          <p className="text-xs text-gray-500">{review.reviewDate ? `Reviewed ${new Date(review.reviewDate).toLocaleDateString()}` : `${review.month} ${review.year}`}</p>
+                          {review.notes && (
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{review.notes}</p>
+                          )}
+                          {review.plan && (
+                            <p className="text-xs text-blue-600 mt-1 line-clamp-2"><strong>Plan:</strong> {review.plan}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-sm sm:text-base">No reviews found for {selectedMonth} {selectedYear}</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium text-gray-900">{kpi?.title} - {review.met ? 'Target Met' : 'Improvement Plan'}</p>
-                      <p className="text-xs text-gray-500">{review.reviewDate ? `Reviewed ${new Date(review.reviewDate).toLocaleDateString()}` : `${review.month} ${review.year}`}</p>
-                      {review.notes && (
-                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{review.notes}</p>
-                      )}
-                      {review.plan && (
-                        <p className="text-xs text-blue-600 mt-1 line-clamp-2"><strong>Plan:</strong> {review.plan}</p>
-                      )}
+                  )}
+                </>
+              ) : (
+                // Weekly reviews - show KPI details with data
+                <>
+                  {weeklyKPIDetails.filter(kpi => kpi.hasData).slice(0, 5).map((kpiDetail) => {
+                    const { kpi, review } = kpiDetail;
+                    return (
+                      <div key={kpi.id} className="flex items-start space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          review?.met_check ? 'bg-green-100' : 'bg-yellow-100'
+                        }`}>
+                          {review?.met_check ? 
+                            <CheckCircle className="w-4 h-4 text-green-600" /> : 
+                            <Clock className="w-4 h-4 text-yellow-600" />
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-gray-900">{kpi.title} - {review?.met_check ? 'Target Met' : 'Improvement Plan'}</p>
+                          <p className="text-xs text-gray-500">Reviewed {new Date(review?.date || '').toLocaleDateString()}</p>
+                          {review?.notes && (
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{review.notes}</p>
+                          )}
+                          {review?.plan && (
+                            <p className="text-xs text-blue-600 mt-1 line-clamp-2"><strong>Plan:</strong> {review.plan}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {weeklyKPIDetails.filter(kpi => kpi.hasData).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-sm sm:text-base">No reviews found for Week {selectedWeek.week}, {selectedWeek.year}</p>
                     </div>
-                  </div>
-                );
-              })}
-              {myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-sm sm:text-base">No reviews found for {selectedMonth} {selectedYear}</p>
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1407,7 +1606,7 @@ const Dashboard: React.FC = () => {
               Welcome back, {(user?.name || '').split(' ')[0]}! 👋
             </h1>
             <p className="text-blue-100 text-lg">
-              Here's your team performance overview for {selectedMonth} {selectedYear}
+              Here's your team performance overview for {teamDataViewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}
             </p>
           </div>
           <div className="hidden md:flex items-center space-x-4">
@@ -1462,7 +1661,7 @@ const Dashboard: React.FC = () => {
               className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Download {selectedMonth} Team Data</span>
+              <span className="hidden sm:inline">Download {teamDataViewType === 'monthly' ? selectedMonth : `Week ${selectedWeek.week}`} Team Data</span>
               <span className="sm:hidden">Download Data</span>
             </button>
           </div>
@@ -1575,20 +1774,22 @@ const Dashboard: React.FC = () => {
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Overview</h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                {user?.role === 'super-admin' ? 'Current month performance by Director' : 
-                 user?.role === 'director' ? 'Current month performance by assigned staff (👤 Clinicians, 👑 Directors)' :
-                 'Current month performance'}
+                {user?.role === 'super-admin' ? 
+                  (teamDataViewType === 'monthly' ? 'Current month performance by Director' : 'Current week performance by Director') : 
+                 user?.role === 'director' ? 
+                  (teamDataViewType === 'monthly' ? 'Current month performance by assigned staff (👤 Clinicians, 👑 Directors)' : 'Current week performance by assigned staff (👤 Clinicians, 👑 Directors)') :
+                  (teamDataViewType === 'monthly' ? 'Current month performance' : 'Current week performance')}
               </p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <BarChart3 className="w-4 h-4" />
-              <span>Current Month</span>
+              <span>{teamDataViewType === 'monthly' ? 'Current Month' : 'Current Week'}</span>
             </div>
           </div>
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
+              <BarChart data={teamDataViewType === 'weekly' ? weeklyTeamChartData : (user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
                 name: formatName(person.name), // Use formatted name for all roles
                 fullName: formatName(person.name),
                 score: user?.role === 'super-admin' 
@@ -1641,10 +1842,10 @@ const Dashboard: React.FC = () => {
                   dataKey="score" 
                   radius={[4, 4, 0, 0]}
                 >
-                  {(user?.role === 'super-admin' ? userDirectors : userClinicians).map((person, index) => (
+                  {(teamDataViewType === 'weekly' ? weeklyTeamChartData : (user?.role === 'super-admin' ? userDirectors : userClinicians)).map((item, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={person.position_info?.role === 'director' ? '#8b5cf6' : '#3b82f6'} 
+                      fill={teamDataViewType === 'weekly' ? (item.isDirector ? '#8b5cf6' : '#3b82f6') : (item.position_info?.role === 'director' ? '#8b5cf6' : '#3b82f6')} 
                     />
                   ))}
                 </Bar>
@@ -1676,37 +1877,45 @@ const Dashboard: React.FC = () => {
                 {
                   range: '90-100%',
                   label: 'Excellent',
-                  count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 90;
-                  }).length,
+                  count: teamDataViewType === 'weekly' 
+                    ? weeklyTeamChartData.filter(item => item.score >= 90).length
+                    : userClinicians.filter(c => {
+                        const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                        return score >= 90;
+                      }).length,
                   color: '#10b981'
                 },
                 {
                   range: '80-89%',
                   label: 'Good',
-                  count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 80 && score < 90;
-                  }).length,
+                  count: teamDataViewType === 'weekly' 
+                    ? weeklyTeamChartData.filter(item => item.score >= 80 && item.score < 90).length
+                    : userClinicians.filter(c => {
+                        const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                        return score >= 80 && score < 90;
+                      }).length,
                   color: '#3b82f6'
                 },
                 {
                   range: '70-79%',
                   label: 'Average',
-                  count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 70 && score < 80;
-                  }).length,
+                  count: teamDataViewType === 'weekly' 
+                    ? weeklyTeamChartData.filter(item => item.score >= 70 && item.score < 80).length
+                    : userClinicians.filter(c => {
+                        const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                        return score >= 70 && score < 80;
+                      }).length,
                   color: '#f59e0b'
                 },
                 {
                   range: '0-69%',
                   label: 'Needs Improvement',
-                  count: userClinicians.filter(c => {
-                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score < 70;
-                  }).length,
+                  count: teamDataViewType === 'weekly' 
+                    ? weeklyTeamChartData.filter(item => item.score < 70 && item.score > 0).length
+                    : userClinicians.filter(c => {
+                        const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                        return score < 70;
+                      }).length,
                   color: '#ef4444'
                 }
               ]}>
@@ -1896,7 +2105,7 @@ const Dashboard: React.FC = () => {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No top performers (≥90%) found for {selectedMonth} {selectedYear}</p>
+                <p>No top performers (≥90%) found for {teamDataViewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}</p>
                 <p className="text-sm mt-1">Encourage your team to reach excellence!</p>
               </div>
             )}
@@ -1948,7 +2157,9 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {cliniciansNeedingAttention.length > 0 
                       ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => {
-                          const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                          const score = teamDataViewType === 'weekly' 
+                            ? (weeklyTeamChartData.find(item => item.name === formatName(c.name))?.score || 0)
+                            : getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / cliniciansNeedingAttention.length)
                       : 0}%
@@ -1962,10 +2173,14 @@ const Dashboard: React.FC = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
-                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                const score = teamDataViewType === 'weekly' 
+                  ? (weeklyTeamChartData.find(item => item.name === formatName(clinician.name))?.score || 0)
+                  : getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
-                const reviews = getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear);
+                const reviews = teamDataViewType === 'weekly' 
+                  ? [] // Weekly reviews would need to be fetched differently
+                  : getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear);
                 const unmetKPIs = reviews.filter(r => !r.met).length;
                 const totalKPIsForMonth = kpis.length;
                 
@@ -2043,7 +2258,7 @@ const Dashboard: React.FC = () => {
               <div className="text-center py-8 text-gray-500">
                 <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
                 <p className="text-lg font-medium text-gray-700">Excellent Team Performance!</p>
-                <p className="text-sm mt-1">All team members are performing above 70% for {selectedMonth} {selectedYear}</p>
+                <p className="text-sm mt-1">All team members are performing above 70% for {teamDataViewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`}</p>
                 <div className="mt-4 inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
                   <Award className="w-4 h-4" />
                   <span className="font-medium">Keep up the great work!</span>
@@ -2061,7 +2276,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                  {selectedMonth} {selectedYear} Performance
+                  {teamDataViewType === 'monthly' ? `${selectedMonth} ${selectedYear}` : `Week ${selectedWeek.week}, ${selectedWeek.year}`} Performance
                 </h3>
               </div>
               
