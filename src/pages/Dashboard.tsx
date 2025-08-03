@@ -415,36 +415,30 @@ const Dashboard: React.FC = () => {
     if (userClinicians.length === 0) return 0;
     
     const totalScore = userClinicians.reduce((acc, c) => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return acc + score;
     }, 0);
     
     return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+  }, [userClinicians, selectedMonth, selectedYear, getClinicianScore]);
 
   // Memoized staff needing attention (score < 70)
   const cliniciansNeedingAttention = useMemo(() => {
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score < 70;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getClinicianScore]);
 
   // Memoized top performers (score >= 90)
   const topPerformers = useMemo(() => {
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score >= 90;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getDirectorAverageScore, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, getClinicianScore]);
 
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
@@ -675,9 +669,7 @@ const Dashboard: React.FC = () => {
             clinician: clinician.name,
             action: review.met ? `${kpi?.title} - Target achieved` : `${kpi?.title} - Improvement plan created`,
             time: timeText,
-            score: clinician.position_info?.role === 'director' 
-              ? getDirectorAverageScore(clinician.id, review.month, review.year)
-              : getClinicianScore(clinician.id, review.month, review.year),
+            score: getClinicianScore(clinician.id, review.month, review.year),
             reviewDate: reviewDate
           });
         });
@@ -731,9 +723,7 @@ const Dashboard: React.FC = () => {
         // For directors/admins, generate team summary
         const teamData = userClinicians.map(clinician => ({
           clinician,
-          score: clinician.position_info?.role === 'director' 
-            ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
-            : getClinicianScore(clinician.id, selectedMonth, selectedYear),
+          score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
           reviews: getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear)
         }));
         
@@ -1687,9 +1677,7 @@ const Dashboard: React.FC = () => {
                   range: '90-100%',
                   label: 'Excellent',
                   count: userClinicians.filter(c => {
-                    const score = c.position_info?.role === 'director' 
-                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 90;
                   }).length,
                   color: '#10b981'
@@ -1698,9 +1686,7 @@ const Dashboard: React.FC = () => {
                   range: '80-89%',
                   label: 'Good',
                   count: userClinicians.filter(c => {
-                    const score = c.position_info?.role === 'director' 
-                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 80 && score < 90;
                   }).length,
                   color: '#3b82f6'
@@ -1709,9 +1695,7 @@ const Dashboard: React.FC = () => {
                   range: '70-79%',
                   label: 'Average',
                   count: userClinicians.filter(c => {
-                    const score = c.position_info?.role === 'director' 
-                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 70 && score < 80;
                   }).length,
                   color: '#f59e0b'
@@ -1720,9 +1704,7 @@ const Dashboard: React.FC = () => {
                   range: '0-69%',
                   label: 'Needs Improvement',
                   count: userClinicians.filter(c => {
-                    const score = c.position_info?.role === 'director' 
-                      ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
+                    const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score < 70;
                   }).length,
                   color: '#ef4444'
@@ -1853,9 +1835,7 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {topPerformers.length > 0 
                       ? Math.round(topPerformers.reduce((acc, c) => {
-                          const score = c.position_info?.role === 'director' 
-                            ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                          const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / topPerformers.length)
                       : 0}%
@@ -1868,9 +1848,7 @@ const Dashboard: React.FC = () => {
             {topPerformers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {(showAllTopPerformers ? topPerformers : topPerformers.slice(0, 6)).map((clinician) => {
-              const score = clinician.position_info?.role === 'director' 
-                ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
-                : getClinicianScore(clinician.id, selectedMonth, selectedYear);
+              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
@@ -1970,9 +1948,7 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {cliniciansNeedingAttention.length > 0 
                       ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => {
-                          const score = c.position_info?.role === 'director' 
-                            ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                          const score = getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / cliniciansNeedingAttention.length)
                       : 0}%
@@ -1986,9 +1962,7 @@ const Dashboard: React.FC = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
-                const score = clinician.position_info?.role === 'director' 
-                  ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
-                  : getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
                 const reviews = getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear);
