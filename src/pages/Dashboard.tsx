@@ -1936,9 +1936,7 @@ const Dashboard: React.FC = () => {
                   label: 'Excellent',
                   count: userClinicians.filter(c => {
                     const score = teamDataViewType === 'weekly'
-                      ? (c.position_info?.role === 'director' 
-                          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-                          : (weeklyScoresLookup.get(c.id) || 0))
+                      ? (weeklyScoresLookup.get(c.id) || 0)
                       : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 90;
                   }).length,
@@ -1949,9 +1947,7 @@ const Dashboard: React.FC = () => {
                   label: 'Good',
                   count: userClinicians.filter(c => {
                     const score = teamDataViewType === 'weekly'
-                      ? (c.position_info?.role === 'director' 
-                          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-                          : (weeklyScoresLookup.get(c.id) || 0))
+                      ? (weeklyScoresLookup.get(c.id) || 0)
                       : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 80 && score < 90;
                   }).length,
@@ -1962,9 +1958,7 @@ const Dashboard: React.FC = () => {
                   label: 'Average',
                   count: userClinicians.filter(c => {
                     const score = teamDataViewType === 'weekly'
-                      ? (c.position_info?.role === 'director' 
-                          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-                          : (weeklyScoresLookup.get(c.id) || 0))
+                      ? (weeklyScoresLookup.get(c.id) || 0)
                       : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score >= 70 && score < 80;
                   }).length,
@@ -1975,9 +1969,7 @@ const Dashboard: React.FC = () => {
                   label: 'Needs Improvement',
                   count: userClinicians.filter(c => {
                     const score = teamDataViewType === 'weekly'
-                      ? (c.position_info?.role === 'director' 
-                          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-                          : (weeklyScoresLookup.get(c.id) || 0))
+                      ? (weeklyScoresLookup.get(c.id) || 0)
                       : getClinicianScore(c.id, selectedMonth, selectedYear);
                     return score < 70 && score > 0;
                   }).length,
@@ -2223,9 +2215,7 @@ const Dashboard: React.FC = () => {
                     {cliniciansNeedingAttention.length > 0 
                       ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => {
                           const score = teamDataViewType === 'weekly' 
-                            ? (c.position_info?.role === 'director' 
-                                ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-                                : (weeklyScoresLookup.get(c.id) || 0))
+                            ? (weeklyScoresLookup.get(c.id) || 0)
                             : getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / cliniciansNeedingAttention.length)
@@ -2241,9 +2231,7 @@ const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
                 const score = teamDataViewType === 'weekly' 
-                  ? (clinician.position_info?.role === 'director' 
-                      ? getDirectorWeeklyAverageScore(clinician.id, selectedWeek.year, selectedWeek.week)
-                      : (weeklyScoresLookup.get(clinician.id) || 0))
+                  ? (weeklyScoresLookup.get(clinician.id) || 0)
                   : getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
