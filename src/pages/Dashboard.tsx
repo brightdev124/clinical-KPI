@@ -477,11 +477,9 @@ const Dashboard: React.FC = () => {
       if (teamDataViewType !== 'weekly' || userClinicians.length === 0) return;
       
       try {
-        // Calculate scores for all team members
+        // Calculate scores for all team members (individual performance for both clinicians and directors)
         const scoresWithMembers = await Promise.all(userClinicians.map(async (member) => {
-          const score = member.position_info?.role === 'director'
-            ? await getDirectorWeeklyScore(member.id, selectedWeek.year, selectedWeek.week)
-            : await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+          const score = await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
           return { member, score };
         }));
         
@@ -535,78 +533,66 @@ const Dashboard: React.FC = () => {
     };
     
     calculateWeeklyTeamData();
-  }, [teamDataViewType, selectedWeek, userClinicians, getDirectorWeeklyScore, getWeeklyScore, formatName]);
+  }, [teamDataViewType, selectedWeek, userClinicians, getWeeklyScore, formatName]);
   
   // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
     if (userClinicians.length === 0) return 0;
     
-    // For weekly view, calculate synchronously using the same pattern as monthly
+    // For weekly view, use individual scores from lookup for all users
     if (teamDataViewType === 'weekly') {
       const totalScore = userClinicians.reduce((acc, c) => {
-        const score = c.position_info?.role === 'director' 
-          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-          : (weeklyScoresLookup.get(c.id) || 0);
+        const score = weeklyScoresLookup.get(c.id) || 0;
         return acc + score;
       }, 0);
       return Math.round(totalScore / userClinicians.length);
     }
     
-    // For monthly view, calculate synchronously
+    // For monthly view, use individual scores for all users
     const totalScore = userClinicians.reduce((acc, c) => {
-      const score = c.position_info?.role === 'director' 
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return acc + score;
     }, 0);
     return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore, getDirectorAverageScore, getDirectorWeeklyAverageScore]);
+  }, [userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
 
   // Memoized staff needing attention (score < 70)
   const cliniciansNeedingAttention = useMemo(() => {
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     
-    // For weekly view, calculate synchronously using the same pattern as monthly
+    // For weekly view, use individual scores from lookup for all users
     if (teamDataViewType === 'weekly') {
       return targetClinicians.filter(c => {
-        const score = c.position_info?.role === 'director'
-          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-          : (weeklyScoresLookup.get(c.id) || 0);
+        const score = weeklyScoresLookup.get(c.id) || 0;
         return score < 70 && score > 0;
       });
     }
     
-    // For monthly view, calculate synchronously
+    // For monthly view, use individual scores for all users
     return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director'
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score < 70;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore, getDirectorAverageScore, getDirectorWeeklyAverageScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
 
   // Memoized top performers (score >= 90)
   const topPerformers = useMemo(() => {
     const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     
-    // For weekly view, calculate synchronously using the same pattern as monthly
+    // For weekly view, use individual scores from lookup for all users
     if (teamDataViewType === 'weekly') {
       return targetClinicians.filter(c => {
-        const score = c.position_info?.role === 'director'
-          ? getDirectorWeeklyAverageScore(c.id, selectedWeek.year, selectedWeek.week)
-          : (weeklyScoresLookup.get(c.id) || 0);
+        const score = weeklyScoresLookup.get(c.id) || 0;
         return score >= 90;
       });
     }
     
-    // For monthly view, calculate synchronously
+    // For monthly view, use individual scores for all users
     return targetClinicians.filter(c => {
-      const score = c.position_info?.role === 'director'
-        ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
-        : getClinicianScore(c.id, selectedMonth, selectedYear);
+      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score >= 90;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore, getDirectorAverageScore, getDirectorWeeklyAverageScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
 
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
@@ -1866,14 +1852,8 @@ const Dashboard: React.FC = () => {
                 name: formatName(person.name), // Use formatted name for all roles
                 fullName: formatName(person.name),
                 score: teamDataViewType === 'weekly' 
-                  ? (person.position_info?.role === 'director' 
-                      ? getDirectorWeeklyAverageScore(person.id, selectedWeek.year, selectedWeek.week)
-                      : (weeklyScoresLookup.get(person.id) || 0))
-                  : (user?.role === 'super-admin' 
-                      ? (person.position_info?.role === 'director' 
-                          ? getDirectorAverageScore(person.id, selectedMonth, selectedYear)
-                          : getClinicianScore(person.id, selectedMonth, selectedYear))
-                      : getClinicianScore(person.id, selectedMonth, selectedYear)), // For directors viewing their assigned staff, always show individual scores
+                  ? (weeklyScoresLookup.get(person.id) || 0) // All users (including directors) show individual performance in weekly view
+                  : getClinicianScore(person.id, selectedMonth, selectedYear), // All users show individual performance in monthly view
                 position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
                 role: person.position_info?.role || 'clinician',
                 isDirector: person.position_info?.role === 'director'
