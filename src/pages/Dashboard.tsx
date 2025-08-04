@@ -639,10 +639,15 @@ const Dashboard: React.FC = () => {
       const year = date.getFullYear();
       
       const monthlyScores = userClinicians.map(c => 
-        c.position_info?.role === 'director' 
-          ? getDirectorAverageScore(c.id, month, year)
-          : getClinicianScore(c.id, month, year)
+        getClinicianScore(c.id, month, year)
       );
+      console.log(`Trend data for ${month} ${year}:`, {
+        userClinicians: userClinicians.length,
+        monthlyScores,
+        avgScore: monthlyScores.length > 0 
+          ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
+          : 0
+      });
       const avgScore = monthlyScores.length > 0 
         ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
         : 0;
@@ -657,7 +662,49 @@ const Dashboard: React.FC = () => {
     }
     
     return trendData;
-  }, [userClinicians, getDirectorAverageScore, getClinicianScore]);
+  }, [userClinicians, getClinicianScore]);
+
+  // Memoized weekly team performance trend data generation
+  const generateWeeklyTrendData = useCallback((endYear: number, endWeek: number) => {
+    const trendData = [];
+    
+    // Get 6 weeks of data ending at the selected week
+    for (let i = 5; i >= 0; i--) {
+      const targetYear = endYear;
+      const targetWeek = endWeek - i;
+      
+      // Handle week overflow/underflow
+      let adjustedYear = targetYear;
+      let adjustedWeek = targetWeek;
+      
+      if (adjustedWeek <= 0) {
+        adjustedYear = targetYear - 1;
+        adjustedWeek = 52 + targetWeek; // Approximate weeks in a year
+      } else if (adjustedWeek > 52) {
+        adjustedYear = targetYear + 1;
+        adjustedWeek = targetWeek - 52;
+      }
+      
+      // Calculate average score for this week using getWeeklyScore for each user
+      const weeklyScores = userClinicians.map(c => {
+        // Calculate individual weekly score for this specific week
+        return getWeeklyScore(c.id, adjustedYear, adjustedWeek);
+      });
+      
+      const avgScore = weeklyScores.length > 0 
+        ? Math.round(weeklyScores.reduce((sum, score) => sum + score, 0) / weeklyScores.length)
+        : 0;
+      
+      trendData.push({
+        week: adjustedWeek,
+        year: adjustedYear,
+        avgScore: avgScore,
+        displayName: `W${adjustedWeek} ${adjustedYear.toString().slice(-2)}`
+      });
+    }
+    
+    return trendData;
+  }, [userClinicians, getWeeklyScore]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -2015,23 +2062,35 @@ const Dashboard: React.FC = () => {
             </ResponsiveContainer>
           </div>
       </div>
-        {/* Monthly Trend Chart */}
+        {/* Performance Trend Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Team Performance Trend</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Average team performance over 6 months ending {selectedMonth} {selectedYear}</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                {teamDataViewType === 'weekly' 
+                  ? `Average team performance over 6 weeks ending Week ${selectedWeek.week}, ${selectedWeek.year}`
+                  : `Average team performance over 6 months ending ${selectedMonth} ${selectedYear}`
+                }
+              </p>
             </div>
             <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
               <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">6-Month Trend</span>
-              <span className="sm:hidden">6M Trend</span>
+              <span className="hidden sm:inline">
+                {teamDataViewType === 'weekly' ? '6-Week Trend' : '6-Month Trend'}
+              </span>
+              <span className="sm:hidden">
+                {teamDataViewType === 'weekly' ? '6W Trend' : '6M Trend'}
+              </span>
             </div>
           </div>
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={generateTeamTrendData(selectedMonth, selectedYear)}>
+              <LineChart data={teamDataViewType === 'weekly' 
+                ? generateWeeklyTrendData(selectedWeek.year, selectedWeek.week)
+                : generateTeamTrendData(selectedMonth, selectedYear)
+              }>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="displayName" 
@@ -2061,7 +2120,13 @@ const Dashboard: React.FC = () => {
                   formatter={(value: any) => [`${value}%`, 'Team Average']}
                   labelFormatter={(label, payload) => {
                     const dataPoint = payload?.[0]?.payload;
-                    return dataPoint ? `${dataPoint.fullMonth} ${dataPoint.year}` : label;
+                    if (!dataPoint) return label;
+                    
+                    if (teamDataViewType === 'weekly') {
+                      return `Week ${dataPoint.week}, ${dataPoint.year}`;
+                    } else {
+                      return `${dataPoint.fullMonth} ${dataPoint.year}`;
+                    }
                   }}
                 />
                 <Line 
