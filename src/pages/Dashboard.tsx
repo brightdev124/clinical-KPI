@@ -1042,23 +1042,33 @@ const Dashboard: React.FC = () => {
   // Helper function to download Performance section as PDF (for admin/director dashboard)
   const handleDownloadPerformance = () => {
     try {
-      // Get all reviews for the selected month/year (we'll filter by role inside the PDF generator)
-      const monthlyReviews = reviewItems.filter(review => {
-        const reviewDate = new Date(review.date);
-        const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-        const reviewYear = reviewDate.getFullYear();
-        return reviewMonth === selectedMonth && reviewYear === selectedYear;
-      });
+      // Get all reviews for the selected period (we'll filter by role inside the PDF generator)
+      const periodReviews = filterReviewsByViewType(reviewItems);
       
-      generatePerformancePDF(
-        user?.role || '',
-        user?.name || '',
-        kpis,
-        monthlyReviews,
-        userClinicians,
-        selectedMonth,
-        selectedYear
-      );
+      if (teamDataViewType === 'weekly') {
+        generatePerformancePDF(
+          user?.role || '',
+          user?.name || '',
+          kpis,
+          periodReviews,
+          userClinicians,
+          selectedMonth,
+          selectedYear,
+          'weekly',
+          selectedWeek
+        );
+      } else {
+        generatePerformancePDF(
+          user?.role || '',
+          user?.name || '',
+          kpis,
+          periodReviews,
+          userClinicians,
+          selectedMonth,
+          selectedYear,
+          'monthly'
+        );
+      }
     } catch (error) {
       console.error('Error in handleDownloadPerformance:', error);
       alert('Error generating Performance PDF. Please try again.');
