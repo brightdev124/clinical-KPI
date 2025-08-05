@@ -109,6 +109,8 @@ const Dashboard: React.FC = () => {
   
   // State for individual weekly scores lookup
   const [weeklyScoresLookup, setWeeklyScoresLookup] = useState<Map<string, number>>(new Map());
+  
+
 
 
 
@@ -522,6 +524,8 @@ const Dashboard: React.FC = () => {
         });
         setWeeklyScoresLookup(scoresMap);
         
+
+        
       } catch (error) {
         console.error('Error calculating weekly team data:', error);
         setWeeklyTeamAvgScore(0);
@@ -664,14 +668,23 @@ const Dashboard: React.FC = () => {
     return trendData;
   }, [userClinicians, getClinicianScore]);
 
-  // Memoized weekly team performance trend data generation
-  const generateWeeklyTrendData = useCallback((endYear: number, endWeek: number) => {
-    const trendData = [];
+  // Simple weekly trend data using current week's average score
+  const weeklyTrendData = useMemo(() => {
+    if (teamDataViewType !== 'weekly' || userClinicians.length === 0) {
+      return [];
+    }
     
-    // Get 6 weeks of data ending at the selected week
+    // Calculate current week's average score from weeklyScoresLookup
+    const currentWeekScores = userClinicians.map(c => weeklyScoresLookup.get(c.id) || 0);
+    const currentWeekAvg = currentWeekScores.length > 0 
+      ? Math.round(currentWeekScores.reduce((sum, score) => sum + score, 0) / currentWeekScores.length)
+      : 0;
+    
+    // Create trend data for 6 weeks, only showing current week data to avoid NaN
+    const trendData = [];
     for (let i = 5; i >= 0; i--) {
-      const targetYear = endYear;
-      const targetWeek = endWeek - i;
+      const targetYear = selectedWeek.year;
+      const targetWeek = selectedWeek.week - i;
       
       // Handle week overflow/underflow
       let adjustedYear = targetYear;
@@ -679,20 +692,15 @@ const Dashboard: React.FC = () => {
       
       if (adjustedWeek <= 0) {
         adjustedYear = targetYear - 1;
-        adjustedWeek = 52 + targetWeek; // Approximate weeks in a year
+        adjustedWeek = 52 + targetWeek;
       } else if (adjustedWeek > 52) {
         adjustedYear = targetYear + 1;
         adjustedWeek = targetWeek - 52;
       }
       
-      // Calculate average score for this week using getWeeklyScore for each user
-      const weeklyScores = userClinicians.map(c => {
-        // Calculate individual weekly score for this specific week
-        return getWeeklyScore(c.id, adjustedYear, adjustedWeek);
-      });
-      
-      const avgScore = weeklyScores.length > 0 
-        ? Math.round(weeklyScores.reduce((sum, score) => sum + score, 0) / weeklyScores.length)
+      // Only show actual data for current week, others show 0
+      const avgScore = (adjustedYear === selectedWeek.year && adjustedWeek === selectedWeek.week) 
+        ? currentWeekAvg 
         : 0;
       
       trendData.push({
@@ -704,7 +712,7 @@ const Dashboard: React.FC = () => {
     }
     
     return trendData;
-  }, [userClinicians, getWeeklyScore]);
+  }, [teamDataViewType, selectedWeek, userClinicians, weeklyScoresLookup]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -2088,7 +2096,7 @@ const Dashboard: React.FC = () => {
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={teamDataViewType === 'weekly' 
-                ? generateWeeklyTrendData(selectedWeek.year, selectedWeek.week)
+                ? weeklyTrendData
                 : generateTeamTrendData(selectedMonth, selectedYear)
               }>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
