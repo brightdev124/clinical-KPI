@@ -2174,7 +2174,9 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {topPerformers.length > 0 
                       ? Math.round(topPerformers.reduce((acc, c) => {
-                          const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+                          const score = teamDataViewType === 'weekly' 
+                            ? (weeklyScoresLookup.get(c.id) || 0)
+                            : getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / topPerformers.length)
                       : 0}%
@@ -2187,7 +2189,9 @@ const Dashboard: React.FC = () => {
             {topPerformers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {(showAllTopPerformers ? topPerformers : topPerformers.slice(0, 6)).map((clinician) => {
-              const score = getClinicianScore(clinician.id, selectedMonth, selectedYear);
+              const score = teamDataViewType === 'weekly' 
+                ? (weeklyScoresLookup.get(clinician.id) || 0)
+                : getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
