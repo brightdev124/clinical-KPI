@@ -485,10 +485,9 @@ const Dashboard: React.FC = () => {
           return { member, score };
         }));
         
-        // Calculate average score
-        const validScores = scoresWithMembers.filter(item => item.score > 0);
-        const avgScore = validScores.length > 0 
-          ? Math.round(validScores.reduce((sum, item) => sum + item.score, 0) / validScores.length)
+        // Calculate average score (include all scores, even 0s)
+        const avgScore = scoresWithMembers.length > 0 
+          ? Math.round(scoresWithMembers.reduce((sum, item) => sum + item.score, 0) / scoresWithMembers.length)
           : 0;
         
         // Find top performers (score >= 90)
@@ -496,9 +495,9 @@ const Dashboard: React.FC = () => {
           .filter(item => item.score >= 90)
           .map(item => item.member);
         
-        // Find those needing attention (score < 70)
+        // Find those needing attention (score < 70, including those with 0 scores)
         const needingAttention = scoresWithMembers
-          .filter(item => item.score < 70 && item.score > 0)
+          .filter(item => item.score < 70)
           .map(item => item.member);
         
         setWeeklyTeamAvgScore(avgScore);
@@ -523,6 +522,12 @@ const Dashboard: React.FC = () => {
           scoresMap.set(member.id, score);
         });
         setWeeklyScoresLookup(scoresMap);
+        
+        // Debug logging
+        console.log(`Weekly data calculated for Week ${selectedWeek.week}, ${selectedWeek.year}:`);
+        console.log('Scores with members:', scoresWithMembers);
+        console.log('Needing attention:', needingAttention);
+        console.log('Scores map:', scoresMap);
         
 
         
@@ -566,10 +571,19 @@ const Dashboard: React.FC = () => {
     
     // For weekly view, use individual scores from lookup for all users
     if (teamDataViewType === 'weekly') {
-      return targetClinicians.filter(c => {
+      const result = targetClinicians.filter(c => {
         const score = weeklyScoresLookup.get(c.id) || 0;
-        return score < 70 && score > 0;
+        // Include anyone with score < 70, including those with 0 (no reviews yet)
+        return score < 70;
       });
+      
+      // Debug logging
+      console.log(`Memoized cliniciansNeedingAttention for Week ${selectedWeek.week}, ${selectedWeek.year}:`);
+      console.log('Target clinicians:', targetClinicians.length);
+      console.log('Weekly scores lookup size:', weeklyScoresLookup.size);
+      console.log('Result:', result.length, result.map(c => ({ name: c.name, score: weeklyScoresLookup.get(c.id) || 0 })));
+      
+      return result;
     }
     
     // For monthly view, use individual scores for all users
@@ -2026,7 +2040,7 @@ const Dashboard: React.FC = () => {
                     const score = teamDataViewType === 'weekly'
                       ? (weeklyScoresLookup.get(c.id) || 0)
                       : getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score < 70 && score > 0;
+                    return score < 70;
                   }).length,
                   color: '#ef4444'
                 }
