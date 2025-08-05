@@ -523,12 +523,6 @@ const Dashboard: React.FC = () => {
         });
         setWeeklyScoresLookup(scoresMap);
         
-        // Debug logging
-        console.log(`Weekly data calculated for Week ${selectedWeek.week}, ${selectedWeek.year}:`);
-        console.log('Scores with members:', scoresWithMembers);
-        console.log('Needing attention:', needingAttention);
-        console.log('Scores map:', scoresMap);
-        
 
         
       } catch (error) {
@@ -576,12 +570,6 @@ const Dashboard: React.FC = () => {
         // Include anyone with score < 70, including those with 0 (no reviews yet)
         return score < 70;
       });
-      
-      // Debug logging
-      console.log(`Memoized cliniciansNeedingAttention for Week ${selectedWeek.week}, ${selectedWeek.year}:`);
-      console.log('Target clinicians:', targetClinicians.length);
-      console.log('Weekly scores lookup size:', weeklyScoresLookup.size);
-      console.log('Result:', result.length, result.map(c => ({ name: c.name, score: weeklyScoresLookup.get(c.id) || 0 })));
       
       return result;
     }
@@ -631,6 +619,24 @@ const Dashboard: React.FC = () => {
       } else {
         // Clinicians can only see their own reviews (and they must be approved)
         return review.clinician === user?.id;
+      }
+    });
+  };
+
+  // Helper function to filter reviews by current view type (monthly or weekly)
+  const filterReviewsByViewType = (reviews: any[]) => {
+    return reviews.filter(review => {
+      const reviewDate = new Date(review.date);
+      
+      if (teamDataViewType === 'weekly') {
+        // For weekly view, check if review date falls within selected week
+        const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
+        return reviewDate >= start && reviewDate <= end;
+      } else {
+        // For monthly view, check month and year
+        const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
+        const reviewYear = reviewDate.getFullYear();
+        return reviewMonth === selectedMonth && reviewYear === selectedYear;
       }
     });
   };
@@ -2460,27 +2466,17 @@ const Dashboard: React.FC = () => {
                   <div className="text-xl sm:text-2xl font-bold text-green-600">
                     {(() => {
                       const kpisWithReviews = kpis.filter(kpi => {
-                        const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
-                          const reviewDate = new Date(review.date);
-                          const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-                          const reviewYear = reviewDate.getFullYear();
-                          return review.kpi === kpi.id && 
-                                 reviewMonth === selectedMonth && 
-                                 reviewYear === selectedYear;
-                        }));
+                        const kpiReviews = filterReviewsByUserRole(filterReviewsByViewType(reviewItems.filter(review => {
+                          return review.kpi === kpi.id;
+                        })));
                         return kpiReviews.length > 0;
                       });
                       
                       return kpisWithReviews.length > 0 ? Math.round(
                         kpisWithReviews.reduce((acc, kpi) => {
-                          const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
-                            const reviewDate = new Date(review.date);
-                            const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-                            const reviewYear = reviewDate.getFullYear();
-                            return review.kpi === kpi.id && 
-                                   reviewMonth === selectedMonth && 
-                                   reviewYear === selectedYear;
-                          }));
+                          const kpiReviews = filterReviewsByUserRole(filterReviewsByViewType(reviewItems.filter(review => {
+                            return review.kpi === kpi.id;
+                          })));
                           const metCount = kpiReviews.filter(r => r.met_check).length;
                           return acc + (metCount / kpiReviews.length) * 100;
                         }, 0) / kpisWithReviews.length
@@ -2497,14 +2493,9 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {kpis.filter(kpi => {
-                      const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
-                        const reviewDate = new Date(review.date);
-                        const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-                        const reviewYear = reviewDate.getFullYear();
-                        return review.kpi === kpi.id && 
-                               reviewMonth === selectedMonth && 
-                               reviewYear === selectedYear;
-                      }));
+                      const kpiReviews = filterReviewsByUserRole(filterReviewsByViewType(reviewItems.filter(review => {
+                        return review.kpi === kpi.id;
+                      })));
                       // Only count KPIs that have reviews from approved clinicians
                       if (kpiReviews.length === 0) return false;
                       const metCount = kpiReviews.filter(r => r.met_check).length;
@@ -2521,15 +2512,10 @@ const Dashboard: React.FC = () => {
             <div className="space-y-3 sm:space-y-4">
               <h4 className="text-sm sm:text-md font-semibold text-gray-900 mb-3 sm:mb-4">KPI Performance Breakdown</h4>
               {kpis.map((kpi) => {
-                // Get all reviews for this KPI in the selected month, filtered by user role and approved clinicians
-                const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
-                  const reviewDate = new Date(review.date);
-                  const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-                  const reviewYear = reviewDate.getFullYear();
-                  return review.kpi === kpi.id && 
-                         reviewMonth === selectedMonth && 
-                         reviewYear === selectedYear;
-                }));
+                // Get all reviews for this KPI in the selected period, filtered by user role and approved clinicians
+                const kpiReviews = filterReviewsByUserRole(filterReviewsByViewType(reviewItems.filter(review => {
+                  return review.kpi === kpi.id;
+                })));
                 
                 // Skip this KPI if there are no reviews from approved clinicians
                 if (kpiReviews.length === 0) {
@@ -2664,7 +2650,7 @@ const Dashboard: React.FC = () => {
                     {totalReviews === 0 && (
                       <div className="text-center py-4 text-gray-500">
                         <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                        <p className="text-sm">No reviews completed for this KPI in {selectedMonth} {selectedYear}</p>
+                        <p className="text-sm">No reviews completed for this KPI in {teamDataViewType === 'weekly' ? `Week ${selectedWeek.week}, ${selectedWeek.year}` : `${selectedMonth} ${selectedYear}`}</p>
                       </div>
                     )}
                   </div>
@@ -2673,20 +2659,15 @@ const Dashboard: React.FC = () => {
               
               {/* Show message if no KPIs have reviews from approved clinicians */}
               {kpis.every(kpi => {
-                const kpiReviews = filterReviewsByUserRole(reviewItems.filter(review => {
-                  const reviewDate = new Date(review.date);
-                  const reviewMonth = reviewDate.toLocaleString('default', { month: 'long' });
-                  const reviewYear = reviewDate.getFullYear();
-                  return review.kpi === kpi.id && 
-                         reviewMonth === selectedMonth && 
-                         reviewYear === selectedYear;
-                }));
+                const kpiReviews = filterReviewsByUserRole(filterReviewsByViewType(reviewItems.filter(review => {
+                  return review.kpi === kpi.id;
+                })));
                 return kpiReviews.length === 0;
               }) && (
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium text-gray-700">No KPI Reviews Available</p>
-                  <p className="text-sm mt-1">No reviews from approved clinicians found for {selectedMonth} {selectedYear}</p>
+                  <p className="text-sm mt-1">No reviews from approved clinicians found for {teamDataViewType === 'weekly' ? `Week ${selectedWeek.week}, ${selectedWeek.year}` : `${selectedMonth} ${selectedYear}`}</p>
                 </div>
               )}
             </div>
