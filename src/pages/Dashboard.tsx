@@ -703,11 +703,18 @@ const Dashboard: React.FC = () => {
       const month = date.toLocaleString('default', { month: 'long' });
       const year = date.getFullYear();
       
-      const monthlyScores = userClinicians.map(c => 
-        getClinicianScore(c.id, month, year)
-      );
+      // Use appropriate data source and scoring method based on user role
+      const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+      const monthlyScores = targetUsers.map(c => {
+        if (user?.role === 'super-admin' && c.position_info?.role === 'director') {
+          return getDirectorAverageScore(c.id, month, year);
+        } else {
+          return getClinicianScore(c.id, month, year);
+        }
+      });
       console.log(`Trend data for ${month} ${year}:`, {
-        userClinicians: userClinicians.length,
+        userRole: user?.role,
+        targetUsers: targetUsers.length,
         monthlyScores,
         avgScore: monthlyScores.length > 0 
           ? Math.round(monthlyScores.reduce((sum, score) => sum + score, 0) / monthlyScores.length)
@@ -727,7 +734,7 @@ const Dashboard: React.FC = () => {
     }
     
     return trendData;
-  }, [userClinicians, getClinicianScore]);
+  }, [user?.role, userDirectors, userClinicians, getClinicianScore, getDirectorAverageScore]);
 
   // Calculate actual weekly trend data for all 6 weeks
   const weeklyTrendData = useMemo(() => {
@@ -2137,52 +2144,65 @@ const Dashboard: React.FC = () => {
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                {
-                  range: '90-100%',
-                  label: 'Excellent',
-                  count: userClinicians.filter(c => {
-                    const score = teamDataViewType === 'weekly'
-                      ? (weeklyScoresLookup.get(c.id) || 0)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 90;
-                  }).length,
-                  color: '#10b981'
-                },
-                {
-                  range: '80-89%',
-                  label: 'Good',
-                  count: userClinicians.filter(c => {
-                    const score = teamDataViewType === 'weekly'
-                      ? (weeklyScoresLookup.get(c.id) || 0)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 80 && score < 90;
-                  }).length,
-                  color: '#3b82f6'
-                },
-                {
-                  range: '70-79%',
-                  label: 'Average',
-                  count: userClinicians.filter(c => {
-                    const score = teamDataViewType === 'weekly'
-                      ? (weeklyScoresLookup.get(c.id) || 0)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score >= 70 && score < 80;
-                  }).length,
-                  color: '#f59e0b'
-                },
-                {
-                  range: '0-69%',
-                  label: 'Needs Improvement',
-                  count: userClinicians.filter(c => {
-                    const score = teamDataViewType === 'weekly'
-                      ? (weeklyScoresLookup.get(c.id) || 0)
-                      : getClinicianScore(c.id, selectedMonth, selectedYear);
-                    return score < 70;
-                  }).length,
-                  color: '#ef4444'
-                }
-              ]}>
+              <BarChart data={(() => {
+                // Use appropriate data source based on user role
+                const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+                
+                return [
+                  {
+                    range: '90-100%',
+                    label: 'Excellent',
+                    count: targetUsers.filter(c => {
+                      const score = teamDataViewType === 'weekly'
+                        ? (weeklyScoresLookup.get(c.id) || 0)
+                        : user?.role === 'super-admin'
+                          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                          : getClinicianScore(c.id, selectedMonth, selectedYear);
+                      return score >= 90;
+                    }).length,
+                    color: '#10b981'
+                  },
+                  {
+                    range: '80-89%',
+                    label: 'Good',
+                    count: targetUsers.filter(c => {
+                      const score = teamDataViewType === 'weekly'
+                        ? (weeklyScoresLookup.get(c.id) || 0)
+                        : user?.role === 'super-admin'
+                          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                          : getClinicianScore(c.id, selectedMonth, selectedYear);
+                      return score >= 80 && score < 90;
+                    }).length,
+                    color: '#3b82f6'
+                  },
+                  {
+                    range: '70-79%',
+                    label: 'Average',
+                    count: targetUsers.filter(c => {
+                      const score = teamDataViewType === 'weekly'
+                        ? (weeklyScoresLookup.get(c.id) || 0)
+                        : user?.role === 'super-admin'
+                          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                          : getClinicianScore(c.id, selectedMonth, selectedYear);
+                      return score >= 70 && score < 80;
+                    }).length,
+                    color: '#f59e0b'
+                  },
+                  {
+                    range: '0-69%',
+                    label: 'Needs Improvement',
+                    count: targetUsers.filter(c => {
+                      const score = teamDataViewType === 'weekly'
+                        ? (weeklyScoresLookup.get(c.id) || 0)
+                        : user?.role === 'super-admin'
+                          ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                          : getClinicianScore(c.id, selectedMonth, selectedYear);
+                      return score < 70;
+                    }).length,
+                    color: '#ef4444'
+                  }
+                ];
+              })()}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="range" 
@@ -2209,7 +2229,7 @@ const Dashboard: React.FC = () => {
                     fontSize: '12px'
                   }}
                   formatter={(value: any, name: string, props: any) => [
-                    `${value} staff member${value !== 1 ? 's' : ''}`, 
+                    `${value} team${value !== 1 ? 's' : ''}`, 
                     props.payload.label
                   ]}
                 />
