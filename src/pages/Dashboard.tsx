@@ -1031,14 +1031,28 @@ const Dashboard: React.FC = () => {
   const handleDownloadMonthlyData = () => {
     try {
       if (user?.role === 'clinician') {
-        // For clinicians, always use monthly data (clinicians don't have weekly view)
-        const myReviews = getClinicianReviews(user.id);
-        const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
+        // For clinicians, respect their current view type (monthly or weekly)
         const clinician = profiles.find(p => p.id === user.id);
-        const score = getClinicianScore(user.id, selectedMonth, selectedYear);
         
         if (clinician) {
-          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
+          if (viewType === 'weekly') {
+            // Generate weekly data for clinician
+            const myReviews = getClinicianReviews(user.id);
+            const weeklyReviews = myReviews.filter(review => {
+              const reviewDate = new Date(review.date);
+              const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
+              return reviewDate >= start && reviewDate <= end;
+            });
+            
+            generateMonthlyDataPDF(clinician, kpis, weeklyReviews, selectedMonth, selectedYear, currentScore, 'weekly', selectedWeek);
+          } else {
+            // Generate monthly data for clinician
+            const myReviews = getClinicianReviews(user.id);
+            const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
+            const score = getClinicianScore(user.id, selectedMonth, selectedYear);
+            
+            generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
+          }
         } else {
           alert('Error: Clinician profile not found');
         }
@@ -1074,13 +1088,27 @@ const Dashboard: React.FC = () => {
   const handleDownloadKPIPerformance = () => {
     try {
       if (user?.role === 'clinician') {
-        const myReviews = getClinicianReviews(user.id);
-        const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
         const clinician = profiles.find(p => p.id === user.id);
-        const score = getClinicianScore(user.id, selectedMonth, selectedYear);
         
         if (clinician) {
-          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score);
+          if (viewType === 'weekly') {
+            // Generate weekly KPI performance for clinician
+            const myReviews = getClinicianReviews(user.id);
+            const weeklyReviews = myReviews.filter(review => {
+              const reviewDate = new Date(review.date);
+              const { start, end } = getWeekDateRange(selectedWeek.year, selectedWeek.week);
+              return reviewDate >= start && reviewDate <= end;
+            });
+            
+            generateMonthlyDataPDF(clinician, kpis, weeklyReviews, selectedMonth, selectedYear, currentScore, 'weekly', selectedWeek);
+          } else {
+            // Generate monthly KPI performance for clinician
+            const myReviews = getClinicianReviews(user.id);
+            const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
+            const score = getClinicianScore(user.id, selectedMonth, selectedYear);
+            
+            generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
+          }
         } else {
           alert('Error: Clinician profile not found');
         }

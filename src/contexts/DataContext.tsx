@@ -828,6 +828,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         year: new Date(r.date).getFullYear(),
         met: r.met_check,
         reviewDate: r.met_check ? undefined : r.date,
+        date: r.date, // Include the original date field for weekly filtering
         notes: r.notes,
         plan: r.plan,
         files: r.file_url ? [r.file_url] : undefined,

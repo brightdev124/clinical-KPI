@@ -901,7 +901,10 @@ export const generateMonthlyDataPDF = (
       let yPosition = 155;
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text(`KPI Review results for ${month} ${year}`, margin, yPosition);
+      const reviewSectionTitle = viewType === 'weekly' && weekData 
+        ? `KPI Review results for Week ${weekData.week}, ${weekData.year}`
+        : `KPI Review results for ${month} ${year}`;
+      doc.text(reviewSectionTitle, margin, yPosition);
 
       if (reviewsOrTeamData && reviewsOrTeamData.length > 0) {
         yPosition += 20;
@@ -915,7 +918,10 @@ export const generateMonthlyDataPDF = (
             // Add header on new page
             doc.setFontSize(14);
             doc.setTextColor(59, 130, 246);
-            doc.text(`KPI Review results for ${month} ${year} (continued)`, margin, yPosition);
+            const continuationTitle = viewType === 'weekly' && weekData 
+              ? `KPI Review results for Week ${weekData.week}, ${weekData.year} (continued)`
+              : `KPI Review results for ${month} ${year} (continued)`;
+            doc.text(continuationTitle, margin, yPosition);
             yPosition += 20;
           }
           
