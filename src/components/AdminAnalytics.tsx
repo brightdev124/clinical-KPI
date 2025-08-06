@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useNameFormatter } from '../utils/nameFormatter';
+import { ReviewService } from '../services/reviewService';
 import { 
   Users, 
   UserCheck, 
@@ -26,7 +27,7 @@ interface AdminAnalyticsProps {
 }
 
 const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
-  const { profiles, getClinicianScore, getAssignedClinicians, getAssignedDirectors, loading } = useData();
+  const { profiles, kpis, getClinicianScore, getAssignedClinicians, getAssignedDirectors, loading } = useData();
   const formatName = useNameFormatter();
 
   // State for controls
@@ -119,6 +120,74 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
       month: start.toLocaleString('default', { month: 'long' }),
       year: start.getFullYear()
     };
+  };
+
+  // Weekly score calculation for individuals (same logic as Dashboard)
+  const getWeeklyScore = async (clinicianId: string, year: number, week: number): Promise<number> => {
+    try {
+      const { start, end } = getWeekDateRange(year, week);
+      const reviews = await ReviewService.getReviewsByDateRange(clinicianId, start, end);
+      
+      if (reviews.length === 0) return 0;
+      
+      let totalWeight = 0;
+      let earnedWeight = 0;
+      
+      reviews.forEach(review => {
+        const kpi = kpis.find(k => k.id === review.kpi);
+        if (kpi) {
+          totalWeight += kpi.weight;
+          if (review.met_check) {
+            earnedWeight += kpi.weight;
+          }
+        }
+      });
+      
+      return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+    } catch (error) {
+      console.error('Error calculating weekly score:', error);
+      return 0;
+    }
+  };
+
+  // Weekly score calculation for directors (team average)
+  const getDirectorWeeklyScore = async (directorId: string, year: number, week: number, visited: Set<string> = new Set()): Promise<number> => {
+    // Prevent infinite recursion
+    if (visited.has(directorId)) {
+      return 0;
+    }
+    
+    visited.add(directorId);
+    
+    try {
+      const assignedClinicians = getAssignedClinicians(directorId);
+      const assignedDirectors = getAssignedDirectors(directorId);
+      const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
+      
+      if (allAssignedMembers.length === 0) {
+        return 0;
+      }
+      
+      const scores = await Promise.all(
+        allAssignedMembers.map(async member => {
+          if (member.position_info?.role === 'director') {
+            return await getDirectorWeeklyScore(member.id, year, week, visited);
+          } else {
+            return await getWeeklyScore(member.id, year, week);
+          }
+        })
+      );
+      
+      const validScores = scores.filter(score => score > 0);
+      if (validScores.length === 0) {
+        return 0;
+      }
+      
+      return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+    } catch (error) {
+      console.error('Error calculating director weekly score:', error);
+      return 0;
+    }
   };
 
   // Calculate director's average score based on assigned members
@@ -230,8 +299,71 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   };
 
   // Generate chart data for selected users
-  const generateChartData = () => {
-    if (!startMonth || !endMonth || selectedUsers.size === 0) return [];
+  const generateChartData = async () => {
+    if (selectedUsers.size === 0) return [];
+
+    // Handle weekly data generation
+    if (dateSelectionType === 'weekly') {
+      if (!startWeek || !endWeek) return [];
+
+      const data = [];
+      let currentYear = startWeek.year;
+      let currentWeek = startWeek.week;
+
+      // Generate weekly data points
+      while (
+        currentYear < endWeek.year || 
+        (currentYear === endWeek.year && currentWeek <= endWeek.week)
+      ) {
+        const weekData: any = {
+          month: `${currentWeek}`, // Just the week number for display
+          fullMonth: `Week ${currentWeek}`,
+          year: currentYear,
+          week: currentWeek,
+          weekYear: currentYear
+        };
+
+        // Calculate scores for selected users asynchronously
+        const userScores = await Promise.all(
+          Array.from(selectedUsers).map(async userId => {
+            const user = profiles.find(p => p.id === userId);
+            if (user) {
+              let score;
+              if (userType === 'director' && user.position_info?.role === 'director') {
+                score = await getDirectorWeeklyScore(userId, currentYear, currentWeek);
+              } else {
+                score = await getWeeklyScore(userId, currentYear, currentWeek);
+              }
+              console.log(`Score for ${user.name} in Week ${currentWeek} ${currentYear}:`, score);
+              return { userId, userName: user.name, score };
+            }
+            return null;
+          })
+        );
+
+        // Add scores to weekData
+        userScores.forEach(userScore => {
+          if (userScore) {
+            weekData[userScore.userName] = userScore.score;
+          }
+        });
+
+        data.push(weekData);
+        
+        // Move to next week
+        currentWeek++;
+        if (currentWeek > 52) { // Assuming 52 weeks per year
+          currentWeek = 1;
+          currentYear++;
+        }
+      }
+
+      console.log('Generated weekly chart data:', data);
+      return data;
+    }
+
+    // Handle monthly data generation (existing logic)
+    if (!startMonth || !endMonth) return [];
 
     const data = [];
     
@@ -320,15 +452,49 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
   };
 
   // Generate table data for selected users
-  const generateTableData = () => {
-    if (!startMonth || !endMonth || selectedUsers.size === 0) return [];
+  const generateTableData = async () => {
+    if (selectedUsers.size === 0) return [];
 
     const selectedUserProfiles = Array.from(selectedUsers)
       .map(id => profiles.find(p => p.id === id))
       .filter(Boolean);
 
-    return selectedUserProfiles.map(user => {
-      const monthlyScores: any = { user };
+    return await Promise.all(selectedUserProfiles.map(async user => {
+      const scores: any = { user };
+      
+      // Handle weekly data generation
+      if (dateSelectionType === 'weekly') {
+        if (!startWeek || !endWeek) return scores;
+
+        let currentYear = startWeek.year;
+        let currentWeek = startWeek.week;
+
+        // Generate weekly data points
+        while (
+          currentYear < endWeek.year || 
+          (currentYear === endWeek.year && currentWeek <= endWeek.week)
+        ) {
+          const weekKey = `${currentWeek}`; // Just the week number as key
+          
+          if (userType === 'director' && user!.position_info?.role === 'director') {
+            scores[weekKey] = await getDirectorWeeklyScore(user!.id, currentYear, currentWeek);
+          } else {
+            scores[weekKey] = await getWeeklyScore(user!.id, currentYear, currentWeek);
+          }
+          
+          // Move to next week
+          currentWeek++;
+          if (currentWeek > 52) { // Assuming 52 weeks per year
+            currentWeek = 1;
+            currentYear++;
+          }
+        }
+
+        return scores;
+      }
+
+      // Handle monthly data generation (existing logic)
+      if (!startMonth || !endMonth) return scores;
       
       // Convert month names to numbers
       const months = [
@@ -355,9 +521,9 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
         const monthKey = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         
         if (userType === 'director' && user!.position_info?.role === 'director') {
-          monthlyScores[monthKey] = getDirectorAverageScore(user!.id, monthStr, year);
+          scores[monthKey] = getDirectorAverageScore(user!.id, monthStr, year);
         } else {
-          monthlyScores[monthKey] = getClinicianScore(user!.id, monthStr, year);
+          scores[monthKey] = getClinicianScore(user!.id, monthStr, year);
         }
         
         // Move to next month
@@ -368,12 +534,38 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
         }
       }
 
-      return monthlyScores;
-    });
+      return scores;
+    }));
   };
 
-  const chartData = generateChartData();
-  const tableData = generateTableData();
+  // State for async data
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  // Generate data when dependencies change
+  useEffect(() => {
+    const generateData = async () => {
+      setDataLoading(true);
+      try {
+        const [newChartData, newTableData] = await Promise.all([
+          generateChartData(),
+          generateTableData()
+        ]);
+        setChartData(newChartData);
+        setTableData(newTableData);
+      } catch (error) {
+        console.error('Error generating data:', error);
+        setChartData([]);
+        setTableData([]);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    generateData();
+  }, [selectedUsers, startMonth, startYear, endMonth, endYear, startWeek, endWeek, dateSelectionType, userType]);
+
   const sortedTableData = sortTableData(tableData);
 
   // Pagination logic
@@ -748,11 +940,19 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                 <p>Select users from the sidebar to view their performance data</p>
               </div>
             </div>
-          ) : !startMonth || !endMonth ? (
+          ) : (dateSelectionType === 'monthly' && (!startMonth || !endMonth)) || 
+              (dateSelectionType === 'weekly' && (!startWeek || !endWeek)) ? (
             <div className="flex items-center justify-center h-64 text-gray-500">
               <div className="text-center">
                 <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Please select start and end months to view data</p>
+                <p>Please select start and end {dateSelectionType === 'weekly' ? 'weeks' : 'months'} to view data</p>
+              </div>
+            </div>
+          ) : dataLoading ? (
+            <div className="flex items-center justify-center h-64 text-gray-500">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Loading {dateSelectionType === 'weekly' ? 'weekly' : 'monthly'} data...</p>
               </div>
             </div>
           ) : viewType === 'table' ? (
@@ -801,7 +1001,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
                             onClick={() => handleSort(monthData.month)}
                             className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
                           >
-                            <span>{monthData.month}</span>
+                            <span>{dateSelectionType === 'weekly' ? `Week ${monthData.month}` : monthData.month}</span>
                             {renderSortIcon(monthData.month)}
                           </button>
                         </th>
