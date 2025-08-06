@@ -507,6 +507,8 @@ const Dashboard: React.FC = () => {
     const calculateWeeklyTeamData = async () => {
       // Use appropriate data source based on user role
       const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+      console.log(`Weekly team calculation - User role: ${user?.role}, Target users count: ${targetUsers.length}`, targetUsers.map(u => ({ name: u.name, role: u.position_info?.role })));
+      
       if (teamDataViewType !== 'weekly' || targetUsers.length === 0) return;
       
       try {
@@ -520,14 +522,19 @@ const Dashboard: React.FC = () => {
           } else {
             // For others: show individual performance
             score = await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+            console.log(`Weekly team calculation result for ${member.name} (${member.position_info?.role}): ${score}%`);
           }
           return { member, score };
         }));
+        
+        console.log(`All weekly scores:`, scoresWithMembers.map(s => ({ name: s.member.name, score: s.score })));
         
         // Calculate average score (include all scores, even 0s)
         const avgScore = scoresWithMembers.length > 0 
           ? Math.round(scoresWithMembers.reduce((sum, item) => sum + item.score, 0) / scoresWithMembers.length)
           : 0;
+        
+        console.log(`Weekly team average calculated: ${avgScore}% (from ${scoresWithMembers.map(s => s.score).join(', ')})`);
         
         // Find top performers (score >= 90)
         const topPerformers = scoresWithMembers
@@ -584,14 +591,25 @@ const Dashboard: React.FC = () => {
       return weeklyTeamAvgScore;
     }
     
-    // For monthly view, use individual scores for all users
-    if (userClinicians.length === 0) return 0;
-    const totalScore = userClinicians.reduce((acc, c) => {
-      const score = getClinicianScore(c.id, selectedMonth, selectedYear);
-      return acc + score;
-    }, 0);
-    return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTeamAvgScore, getClinicianScore]);
+    // For monthly view, calculate based on user role
+    if (user?.role === 'super-admin') {
+      // For super-admin: calculate average of team scores (directors' team averages)
+      if (userDirectors.length === 0) return 0;
+      const totalScore = userDirectors.reduce((acc, director) => {
+        const teamAvgScore = getDirectorAverageScore(director.id, selectedMonth, selectedYear);
+        return acc + teamAvgScore;
+      }, 0);
+      return Math.round(totalScore / userDirectors.length);
+    } else {
+      // For directors and clinicians: use individual scores for all assigned users
+      if (userClinicians.length === 0) return 0;
+      const totalScore = userClinicians.reduce((acc, c) => {
+        const score = getClinicianScore(c.id, selectedMonth, selectedYear);
+        return acc + score;
+      }, 0);
+      return Math.round(totalScore / userClinicians.length);
+    }
+  }, [user?.role, userDirectors, userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTeamAvgScore, getClinicianScore, getDirectorAverageScore]);
 
   // Memoized staff needing attention (score < 70)
   const cliniciansNeedingAttention = useMemo(() => {
@@ -711,19 +729,19 @@ const Dashboard: React.FC = () => {
     return trendData;
   }, [userClinicians, getClinicianScore]);
 
-  // Simple weekly trend data using current week's average score
+  // Calculate actual weekly trend data for all 6 weeks
   const weeklyTrendData = useMemo(() => {
-    if (teamDataViewType !== 'weekly' || userClinicians.length === 0) {
+    if (teamDataViewType !== 'weekly') {
       return [];
     }
     
-    // Calculate current week's average score from weeklyScoresLookup
-    const currentWeekScores = userClinicians.map(c => weeklyScoresLookup.get(c.id) || 0);
-    const currentWeekAvg = currentWeekScores.length > 0 
-      ? Math.round(currentWeekScores.reduce((sum, score) => sum + score, 0) / currentWeekScores.length)
-      : 0;
+    // Use appropriate data source based on user role
+    const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+    if (targetUsers.length === 0) {
+      return [];
+    }
     
-    // Create trend data for 6 weeks, only showing current week data to avoid NaN
+    // Create trend data for 6 weeks with actual calculations
     const trendData = [];
     for (let i = 5; i >= 0; i--) {
       const targetYear = selectedWeek.year;
@@ -741,10 +759,31 @@ const Dashboard: React.FC = () => {
         adjustedWeek = targetWeek - 52;
       }
       
-      // Only show actual data for current week, others show 0
-      const avgScore = (adjustedYear === selectedWeek.year && adjustedWeek === selectedWeek.week) 
-        ? currentWeekAvg 
-        : 0;
+      // Calculate actual average score for this specific week
+      let avgScore = 0;
+      if (adjustedYear === selectedWeek.year && adjustedWeek === selectedWeek.week) {
+        // Current week: use the pre-calculated weekly team average
+        avgScore = weeklyTeamAvgScore;
+      } else {
+        // Other weeks: calculate actual weekly scores synchronously
+        const weeklyScores = targetUsers.map(member => {
+          if (user?.role === 'super-admin' && member.position_info?.role === 'director') {
+            // For Super Admin viewing directors: get their team's weekly average
+            return getDirectorWeeklyAverageScore(member.id, adjustedYear, adjustedWeek);
+          } else {
+            // For others: get individual weekly performance
+            // Use monthly score as approximation since we don't have async here
+            const weekDate = new Date(adjustedYear, 0, 1 + (adjustedWeek - 1) * 7);
+            const monthName = weekDate.toLocaleString('default', { month: 'long' });
+            const monthYear = weekDate.getFullYear();
+            return getClinicianScore(member.id, monthName, monthYear);
+          }
+        });
+        
+        avgScore = weeklyScores.length > 0 
+          ? Math.round(weeklyScores.reduce((sum, score) => sum + score, 0) / weeklyScores.length)
+          : 0;
+      }
       
       trendData.push({
         week: adjustedWeek,
@@ -755,7 +794,7 @@ const Dashboard: React.FC = () => {
     }
     
     return trendData;
-  }, [teamDataViewType, selectedWeek, userClinicians, weeklyScoresLookup]);
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, weeklyTeamAvgScore, getClinicianScore, getDirectorWeeklyAverageScore]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -2289,7 +2328,9 @@ const Dashboard: React.FC = () => {
                       ? Math.round(topPerformers.reduce((acc, c) => {
                           const score = teamDataViewType === 'weekly' 
                             ? (weeklyScoresLookup.get(c.id) || 0)
-                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                            : (user?.role === 'super-admin' && c.position_info?.role === 'director')
+                              ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                              : getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / topPerformers.length)
                       : 0}%
@@ -2304,7 +2345,9 @@ const Dashboard: React.FC = () => {
             {(showAllTopPerformers ? topPerformers : topPerformers.slice(0, 6)).map((clinician) => {
               const score = teamDataViewType === 'weekly' 
                 ? (weeklyScoresLookup.get(clinician.id) || 0)
-                : getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                : (user?.role === 'super-admin' && clinician.position_info?.role === 'director')
+                  ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
+                  : getClinicianScore(clinician.id, selectedMonth, selectedYear);
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
@@ -2406,7 +2449,9 @@ const Dashboard: React.FC = () => {
                       ? Math.round(cliniciansNeedingAttention.reduce((acc, c) => {
                           const score = teamDataViewType === 'weekly' 
                             ? (weeklyScoresLookup.get(c.id) || 0)
-                            : getClinicianScore(c.id, selectedMonth, selectedYear);
+                            : (user?.role === 'super-admin' && c.position_info?.role === 'director')
+                              ? getDirectorAverageScore(c.id, selectedMonth, selectedYear)
+                              : getClinicianScore(c.id, selectedMonth, selectedYear);
                           return acc + score;
                         }, 0) / cliniciansNeedingAttention.length)
                       : 0}%
@@ -2422,7 +2467,9 @@ const Dashboard: React.FC = () => {
               {(showAllNeedingAttention ? cliniciansNeedingAttention : cliniciansNeedingAttention.slice(0, 4)).map((clinician) => {
                 const score = teamDataViewType === 'weekly' 
                   ? (weeklyScoresLookup.get(clinician.id) || 0)
-                  : getClinicianScore(clinician.id, selectedMonth, selectedYear);
+                  : (user?.role === 'super-admin' && clinician.position_info?.role === 'director')
+                    ? getDirectorAverageScore(clinician.id, selectedMonth, selectedYear)
+                    : getClinicianScore(clinician.id, selectedMonth, selectedYear);
                 const monthlyData = generateMonthlyScoreData(clinician.id);
                 const trend = calculateTrend(monthlyData);
                 const reviews = teamDataViewType === 'weekly' 
