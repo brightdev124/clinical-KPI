@@ -988,29 +988,42 @@ const Dashboard: React.FC = () => {
     setShowMonthSelector(false);
   };
 
-  // Helper function to download monthly data as PDF
+  // Helper function to download team data as PDF (supports both monthly and weekly)
   const handleDownloadMonthlyData = () => {
     try {
       if (user?.role === 'clinician') {
+        // For clinicians, always use monthly data (clinicians don't have weekly view)
         const myReviews = getClinicianReviews(user.id);
         const monthlyReviews = myReviews.filter(r => r.month === selectedMonth && r.year === selectedYear);
         const clinician = profiles.find(p => p.id === user.id);
         const score = getClinicianScore(user.id, selectedMonth, selectedYear);
         
         if (clinician) {
-          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score);
+          generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
         } else {
           alert('Error: Clinician profile not found');
         }
       } else {
-        // For directors/admins, generate team summary
-        const teamData = userClinicians.map(clinician => ({
-          clinician,
-          score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
-          reviews: getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear)
-        }));
-        
-        generateMonthlyDataPDF(null, kpis, teamData, selectedMonth, selectedYear, avgScore);
+        // For directors/admins, check current view type
+        if (teamDataViewType === 'weekly') {
+          // Generate weekly team data
+          const teamData = userClinicians.map(clinician => ({
+            clinician,
+            score: weeklyScoresLookup.get(clinician.id) || 0,
+            reviews: filterReviewsByViewType(reviewItems.filter(r => r.clinician === clinician.id))
+          }));
+          
+          generateMonthlyDataPDF(null, kpis, teamData, selectedMonth, selectedYear, weeklyTeamAvgScore, 'weekly', selectedWeek);
+        } else {
+          // Generate monthly team data
+          const teamData = userClinicians.map(clinician => ({
+            clinician,
+            score: getClinicianScore(clinician.id, selectedMonth, selectedYear),
+            reviews: getClinicianReviews(clinician.id).filter(r => r.month === selectedMonth && r.year === selectedYear)
+          }));
+          
+          generateMonthlyDataPDF(null, kpis, teamData, selectedMonth, selectedYear, avgScore, 'monthly');
+        }
       }
     } catch (error) {
       console.error('Error in handleDownloadMonthlyData:', error);

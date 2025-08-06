@@ -840,7 +840,9 @@ export const generateMonthlyDataPDF = (
   reviewsOrTeamData: any,
   month: string,
   year: number,
-  score: number
+  score: number,
+  viewType: string = 'monthly',
+  weekData?: { year: number; week: number }
 ) => {
   console.log('generateMonthlyDataPDF called with:', { clinician, kpis, reviewsOrTeamData, month, year, score });
   
@@ -855,7 +857,10 @@ export const generateMonthlyDataPDF = (
     
     if (clinician) {
       // Individual clinician report
-      doc.text('Monthly Performance Report', margin, 30);
+      const reportTitle = viewType === 'weekly' && weekData 
+        ? 'Weekly Performance Report'
+        : 'Monthly Performance Report';
+      doc.text(reportTitle, margin, 30);
       
       // Clinician Information
       doc.setFontSize(14);
@@ -863,11 +868,15 @@ export const generateMonthlyDataPDF = (
       doc.text('Clinician Information', margin, 50);
       
       doc.setFontSize(11);
+      const reportPeriod = viewType === 'weekly' && weekData 
+        ? `Week ${weekData.week}, ${weekData.year}`
+        : `${month} ${year}`;
+      
       const clinicianInfo = [
         `Name: ${clinician.name || 'Unknown'}`,
         `Position: ${clinician.position_info?.position_title || 'Clinician'}`,
         `Department: ${clinician.clinician_info?.type_info?.title || 'General'}`,
-        `Report Period: ${month} ${year}`,
+        `Report Period: ${reportPeriod}`,
         `Performance Score: ${score}%`
       ];
 
@@ -959,16 +968,24 @@ export const generateMonthlyDataPDF = (
       } else {
         doc.setFontSize(11);
         doc.setTextColor(128, 128, 128);
-        doc.text(`No reviews found for ${month} ${year}`, margin, yPosition + 20);
+        const noReviewsMessage = viewType === 'weekly' && weekData 
+          ? `No reviews found for Week ${weekData.week}, ${weekData.year}`
+          : `No reviews found for ${month} ${year}`;
+        doc.text(noReviewsMessage, margin, yPosition + 20);
       }
 
       // Generate filename
-      const filename = `${clinician.name.replace(/\s+/g, '_')}_${month}_${year}_Report.pdf`;
+      const filename = viewType === 'weekly' && weekData 
+        ? `${clinician.name.replace(/\s+/g, '_')}_Week_${weekData.week}_${weekData.year}_Report.pdf`
+        : `${clinician.name.replace(/\s+/g, '_')}_${month}_${year}_Report.pdf`;
       doc.save(filename);
       
     } else {
       // Team summary report
-      doc.text('Team Performance Summary', margin, 30);
+      const teamReportTitle = viewType === 'weekly' && weekData 
+        ? 'Weekly Team Performance Summary'
+        : 'Team Performance Summary';
+      doc.text(teamReportTitle, margin, 30);
       
       // Summary Information
       doc.setFontSize(14);
@@ -976,8 +993,12 @@ export const generateMonthlyDataPDF = (
       doc.text('Team Summary', margin, 50);
       
       doc.setFontSize(11);
+      const reportPeriod = viewType === 'weekly' && weekData 
+        ? `Week ${weekData.week}, ${weekData.year}`
+        : `${month} ${year}`;
+      
       const summaryInfo = [
-        `Report Period: ${month} ${year}`,
+        `Report Period: ${reportPeriod}`,
         `Team Average Score: ${score}%`,
         `Total Team Members: ${reviewsOrTeamData.length}`,
         `Generated: ${new Date().toLocaleDateString()}`
@@ -994,7 +1015,10 @@ export const generateMonthlyDataPDF = (
       let yPosition = 110;
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text(`Team Performance for ${month} ${year}`, margin, yPosition);
+      const performanceTitle = viewType === 'weekly' && weekData 
+        ? `Team Performance for Week ${weekData.week}, ${weekData.year}`
+        : `Team Performance for ${month} ${year}`;
+      doc.text(performanceTitle, margin, yPosition);
 
       if (reviewsOrTeamData && reviewsOrTeamData.length > 0) {
         yPosition += 20;
@@ -1032,11 +1056,16 @@ export const generateMonthlyDataPDF = (
       } else {
         doc.setFontSize(11);
         doc.setTextColor(128, 128, 128);
-        doc.text(`No team data found for ${month} ${year}`, margin, yPosition + 20);
+        const noDataMessage = viewType === 'weekly' && weekData 
+          ? `No team data found for Week ${weekData.week}, ${weekData.year}`
+          : `No team data found for ${month} ${year}`;
+        doc.text(noDataMessage, margin, yPosition + 20);
       }
 
       // Generate filename
-      const filename = `Team_Performance_${month}_${year}.pdf`;
+      const filename = viewType === 'weekly' && weekData 
+        ? `Team_Performance_Week_${weekData.week}_${weekData.year}.pdf`
+        : `Team_Performance_${month}_${year}.pdf`;
       doc.save(filename);
     }
 
