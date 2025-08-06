@@ -579,65 +579,49 @@ const Dashboard: React.FC = () => {
   
   // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
-    if (userClinicians.length === 0) return 0;
-    
-    // For weekly view, use individual scores from lookup for all users
+    // For weekly view, use the pre-calculated weekly team average score
     if (teamDataViewType === 'weekly') {
-      const totalScore = userClinicians.reduce((acc, c) => {
-        const score = weeklyScoresLookup.get(c.id) || 0;
-        return acc + score;
-      }, 0);
-      return Math.round(totalScore / userClinicians.length);
+      return weeklyTeamAvgScore;
     }
     
     // For monthly view, use individual scores for all users
+    if (userClinicians.length === 0) return 0;
     const totalScore = userClinicians.reduce((acc, c) => {
       const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return acc + score;
     }, 0);
     return Math.round(totalScore / userClinicians.length);
-  }, [userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
+  }, [userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTeamAvgScore, getClinicianScore]);
 
   // Memoized staff needing attention (score < 70)
   const cliniciansNeedingAttention = useMemo(() => {
-    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
-    
-    // For weekly view, use individual scores from lookup for all users
+    // For weekly view, use the pre-calculated weekly needing attention list
     if (teamDataViewType === 'weekly') {
-      const result = targetClinicians.filter(c => {
-        const score = weeklyScoresLookup.get(c.id) || 0;
-        // Include anyone with score < 70, including those with 0 (no reviews yet)
-        return score < 70;
-      });
-      
-      return result;
+      return weeklyNeedingAttention;
     }
     
     // For monthly view, use individual scores for all users
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
       const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score < 70;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyNeedingAttention, getClinicianScore]);
 
   // Memoized top performers (score >= 90)
   const topPerformers = useMemo(() => {
-    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
-    
-    // For weekly view, use individual scores from lookup for all users
+    // For weekly view, use the pre-calculated weekly top performers list
     if (teamDataViewType === 'weekly') {
-      return targetClinicians.filter(c => {
-        const score = weeklyScoresLookup.get(c.id) || 0;
-        return score >= 90;
-      });
+      return weeklyTopPerformers;
     }
     
     // For monthly view, use individual scores for all users
+    const targetClinicians = user?.role === 'super-admin' ? userCliniciansOnly : userClinicians;
     return targetClinicians.filter(c => {
       const score = getClinicianScore(c.id, selectedMonth, selectedYear);
       return score >= 90;
     });
-  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, selectedWeek, teamDataViewType, weeklyScoresLookup, getClinicianScore]);
+  }, [user?.role, userCliniciansOnly, userClinicians, selectedMonth, selectedYear, teamDataViewType, weeklyTopPerformers, getClinicianScore]);
 
   // Helper function to filter reviews based on user role and assigned clinicians
   const filterReviewsByUserRole = (reviews: any[]) => {
