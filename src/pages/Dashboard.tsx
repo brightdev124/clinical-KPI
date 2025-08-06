@@ -194,24 +194,38 @@ const Dashboard: React.FC = () => {
       const assignedDirectors = getAssignedDirectors(directorId);
       const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
       
+      const directorProfile = profiles.find(p => p.id === directorId);
+      console.log(`Weekly calculation for Director ${directorProfile?.name} (Week ${week}, ${year}):`, {
+        assignedClinicians: assignedClinicians.map(c => ({ id: c.id, name: c.name })),
+        assignedDirectors: assignedDirectors.map(d => ({ id: d.id, name: d.name })),
+        totalAssigned: allAssignedMembers.length
+      });
+      
       if (allAssignedMembers.length === 0) {
+        console.log(`Director ${directorProfile?.name} has no assigned members for weekly calculation`);
         return 0;
       }
       
       const scores = await Promise.all(allAssignedMembers.map(async (member) => {
+        let score;
         if (member.position_info?.role === 'director') {
-          return await getDirectorWeeklyScore(member.id, year, week, newVisited);
+          // For sub-directors, use their individual performance, not their team average
+          // This prevents recursion issues and gives a more accurate representation
+          score = await getWeeklyScore(member.id, year, week);
         } else {
-          return await getWeeklyScore(member.id, year, week);
+          score = await getWeeklyScore(member.id, year, week);
         }
+        console.log(`  Weekly score for ${member.name} (${member.position_info?.role}): ${score}%`);
+        return score;
       }));
       
-      const validScores = scores.filter(score => score > 0);
-      if (validScores.length === 0) {
-        return 0;
-      }
+      // Include all scores, even 0s, for a true average
+      const totalScore = scores.reduce((sum, score) => sum + score, 0);
+      const averageScore = allAssignedMembers.length > 0 ? Math.round(totalScore / allAssignedMembers.length) : 0;
       
-      return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+      console.log(`Director ${directorProfile?.name} weekly team average: ${averageScore}% (from ${scores.join(', ')})`);
+      
+      return averageScore;
     } catch (error) {
       console.error('Error calculating director weekly score:', error);
       return 0;
@@ -356,25 +370,40 @@ const Dashboard: React.FC = () => {
     const assignedDirectors = getAssignedDirectors(directorId);
     const allAssignedMembers = [...assignedClinicians, ...assignedDirectors];
     
+    const directorProfile = profiles.find(p => p.id === directorId);
+    console.log(`Director ${directorProfile?.name} (${directorId}) team calculation:`, {
+      assignedClinicians: assignedClinicians.map(c => ({ id: c.id, name: c.name })),
+      assignedDirectors: assignedDirectors.map(d => ({ id: d.id, name: d.name })),
+      totalAssigned: allAssignedMembers.length,
+      month,
+      year
+    });
+    
     if (allAssignedMembers.length === 0) {
+      console.log(`Director ${directorProfile?.name} has no assigned members`);
       return 0; // No assigned members
     }
     
     const scores = allAssignedMembers.map(member => {
-      // For assigned directors, get their director average score; for clinicians, get their individual score
+      let score;
+      // For sub-directors, use their individual performance, not their team average
+      // This prevents recursion issues and gives a more accurate representation
       if (member.position_info?.role === 'director') {
-        return getDirectorAverageScoreInternal(member.id, month, year, newVisited);
+        score = getClinicianScore(member.id, month, year);
       } else {
-        return getClinicianScore(member.id, month, year);
+        score = getClinicianScore(member.id, month, year);
       }
+      console.log(`  Member ${member.name} (${member.position_info?.role}): ${score}%`);
+      return score;
     });
     
-    const validScores = scores.filter(score => score > 0);
-    if (validScores.length === 0) {
-      return 0;
-    }
+    // Include all scores, even 0s, for a true average
+    const totalScore = scores.reduce((sum, score) => sum + score, 0);
+    const averageScore = allAssignedMembers.length > 0 ? Math.round(totalScore / allAssignedMembers.length) : 0;
     
-    return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
+    console.log(`Director ${directorProfile?.name} team average: ${averageScore}% (from ${scores.join(', ')})`);
+    
+    return averageScore;
   };
 
   // Calculate director's average score based on assigned members
@@ -476,12 +505,22 @@ const Dashboard: React.FC = () => {
   // Calculate weekly team data when teamDataViewType is weekly
   useEffect(() => {
     const calculateWeeklyTeamData = async () => {
-      if (teamDataViewType !== 'weekly' || userClinicians.length === 0) return;
+      // Use appropriate data source based on user role
+      const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+      if (teamDataViewType !== 'weekly' || targetUsers.length === 0) return;
       
       try {
-        // Calculate scores for all team members (individual performance for both clinicians and directors)
-        const scoresWithMembers = await Promise.all(userClinicians.map(async (member) => {
-          const score = await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+        // Calculate scores for all team members
+        const scoresWithMembers = await Promise.all(targetUsers.map(async (member) => {
+          let score;
+          if (user?.role === 'super-admin' && member.position_info?.role === 'director') {
+            // For Super Admin viewing directors: show team average score
+            score = await getDirectorWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+            console.log(`Weekly team calculation result for Director ${member.name}: ${score}%`);
+          } else {
+            // For others: show individual performance
+            score = await getWeeklyScore(member.id, selectedWeek.year, selectedWeek.week);
+          }
           return { member, score };
         }));
         
@@ -536,7 +575,7 @@ const Dashboard: React.FC = () => {
     };
     
     calculateWeeklyTeamData();
-  }, [teamDataViewType, selectedWeek, userClinicians, getWeeklyScore, formatName]);
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, getWeeklyScore, getDirectorWeeklyScore, formatName]);
   
   // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
@@ -1946,16 +1985,32 @@ const Dashboard: React.FC = () => {
           
           <div className="h-64 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={(user?.role === 'super-admin' ? userDirectors : userClinicians).map(person => ({
-                name: formatName(person.name), // Use formatted name for all roles
-                fullName: formatName(person.name),
-                score: teamDataViewType === 'weekly' 
-                  ? (weeklyScoresLookup.get(person.id) || 0) // All users (including directors) show individual performance in weekly view
-                  : getClinicianScore(person.id, selectedMonth, selectedYear), // All users show individual performance in monthly view
-                position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
-                role: person.position_info?.role || 'clinician',
-                isDirector: person.position_info?.role === 'director'
-              }))}>
+              <BarChart data={(() => {
+                const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+                const chartData = targetUsers.map(person => ({
+                  name: formatName(person.name), // Use formatted name for all roles
+                  fullName: formatName(person.name),
+                  score: teamDataViewType === 'weekly' 
+                    ? (weeklyScoresLookup.get(person.id) || 0) // Weekly view uses lookup scores
+                    : (user?.role === 'super-admin' && person.position_info?.role === 'director')
+                      ? getDirectorAverageScore(person.id, selectedMonth, selectedYear) // Super Admin: Directors show team average
+                      : getClinicianScore(person.id, selectedMonth, selectedYear), // Others show individual performance
+                  position: person.position_info?.position_title || (person.position_info?.role === 'director' ? 'Director' : 'Clinician'),
+                  role: person.position_info?.role || 'clinician',
+                  isDirector: person.position_info?.role === 'director'
+                }));
+                
+                console.log('Team Performance Chart Debug:', {
+                  userRole: user?.role,
+                  teamDataViewType,
+                  targetUsersCount: targetUsers.length,
+                  targetUsers: targetUsers.map(u => ({ id: u.id, name: u.name, role: u.position_info?.role })),
+                  chartData: chartData.map(d => ({ name: d.name, score: d.score, isDirector: d.isDirector })),
+                  weeklyScoresLookup: Array.from(weeklyScoresLookup.entries())
+                });
+                
+                return chartData;
+              })()}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="name" 
@@ -1997,12 +2052,15 @@ const Dashboard: React.FC = () => {
                   dataKey="score" 
                   radius={[4, 4, 0, 0]}
                 >
-                  {(user?.role === 'super-admin' ? userDirectors : userClinicians).map((item, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={item.position_info?.role === 'director' ? '#8b5cf6' : '#3b82f6'} 
-                    />
-                  ))}
+                  {(() => {
+                    const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+                    return targetUsers.map((item, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={item.position_info?.role === 'director' ? '#8b5cf6' : '#3b82f6'} 
+                      />
+                    ));
+                  })()}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
