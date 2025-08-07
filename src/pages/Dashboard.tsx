@@ -2467,9 +2467,7 @@ const Dashboard: React.FC = () => {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">Top Performers</h3>
                   <p className="text-xs sm:text-sm text-gray-600">
                     {user?.role === 'super-admin' 
-                      ? teamDataViewType === 'weekly' 
-                        ? 'Members with scores ≥ 90% and their individual KPIs ≥ 90%'
-                        : 'Clinicians with scores ≥ 90%'
+                      ? 'Clinicians with scores ≥ 90%'
                       : 'Team members with scores ≥ 90%'
                     }
                   </p>
@@ -2509,16 +2507,7 @@ const Dashboard: React.FC = () => {
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
-              // Get individual KPI scores for weekly view
-              const kpiScores = teamDataViewType === 'weekly' && user?.role === 'super-admin' 
-                ? weeklyKPIScoresLookup.get(clinician.id) || []
-                : [];
-              
-              console.log(`Rendering top performer ${clinician.name}:`);
-              console.log(`  teamDataViewType: ${teamDataViewType}`);
-              console.log(`  user role: ${user?.role}`);
-              console.log(`  kpiScores length: ${kpiScores.length}`);
-              console.log(`  kpiScores:`, kpiScores);
+
               
               return (
                 <div key={clinician.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 sm:p-4 border border-green-200 hover:shadow-md transition-all">
@@ -2542,41 +2531,21 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   
-                  {/* Show individual KPI scores for SuperAdmin weekly view */}
-                  {teamDataViewType === 'weekly' && user?.role === 'super-admin' && kpiScores.length > 0 ? (
-                    <div className="mb-3">
-                      <p className="text-xs font-medium text-gray-700 mb-2">KPIs ≥ 90%:</p>
-                      <div className="space-y-1">
-                        {kpiScores.map((kpi, index) => (
-                          <div key={`${kpi.kpiId}-${index}`} className="flex items-center justify-between bg-green-100 rounded px-2 py-1">
-                            <span className="text-xs text-gray-700 truncate pr-2" title={kpi.kpiTitle}>
-                              {kpi.kpiTitle.length > 20 ? kpi.kpiTitle.substring(0, 20) + '...' : kpi.kpiTitle}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <span className="text-xs font-medium text-green-700">{kpi.score}%</span>
-                              <CheckCircle className="w-3 h-3 text-green-600" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-1 text-xs">
-                      {trend.direction === 'up' ? (
-                        <ArrowUp className="w-3 h-3 text-green-600" />
-                      ) : trend.direction === 'down' ? (
-                        <ArrowDown className="w-3 h-3 text-red-600" />
-                      ) : (
-                        <Activity className="w-3 h-3 text-gray-600" />
-                      )}
-                      <span className={`font-medium truncate ${
-                        trend.direction === 'up' ? 'text-green-600' : 
-                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-1 text-xs">
+                    {trend.direction === 'up' ? (
+                      <ArrowUp className="w-3 h-3 text-green-600" />
+                    ) : trend.direction === 'down' ? (
+                      <ArrowDown className="w-3 h-3 text-red-600" />
+                    ) : (
+                      <Activity className="w-3 h-3 text-gray-600" />
+                    )}
+                    <span className={`font-medium truncate ${
+                      trend.direction === 'up' ? 'text-green-600' : 
+                      trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                    </span>
+                  </div>
                 </div>
               );
             })}
