@@ -109,6 +109,9 @@ const Dashboard: React.FC = () => {
   
   // State for individual weekly scores lookup
   const [weeklyScoresLookup, setWeeklyScoresLookup] = useState<Map<string, number>>(new Map());
+
+  // State for weekly KPI scores lookup for top performers
+  const [weeklyKPIScoresLookup, setWeeklyKPIScoresLookup] = useState<Map<string, any[]>>(new Map());
   
 
 
@@ -176,6 +179,47 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error calculating weekly score:', error);
       return 0;
+    }
+  };
+
+  // Get individual KPI scores for a member for a specific week (returns only KPIs with scores >= 90%)
+  const getWeeklyKPIScores = async (memberId: string, year: number, week: number): Promise<any[]> => {
+    try {
+      const { start, end } = getWeekDateRange(year, week);
+      console.log(`Getting KPI scores for member ${memberId} for week ${week} ${year} (${start.toISOString()} to ${end.toISOString()})`);
+      
+      const reviews = await ReviewService.getReviewsByDateRange(memberId, start, end);
+      console.log(`Found ${reviews.length} reviews for member ${memberId}`);
+      
+      if (reviews.length === 0) return [];
+      
+      const kpiScores: any[] = [];
+      
+      // Process each review and calculate individual KPI scores
+      reviews.forEach(review => {
+        const kpi = kpis.find(k => k.id === review.kpi);
+        if (kpi) {
+          const kpiScore = review.met_check ? 100 : 0; // KPI is either met (100%) or not met (0%)
+          console.log(`KPI ${kpi.title}: met=${review.met_check}, score=${kpiScore}`);
+          
+          // Only include KPIs with scores >= 90% (which means only met KPIs in this case)
+          if (kpiScore >= 90) {
+            kpiScores.push({
+              kpiId: kpi.id,
+              kpiTitle: kpi.title,
+              kpiWeight: kpi.weight,
+              score: kpiScore,
+              met: review.met_check
+            });
+          }
+        }
+      });
+      
+      console.log(`Returning ${kpiScores.length} KPI scores >= 90% for member ${memberId}`);
+      return kpiScores;
+    } catch (error) {
+      console.error('Error getting weekly KPI scores:', error);
+      return [];
     }
   };
 
@@ -323,6 +367,13 @@ const Dashboard: React.FC = () => {
     setShowAllTopPerformers(false);
     setShowAllNeedingAttention(false);
   }, [selectedMonth, selectedYear]);
+
+  // Clear weekly KPI scores when switching away from weekly view
+  useEffect(() => {
+    if (teamDataViewType !== 'weekly') {
+      setWeeklyKPIScoresLookup(new Map());
+    }
+  }, [teamDataViewType]);
 
   // Calculate current score and chart data based on view type
   useEffect(() => {
@@ -547,8 +598,36 @@ const Dashboard: React.FC = () => {
           .map(item => item.member);
         
         setWeeklyTeamAvgScore(avgScore);
-        setWeeklyTopPerformers(topPerformers);
-        setWeeklyNeedingAttention(needingAttention);
+        
+        // For Super Admin: Calculate Top Performers and KPI Review based on clinicians (not directors)
+        // This ensures consistency with monthly view for these specific sections
+        let clinicianScoresWithMembers = [];
+        let clinicianTopPerformers = [];
+        
+        if (user?.role === 'super-admin') {
+          // Calculate scores for individual clinicians for Top Performers and KPI Review sections
+          clinicianScoresWithMembers = await Promise.all(userCliniciansOnly.map(async (clinician) => {
+            const score = await getWeeklyScore(clinician.id, selectedWeek.year, selectedWeek.week);
+            return { member: clinician, score };
+          }));
+          
+          // Find top performing clinicians (score >= 90)
+          clinicianTopPerformers = clinicianScoresWithMembers
+            .filter(item => item.score >= 90)
+            .map(item => item.member);
+          
+          // Find clinicians needing attention (score < 70)
+          const cliniciansNeedingAttention = clinicianScoresWithMembers
+            .filter(item => item.score < 70)
+            .map(item => item.member);
+          
+          setWeeklyTopPerformers(clinicianTopPerformers);
+          setWeeklyNeedingAttention(cliniciansNeedingAttention);
+        } else {
+          // For Directors and Clinicians: use team-based calculations
+          setWeeklyTopPerformers(topPerformers);
+          setWeeklyNeedingAttention(needingAttention);
+        }
         
         // Generate chart data for weekly view
         const chartData = scoresWithMembers.map(({ member, score }) => ({
@@ -567,8 +646,37 @@ const Dashboard: React.FC = () => {
         scoresWithMembers.forEach(({ member, score }) => {
           scoresMap.set(member.id, score);
         });
+        
+        // For Super Admin: Also add clinician scores to lookup for Top Performers sections
+        if (user?.role === 'super-admin' && clinicianScoresWithMembers.length > 0) {
+          clinicianScoresWithMembers.forEach(({ member, score }) => {
+            scoresMap.set(member.id, score);
+          });
+        }
+        
         setWeeklyScoresLookup(scoresMap);
         
+        // For SuperAdmin role, get individual KPI scores for top performing clinicians
+        if (user?.role === 'super-admin' && clinicianTopPerformers.length > 0) {
+          console.log('Calculating KPI scores for SuperAdmin weekly view');
+          console.log('Top performing clinicians:', clinicianTopPerformers.map(p => ({ name: p.name, role: p.position_info?.role })));
+          
+          const kpiScoresMap = new Map();
+          
+          // Calculate individual KPI scores for top performing clinicians
+          await Promise.all(clinicianTopPerformers.map(async (member) => {
+            console.log(`Getting KPI scores for ${member.name} (${member.position_info?.role})`);
+            
+            // Get individual KPI scores for clinicians
+            const kpiScores = await getWeeklyKPIScores(member.id, selectedWeek.year, selectedWeek.week);
+            
+            console.log(`KPI scores for ${member.name}:`, kpiScores);
+            kpiScoresMap.set(member.id, kpiScores);
+          }));
+          
+          console.log('Final KPI scores map:', Array.from(kpiScoresMap.entries()));
+          setWeeklyKPIScoresLookup(kpiScoresMap);
+        }
 
         
       } catch (error) {
@@ -578,11 +686,12 @@ const Dashboard: React.FC = () => {
         setWeeklyNeedingAttention([]);
         setWeeklyTeamChartData([]);
         setWeeklyScoresLookup(new Map());
+        setWeeklyKPIScoresLookup(new Map());
       }
     };
     
     calculateWeeklyTeamData();
-  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, getWeeklyScore, getDirectorWeeklyScore, formatName]);
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, userCliniciansOnly, user?.role, getWeeklyScore, getDirectorWeeklyScore, formatName]);
   
   // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
@@ -736,72 +845,96 @@ const Dashboard: React.FC = () => {
     return trendData;
   }, [user?.role, userDirectors, userClinicians, getClinicianScore, getDirectorAverageScore]);
 
+  // State for weekly trend data
+  const [weeklyTrendData, setWeeklyTrendData] = useState<any[]>([]);
+  
   // Calculate actual weekly trend data for all 6 weeks
-  const weeklyTrendData = useMemo(() => {
-    if (teamDataViewType !== 'weekly') {
-      return [];
-    }
-    
-    // Use appropriate data source based on user role
-    const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
-    if (targetUsers.length === 0) {
-      return [];
-    }
-    
-    // Create trend data for 6 weeks with actual calculations
-    const trendData = [];
-    for (let i = 5; i >= 0; i--) {
-      const targetYear = selectedWeek.year;
-      const targetWeek = selectedWeek.week - i;
-      
-      // Handle week overflow/underflow
-      let adjustedYear = targetYear;
-      let adjustedWeek = targetWeek;
-      
-      if (adjustedWeek <= 0) {
-        adjustedYear = targetYear - 1;
-        adjustedWeek = 52 + targetWeek;
-      } else if (adjustedWeek > 52) {
-        adjustedYear = targetYear + 1;
-        adjustedWeek = targetWeek - 52;
+  useEffect(() => {
+    const calculateWeeklyTrendData = async () => {
+      if (teamDataViewType !== 'weekly') {
+        setWeeklyTrendData([]);
+        return;
       }
       
-      // Calculate actual average score for this specific week
-      let avgScore = 0;
-      if (adjustedYear === selectedWeek.year && adjustedWeek === selectedWeek.week) {
-        // Current week: use the pre-calculated weekly team average
-        avgScore = weeklyTeamAvgScore;
-      } else {
-        // Other weeks: calculate actual weekly scores synchronously
-        const weeklyScores = targetUsers.map(member => {
-          if (user?.role === 'super-admin' && member.position_info?.role === 'director') {
-            // For Super Admin viewing directors: get their team's weekly average
-            return getDirectorWeeklyAverageScore(member.id, adjustedYear, adjustedWeek);
-          } else {
-            // For others: get individual weekly performance
-            // Use monthly score as approximation since we don't have async here
-            const weekDate = new Date(adjustedYear, 0, 1 + (adjustedWeek - 1) * 7);
-            const monthName = weekDate.toLocaleString('default', { month: 'long' });
-            const monthYear = weekDate.getFullYear();
-            return getClinicianScore(member.id, monthName, monthYear);
-          }
-        });
+      // Use appropriate data source based on user role
+      const targetUsers = user?.role === 'super-admin' ? userDirectors : userClinicians;
+      if (targetUsers.length === 0) {
+        setWeeklyTrendData([]);
+        return;
+      }
+      
+      console.log('Calculating weekly trend data for 6 weeks...');
+      
+      // Create trend data for 6 weeks with actual calculations
+      const trendData = [];
+      for (let i = 5; i >= 0; i--) {
+        const targetYear = selectedWeek.year;
+        const targetWeek = selectedWeek.week - i;
         
-        avgScore = weeklyScores.length > 0 
-          ? Math.round(weeklyScores.reduce((sum, score) => sum + score, 0) / weeklyScores.length)
-          : 0;
+        // Handle week overflow/underflow
+        let adjustedYear = targetYear;
+        let adjustedWeek = targetWeek;
+        
+        if (adjustedWeek <= 0) {
+          adjustedYear = targetYear - 1;
+          adjustedWeek = 52 + targetWeek;
+        } else if (adjustedWeek > 52) {
+          adjustedYear = targetYear + 1;
+          adjustedWeek = targetWeek - 52;
+        }
+        
+        // Calculate actual average score for this specific week
+        let avgScore = 0;
+        if (adjustedYear === selectedWeek.year && adjustedWeek === selectedWeek.week) {
+          // Current week: use the pre-calculated weekly team average
+          avgScore = weeklyTeamAvgScore;
+          console.log(`Week ${adjustedWeek} (current): ${avgScore}%`);
+        } else {
+          // Historical weeks: calculate actual weekly scores using async calls
+          console.log(`Calculating historical scores for Week ${adjustedWeek}, ${adjustedYear}...`);
+          
+          try {
+            const weeklyScorePromises = targetUsers.map(async (member) => {
+              if (user?.role === 'super-admin' && member.position_info?.role === 'director') {
+                // For Super Admin viewing directors: get their team's weekly average
+                return await getDirectorWeeklyScore(member.id, adjustedYear, adjustedWeek);
+              } else {
+                // For others: get individual weekly performance
+                return await getWeeklyScore(member.id, adjustedYear, adjustedWeek);
+              }
+            });
+            
+            const weeklyScores = await Promise.all(weeklyScorePromises);
+            console.log(`Week ${adjustedWeek} individual scores:`, weeklyScores);
+            
+            avgScore = weeklyScores.length > 0 
+              ? Math.round(weeklyScores.reduce((sum, score) => sum + score, 0) / weeklyScores.length)
+              : 0;
+              
+            console.log(`Week ${adjustedWeek} average: ${avgScore}%`);
+          } catch (error) {
+            console.error(`Error calculating scores for Week ${adjustedWeek}:`, error);
+            avgScore = 0;
+          }
+        }
+        
+        trendData.push({
+          week: adjustedWeek,
+          year: adjustedYear,
+          avgScore: avgScore,
+          displayName: `W${adjustedWeek} ${adjustedYear.toString().slice(-2)}`
+        });
       }
       
-      trendData.push({
-        week: adjustedWeek,
-        year: adjustedYear,
-        avgScore: avgScore,
-        displayName: `W${adjustedWeek} ${adjustedYear.toString().slice(-2)}`
-      });
-    }
+      console.log('Final weekly trend data:', trendData);
+      setWeeklyTrendData(trendData);
+    };
     
-    return trendData;
-  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, weeklyTeamAvgScore, getClinicianScore, getDirectorWeeklyAverageScore]);
+    // Only calculate if we have the required data
+    if (teamDataViewType === 'weekly' && weeklyTeamAvgScore !== undefined) {
+      calculateWeeklyTrendData();
+    }
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, weeklyTeamAvgScore, getWeeklyScore, getDirectorWeeklyScore]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -2333,7 +2466,12 @@ const Dashboard: React.FC = () => {
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">Top Performers</h3>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {user?.role === 'super-admin' ? 'Clinicians with scores ≥ 90%' : 'Team members with scores ≥ 90%'}
+                    {user?.role === 'super-admin' 
+                      ? teamDataViewType === 'weekly' 
+                        ? 'Members with scores ≥ 90% and their individual KPIs ≥ 90%'
+                        : 'Clinicians with scores ≥ 90%'
+                      : 'Team members with scores ≥ 90%'
+                    }
                   </p>
                 </div>
               </div>
@@ -2371,6 +2509,17 @@ const Dashboard: React.FC = () => {
               const monthlyData = generateMonthlyScoreData(clinician.id);
               const trend = calculateTrend(monthlyData);
               
+              // Get individual KPI scores for weekly view
+              const kpiScores = teamDataViewType === 'weekly' && user?.role === 'super-admin' 
+                ? weeklyKPIScoresLookup.get(clinician.id) || []
+                : [];
+              
+              console.log(`Rendering top performer ${clinician.name}:`);
+              console.log(`  teamDataViewType: ${teamDataViewType}`);
+              console.log(`  user role: ${user?.role}`);
+              console.log(`  kpiScores length: ${kpiScores.length}`);
+              console.log(`  kpiScores:`, kpiScores);
+              
               return (
                 <div key={clinician.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 sm:p-4 border border-green-200 hover:shadow-md transition-all">
                   <div className="flex items-center justify-between mb-3">
@@ -2393,21 +2542,41 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   
-                  <div className="flex items-center space-x-1 text-xs">
-                    {trend.direction === 'up' ? (
-                      <ArrowUp className="w-3 h-3 text-green-600" />
-                    ) : trend.direction === 'down' ? (
-                      <ArrowDown className="w-3 h-3 text-red-600" />
-                    ) : (
-                      <Activity className="w-3 h-3 text-gray-600" />
-                    )}
-                    <span className={`font-medium truncate ${
-                      trend.direction === 'up' ? 'text-green-600' : 
-                      trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
-                    </span>
-                  </div>
+                  {/* Show individual KPI scores for SuperAdmin weekly view */}
+                  {teamDataViewType === 'weekly' && user?.role === 'super-admin' && kpiScores.length > 0 ? (
+                    <div className="mb-3">
+                      <p className="text-xs font-medium text-gray-700 mb-2">KPIs ≥ 90%:</p>
+                      <div className="space-y-1">
+                        {kpiScores.map((kpi, index) => (
+                          <div key={`${kpi.kpiId}-${index}`} className="flex items-center justify-between bg-green-100 rounded px-2 py-1">
+                            <span className="text-xs text-gray-700 truncate pr-2" title={kpi.kpiTitle}>
+                              {kpi.kpiTitle.length > 20 ? kpi.kpiTitle.substring(0, 20) + '...' : kpi.kpiTitle}
+                            </span>
+                            <div className="flex items-center space-x-1">
+                              <span className="text-xs font-medium text-green-700">{kpi.score}%</span>
+                              <CheckCircle className="w-3 h-3 text-green-600" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1 text-xs">
+                      {trend.direction === 'up' ? (
+                        <ArrowUp className="w-3 h-3 text-green-600" />
+                      ) : trend.direction === 'down' ? (
+                        <ArrowDown className="w-3 h-3 text-red-600" />
+                      ) : (
+                        <Activity className="w-3 h-3 text-gray-600" />
+                      )}
+                      <span className={`font-medium truncate ${
+                        trend.direction === 'up' ? 'text-green-600' : 
+                        trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {trend.direction === 'stable' ? 'Stable' : `${trend.direction === 'up' ? '+' : '-'}${trend.percentage.toFixed(1)}%`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
