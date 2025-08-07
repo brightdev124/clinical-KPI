@@ -691,7 +691,7 @@ const Dashboard: React.FC = () => {
     };
     
     calculateWeeklyTeamData();
-  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, userCliniciansOnly, user?.role, getWeeklyScore, getDirectorWeeklyScore, formatName]);
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, userCliniciansOnly, user?.role]);
   
   // Memoized calculations that depend on selectedMonth/selectedYear or selectedWeek
   const avgScore = useMemo(() => {
@@ -934,7 +934,7 @@ const Dashboard: React.FC = () => {
     if (teamDataViewType === 'weekly' && weeklyTeamAvgScore !== undefined) {
       calculateWeeklyTrendData();
     }
-  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, weeklyTeamAvgScore, getWeeklyScore, getDirectorWeeklyScore]);
+  }, [teamDataViewType, selectedWeek, userClinicians, userDirectors, user?.role, weeklyTeamAvgScore]);
 
   // Calculate trend analysis
   const calculateTrend = (data: any[]) => {
@@ -1052,7 +1052,7 @@ const Dashboard: React.FC = () => {
     };
     
     calculateWeeklyKPIDetails();
-  }, [viewType, selectedWeek, user?.id, user?.role, getClinicianWeeklyKPIDetails]);
+  }, [viewType, selectedWeek, user?.id, user?.role]);
 
   // Memoized score calculation for current user - moved to top level to avoid conditional hook calls
   const myScore = useMemo(() => {
