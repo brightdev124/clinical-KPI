@@ -461,7 +461,7 @@ export const generatePerformancePDF = (
     doc.setTextColor(59, 130, 246);
     doc.text('Total KPIs', margin + 5, yPosition + 10);
     doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(255, 255, 255);
     doc.text(kpis.length.toString(), margin + 5, yPosition + 20);
 
     doc.setFillColor(34, 197, 94, 0.1);
@@ -470,7 +470,7 @@ export const generatePerformancePDF = (
     doc.setTextColor(34, 197, 94);
     doc.text('Avg Met Rate', margin + (pageWidth - margin * 3) / 3 + 10, yPosition + 10);
     doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(255, 255, 255);
     doc.text(`${avgMetRate}%`, margin + (pageWidth - margin * 3) / 3 + 10, yPosition + 20);
 
     doc.setFillColor(245, 158, 11, 0.1);
@@ -479,7 +479,7 @@ export const generatePerformancePDF = (
     doc.setTextColor(245, 158, 11);
     doc.text('Needs Attention', margin + 2 * ((pageWidth - margin * 3) / 3) + 15, yPosition + 10);
     doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(255, 255, 255);
     doc.text(kpisNeedingAttention.toString(), margin + 2 * ((pageWidth - margin * 3) / 3) + 15, yPosition + 20);
 
     yPosition += 50;
