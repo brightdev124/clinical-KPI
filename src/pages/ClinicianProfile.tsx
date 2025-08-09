@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useNameFormatter } from '../utils/nameFormatter';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { User, Mail, Calendar, MapPin, TrendingUp, ClipboardList, Target, Download } from 'lucide-react';
-import { generateClinicianSummaryPDF } from '../utils/pdfGenerator';
+import { User, Mail, Calendar, MapPin, TrendingUp, ClipboardList, Target, Download, Brain, Loader2 } from 'lucide-react';
+import { generateClinicianSummaryPDF, generateAIAnalysisPDF } from '../utils/pdfGenerator';
+import { aiAnalysisService, ClinicianAnalysisData } from '../services/aiAnalysisService';
 
 const ClinicianProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { profiles, kpis, getClinicianScore, getClinicianReviews } = useData();
   const formatName = useNameFormatter();
+  
+  // State for AI analysis loading
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Find the staff member profile from the profiles array (clinician or director)
   const staffMember = profiles.find(p => p.id === id && (p.position_info?.role === 'clinician' || p.position_info?.role === 'director'));
@@ -85,6 +89,51 @@ const ClinicianProfile: React.FC = () => {
     }
   };
 
+  const handleAIAnalysis = async () => {
+    if (!staffMember) return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Prepare data for AI analysis
+      const analysisData: ClinicianAnalysisData = {
+        clinicianId: staffMember.id,
+        clinicianName: staffMember.name,
+        position: staffMember.position_info?.position_title || (isDirector ? 'Director' : 'Clinician'),
+        department: isDirector 
+          ? staffMember.director_info?.direction || 'General Direction'
+          : staffMember.clinician_info?.type_info?.title || 'General',
+        currentScore,
+        performanceHistory: performanceData.map(data => ({
+          month: data.monthName,
+          year: data.year,
+          score: data.score
+        })),
+        kpiPerformance: kpiPerformance.map(kpi => ({
+          kpiTitle: kpi.title,
+          percentage: kpi.percentage,
+          weight: kpi.weight,
+          met: kpi.met,
+          total: kpi.total
+        })),
+        reviewCount: reviews.length,
+        startDate: staffMember.created_at
+      };
+
+      // Get AI analysis
+      const analysisResult = await aiAnalysisService.analyzeClinicianPerformance(analysisData);
+      
+      // Generate and download PDF
+      generateAIAnalysisPDF(analysisData, analysisResult);
+      
+    } catch (error) {
+      console.error('Error generating AI analysis:', error);
+      alert('Error generating AI analysis. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
@@ -144,7 +193,7 @@ const ClinicianProfile: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex space-x-4">
+      <div className="flex flex-wrap gap-4">
         <Link
           to={`/review/${staffMember.id}`}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -159,6 +208,19 @@ const ClinicianProfile: React.FC = () => {
         >
           <Download className="w-4 h-4" />
           <span>Download Summary</span>
+        </button>
+
+        <button
+          onClick={handleAIAnalysis}
+          disabled={isAnalyzing}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isAnalyzing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Brain className="w-4 h-4" />
+          )}
+          <span>{isAnalyzing ? 'Analyzing...' : 'AI Analysis'}</span>
         </button>
       </div>
 

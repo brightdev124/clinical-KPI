@@ -27,9 +27,12 @@ import {
   Crown,
   UserPlus,
   User,
-  Navigation
+  Navigation,
+  Brain,
+  Loader2
 } from 'lucide-react';
-import { generateMonthlyDataPDF, generatePerformancePDF } from '../utils/pdfGenerator';
+import { generateMonthlyDataPDF, generatePerformancePDF, generateAIAnalysisPDF } from '../utils/pdfGenerator';
+import { aiAnalysisService, ClinicianAnalysisData } from '../services/aiAnalysisService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import AdminAnalytics from '../components/AdminAnalytics';
 import { MonthYearPicker, WeekPicker } from '../components/UI';
@@ -88,6 +91,9 @@ const Dashboard: React.FC = () => {
   
   // State for chart data (needed for async weekly data)
   const [chartData, setChartData] = useState<any[]>([]);
+  
+  // State for AI analysis loading
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // State for expanded KPIs in clinician dashboard
   const [expandedKPIs, setExpandedKPIs] = useState<Set<string>>(new Set());
@@ -1190,6 +1196,78 @@ const Dashboard: React.FC = () => {
     setShowMonthSelector(false);
   };
 
+  // Helper function to handle AI analysis for clinician
+  const handleAIAnalysis = async () => {
+    if (!user || user.role !== 'clinician') return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Find the current clinician's profile
+      const clinicianProfile = profiles.find(p => p.id === user.id);
+      if (!clinicianProfile) {
+        throw new Error('Clinician profile not found');
+      }
+
+      // Get performance data for the last 12 months
+      const performanceHistory = Array.from({ length: 12 }, (_, i) => {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthName = date.toLocaleString('default', { month: 'long' });
+        const year = date.getFullYear();
+        const score = getClinicianScore(user.id, monthName, year);
+        
+        return {
+          month: monthName,
+          year,
+          score
+        };
+      }).reverse();
+
+      // Get KPI performance breakdown
+      const reviews = getClinicianReviews(user.id);
+      const kpiPerformance = kpis.map(kpi => {
+        const kpiReviews = reviews.filter(r => r.kpiId === kpi.id);
+        const metCount = kpiReviews.filter(r => r.met).length;
+        const totalCount = kpiReviews.length;
+        const percentage = totalCount > 0 ? Math.round((metCount / totalCount) * 100) : 0;
+        
+        return {
+          kpiTitle: kpi.title,
+          percentage,
+          weight: kpi.weight,
+          met: metCount,
+          total: totalCount
+        };
+      });
+
+      // Prepare data for AI analysis
+      const analysisData: ClinicianAnalysisData = {
+        clinicianId: user.id,
+        clinicianName: clinicianProfile.name,
+        position: clinicianProfile.position_info?.position_title || 'Clinician',
+        department: clinicianProfile.clinician_info?.type_info?.title || 'General',
+        currentScore,
+        performanceHistory,
+        kpiPerformance,
+        reviewCount: reviews.length,
+        startDate: clinicianProfile.created_at
+      };
+
+      // Get AI analysis
+      const analysisResult = await aiAnalysisService.analyzeClinicianPerformance(analysisData);
+      
+      // Generate and download PDF
+      generateAIAnalysisPDF(analysisData, analysisResult);
+      
+    } catch (error) {
+      console.error('Error generating AI analysis:', error);
+      alert('Error generating AI analysis. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Helper function to download team data as PDF (supports both monthly and weekly)
   const handleDownloadMonthlyData = () => {
     try {
@@ -1421,16 +1499,36 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             
-              <button
-                onClick={handleDownloadMonthlyData}
-                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-sm sm:text-base"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  Download {viewType === 'monthly' ? selectedMonth : `Week ${selectedWeek.week}`} Data
-                </span>
-                <span className="sm:hidden">Download Data</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                <button
+                  onClick={handleDownloadMonthlyData}
+                  className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-sm sm:text-base"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    Download {viewType === 'monthly' ? selectedMonth : `Week ${selectedWeek.week}`} Data
+                  </span>
+                  <span className="sm:hidden">Download Data</span>
+                </button>
+
+                <button
+                  onClick={handleAIAnalysis}
+                  disabled={isAnalyzing}
+                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 sm:py-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors w-full sm:w-auto text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Brain className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
+                  </span>
+                  <span className="sm:hidden">
+                    {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1738,14 +1836,30 @@ const Dashboard: React.FC = () => {
                   }
                 </div>
               </div>
-              <button
-                onClick={handleDownloadKPIPerformance}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                title="Download KPI Performance Report"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download PDF</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                <button
+                  onClick={handleDownloadKPIPerformance}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  title="Download KPI Performance Report"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download PDF</span>
+                </button>
+
+                <button
+                  onClick={handleAIAnalysis}
+                  disabled={isAnalyzing}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Generate AI Performance Analysis"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Brain className="w-4 h-4" />
+                  )}
+                  <span>{isAnalyzing ? 'Analyzing...' : 'AI Analysis'}</span>
+                </button>
+              </div>
             </div>
             
             <div className="space-y-4">

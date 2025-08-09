@@ -1099,3 +1099,394 @@ export const generateMonthlyDataPDF = (
     alert('Error generating PDF. Please check the console for details.');
   }
 };
+
+// AI Analysis PDF Generator
+import { AIAnalysisResult, ClinicianAnalysisData } from '../services/aiAnalysisService';
+
+export const generateAIAnalysisPDF = (
+  clinicianData: ClinicianAnalysisData,
+  analysisResult: AIAnalysisResult
+) => {
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    let yPosition = 30;
+
+    // Helper function to check if we need a new page
+    const checkPageBreak = (requiredSpace: number = 30) => {
+      if (yPosition + requiredSpace > doc.internal.pageSize.height - 30) {
+        doc.addPage();
+        yPosition = 30;
+        return true;
+      }
+      return false;
+    };
+
+    // Helper function to add section header
+    const addSectionHeader = (title: string, color: [number, number, number] = [59, 130, 246]) => {
+      checkPageBreak(25);
+      doc.setFontSize(14);
+      doc.setTextColor(...color);
+      doc.text(title, margin, yPosition);
+      yPosition += 20;
+    };
+
+    // Helper function to add text with word wrapping
+    const addWrappedText = (text: string, fontSize: number = 11, color: [number, number, number] = [0, 0, 0], leftMargin: number = margin) => {
+      doc.setFontSize(fontSize);
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, pageWidth - leftMargin - margin);
+      
+      // Check if we need page break for all lines
+      checkPageBreak(lines.length * 6 + 5);
+      
+      doc.text(lines, leftMargin, yPosition);
+      yPosition += lines.length * 6 + 5;
+    };
+
+    // HEADER SECTION
+    doc.setFontSize(20);
+    doc.setTextColor(59, 130, 246);
+    doc.text('AI Performance Analysis Report', margin, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, margin, yPosition);
+    yPosition += 25;
+
+    // CLINICIAN INFORMATION
+    addSectionHeader('Clinician Information');
+    
+    const clinicianInfo = [
+      `Name: ${clinicianData.clinicianName}`,
+      `Position: ${clinicianData.position}`,
+      `Department: ${clinicianData.department}`,
+      `Current Score: ${clinicianData.currentScore}%`,
+      `Total Reviews: ${clinicianData.reviewCount}`,
+      `Employment Start: ${new Date(clinicianData.startDate).toLocaleDateString()}`
+    ];
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    clinicianInfo.forEach(info => {
+      checkPageBreak(15);
+      doc.text(info, margin + 10, yPosition);
+      yPosition += 12;
+    });
+    yPosition += 10;
+
+    // OVERALL PERFORMANCE ASSESSMENT
+    addSectionHeader('Overall Performance Assessment');
+    
+    // Performance Grade with colored background
+    checkPageBreak(30);
+    const gradeColors = {
+      'Excellent': [34, 197, 94],  // Green
+      'Good': [59, 130, 246],      // Blue  
+      'Satisfactory': [234, 179, 8], // Yellow
+      'Needs Improvement': [249, 115, 22], // Orange
+      'Poor': [239, 68, 68]        // Red
+    };
+    
+    const gradeColor = gradeColors[analysisResult.overallPerformance.grade] || [100, 100, 100];
+    
+    doc.setFontSize(14);
+    doc.setTextColor(...gradeColor);
+    doc.text(`Performance Grade: ${analysisResult.overallPerformance.grade}`, margin + 10, yPosition);
+    yPosition += 20;
+
+    addWrappedText(analysisResult.overallPerformance.summary, 11, [0, 0, 0], margin + 10);
+    
+    // Trend Analysis
+    doc.setFontSize(12);
+    doc.setTextColor(50, 50, 50);
+    doc.text('Trend Analysis:', margin + 10, yPosition);
+    yPosition += 15;
+    
+    addWrappedText(analysisResult.overallPerformance.trendAnalysis, 11, [0, 0, 0], margin + 20);
+
+    // STRENGTHS SECTION
+    addSectionHeader('Key Strengths', [34, 197, 94]);
+    
+    if (analysisResult.strengths.length > 0) {
+      analysisResult.strengths.forEach((strength, index) => {
+        checkPageBreak(15);
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${strength}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 20);
+        doc.text(lines, margin + 20, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+    } else {
+      addWrappedText('No specific strengths identified in this analysis.', 11, [100, 100, 100], margin + 20);
+    }
+    yPosition += 10;
+
+    // AREAS FOR IMPROVEMENT
+    addSectionHeader('Areas for Improvement', [249, 115, 22]);
+    
+    if (analysisResult.weaknesses.length > 0) {
+      analysisResult.weaknesses.forEach((weakness, index) => {
+        checkPageBreak(15);
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${weakness}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 20);
+        doc.text(lines, margin + 20, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+    } else {
+      addWrappedText('No significant areas for improvement identified.', 11, [100, 100, 100], margin + 20);
+    }
+    yPosition += 10;
+
+    // TOP PERFORMING KPIs
+    if (analysisResult.topPerformingKPIs.length > 0) {
+      addSectionHeader('Top Performing KPIs', [34, 197, 94]);
+      
+      analysisResult.topPerformingKPIs.forEach((kpi, index) => {
+        checkPageBreak(20);
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`• ${kpi.kpi}`, margin + 20, yPosition);
+        yPosition += 12;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(34, 197, 94);
+        doc.text(`Performance: ${kpi.performance}%`, margin + 30, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const impactLines = doc.splitTextToSize(kpi.impact, pageWidth - margin * 2 - 40);
+        doc.text(impactLines, margin + 30, yPosition);
+        yPosition += impactLines.length * 6 + 8;
+      });
+      yPosition += 10;
+    }
+
+    // UNDERPERFORMING KPIs
+    if (analysisResult.underperformingKPIs.length > 0) {
+      addSectionHeader('Underperforming KPIs', [239, 68, 68]);
+      
+      analysisResult.underperformingKPIs.forEach((kpi, index) => {
+        checkPageBreak(25);
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`• ${kpi.kpi}`, margin + 20, yPosition);
+        yPosition += 12;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(239, 68, 68);
+        doc.text(`Performance: ${kpi.performance}%`, margin + 30, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Recommendation:', margin + 30, yPosition);
+        yPosition += 8;
+        
+        const recLines = doc.splitTextToSize(kpi.recommendation, pageWidth - margin * 2 - 40);
+        doc.text(recLines, margin + 35, yPosition);
+        yPosition += recLines.length * 6 + 8;
+      });
+      yPosition += 10;
+    }
+
+    // RECOMMENDATIONS SECTION
+    addSectionHeader('Action Recommendations');
+    
+    // Immediate Actions
+    if (analysisResult.recommendations.immediate.length > 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(239, 68, 68);
+      checkPageBreak(20);
+      doc.text('Immediate Actions:', margin + 10, yPosition);
+      yPosition += 15;
+      
+      analysisResult.recommendations.immediate.forEach((action) => {
+        checkPageBreak(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${action}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 30);
+        doc.text(lines, margin + 30, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+      yPosition += 8;
+    }
+
+    // Short-term Actions
+    if (analysisResult.recommendations.shortTerm.length > 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(249, 115, 22);
+      checkPageBreak(20);
+      doc.text('Short-term Actions (1-3 months):', margin + 10, yPosition);
+      yPosition += 15;
+      
+      analysisResult.recommendations.shortTerm.forEach((action) => {
+        checkPageBreak(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${action}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 30);
+        doc.text(lines, margin + 30, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+      yPosition += 8;
+    }
+
+    // Long-term Actions
+    if (analysisResult.recommendations.longTerm.length > 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(59, 130, 246);
+      checkPageBreak(20);
+      doc.text('Long-term Actions (3+ months):', margin + 10, yPosition);
+      yPosition += 15;
+      
+      analysisResult.recommendations.longTerm.forEach((action) => {
+        checkPageBreak(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${action}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 30);
+        doc.text(lines, margin + 30, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+      yPosition += 8;
+    }
+
+    // RISK ASSESSMENT
+    addSectionHeader('Risk Assessment', [156, 163, 175]);
+    
+    const riskColors = {
+      'Low': [34, 197, 94],
+      'Medium': [249, 115, 22], 
+      'High': [239, 68, 68]
+    };
+    
+    const riskColor = riskColors[analysisResult.riskAssessment.level] || [100, 100, 100];
+    
+    checkPageBreak(25);
+    doc.setFontSize(12);
+    doc.setTextColor(...riskColor);
+    doc.text(`Risk Level: ${analysisResult.riskAssessment.level}`, margin + 10, yPosition);
+    yPosition += 20;
+    
+    if (analysisResult.riskAssessment.factors.length > 0) {
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Risk Factors:', margin + 10, yPosition);
+      yPosition += 12;
+      
+      analysisResult.riskAssessment.factors.forEach((factor) => {
+        checkPageBreak(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${factor}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 30);
+        doc.text(lines, margin + 30, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+      yPosition += 8;
+    }
+
+    if (analysisResult.riskAssessment.mitigationStrategies.length > 0) {
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      checkPageBreak(15);
+      doc.text('Mitigation Strategies:', margin + 10, yPosition);
+      yPosition += 12;
+      
+      analysisResult.riskAssessment.mitigationStrategies.forEach((strategy) => {
+        checkPageBreak(12);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bulletText = `• ${strategy}`;
+        const lines = doc.splitTextToSize(bulletText, pageWidth - margin * 2 - 30);
+        doc.text(lines, margin + 30, yPosition);
+        yPosition += lines.length * 6 + 3;
+      });
+      yPosition += 10;
+    }
+
+    // COMPARISON METRICS
+    addSectionHeader('Performance Metrics', [107, 114, 128]);
+    
+    checkPageBreak(40);
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    
+    const metricsText = [
+      `Compared to team average: ${analysisResult.comparisonMetrics.vsTeamAverage > 0 ? '+' : ''}${analysisResult.comparisonMetrics.vsTeamAverage}%`,
+      `Performance percentile: ${analysisResult.comparisonMetrics.percentile}th percentile`,
+      `Performance consistency: ${analysisResult.comparisonMetrics.consistency}`
+    ];
+    
+    metricsText.forEach((metric) => {
+      checkPageBreak(15);
+      doc.text(`• ${metric}`, margin + 10, yPosition);
+      yPosition += 15;
+    });
+
+    // FOOTER WITH ANALYSIS INFO
+    checkPageBreak(40);
+    yPosition += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Analysis Information:', margin, yPosition);
+    yPosition += 15;
+    
+    const analysisInfo = [
+      `Analysis ID: ${analysisResult.analysisId}`,
+      `Generated: ${new Date(analysisResult.generatedAt).toLocaleString()}`,
+      'This analysis is generated by AI and should be reviewed by qualified personnel.',
+      'Recommendations should be implemented in consultation with management.'
+    ];
+    
+    analysisInfo.forEach((info) => {
+      checkPageBreak(12);
+      doc.setFontSize(9);
+      const lines = doc.splitTextToSize(info, pageWidth - margin * 2);
+      doc.text(lines, margin, yPosition);
+      yPosition += lines.length * 5 + 3;
+    });
+
+    // Add page numbers and footer to all pages
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      
+      // Page number
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth / 2 - 10,
+        doc.internal.pageSize.height - 10
+      );
+      
+      // Footer text
+      doc.text(
+        'AI Performance Analysis - Clinical KPI System',
+        margin,
+        doc.internal.pageSize.height - 10
+      );
+    }
+
+    // Generate filename and save
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `AI_Analysis_${clinicianData.clinicianName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+    
+    doc.save(filename);
+    
+    console.log('AI Analysis PDF generated successfully');
+    
+  } catch (error) {
+    console.error('Error generating AI analysis PDF:', error);
+    throw new Error('Failed to generate AI analysis PDF. Please try again.');
+  }
+};
