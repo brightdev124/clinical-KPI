@@ -526,7 +526,7 @@ export const generatePerformancePDF = (
       const staffArray = Array.from(allStaffNeedingAttention.values())
         .sort((a, b) => b.totalUnmet - a.totalUnmet);
 
-      staffArray.slice(0, 10).forEach((staff, index) => {
+      staffArray.forEach((staff, index) => {
         // Check if we need a new page
         if (yPosition > 250) {
           doc.addPage();
@@ -549,12 +549,6 @@ export const generatePerformancePDF = (
         yPosition += wrappedKpiText.length * 5 + 7;
       });
 
-      if (staffArray.length > 10) {
-        doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`... and ${staffArray.length - 10} more staff members`, margin, yPosition);
-        yPosition += 10;
-      }
 
       yPosition += 10;
     }
@@ -728,7 +722,7 @@ export const generatePerformancePDF = (
           doc.text(`Staff needing attention (${cliniciansNotMet.length}):`, margin + 10, currentY);
           currentY += 8;
           
-          cliniciansNotMet.slice(0, 4).forEach((item, idx) => {
+          cliniciansNotMet.forEach((item, idx) => {
             // Check if we need a new page (more conservative since we show more content)
             if (currentY > 200) {
               doc.addPage();
@@ -790,13 +784,7 @@ export const generatePerformancePDF = (
             currentY += 6;
           });
           
-          if (cliniciansNotMet.length > 4) {
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`... and ${cliniciansNotMet.length - 4} more staff members`, margin + 15, currentY);
-            doc.setTextColor(0, 0, 0);
-            currentY += 6;
-          }
+         
         }
         
         currentY += 15;
