@@ -138,7 +138,7 @@ const ClinicianManagement: React.FC = () => {
   // Debug logging
   useEffect(() => {
     console.log('Current user:', user);
-    console.log('Assigned clinicians:', assignedClinicians);
+    console.log('Assigned employees:', assignedClinicians);
     console.log('Assigned directors:', assignedDirectors);
     console.log('All assigned staff:', allAssignedStaff);
   }, [user, assignedClinicians, assignedDirectors, allAssignedStaff]);
@@ -178,7 +178,7 @@ const ClinicianManagement: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Staff Management</h2>
           <p className="text-gray-600 mt-1">
-            Manage your assigned team members (clinicians and directors) and track their performance
+            Manage your assigned team members (employees and directors) and track their performance
           </p>
         </div>
         <button
@@ -207,7 +207,7 @@ const ClinicianManagement: React.FC = () => {
             <div className="text-2xl font-bold text-purple-600">
               {assignedClinicians.length}
             </div>
-            <div className="text-sm text-purple-700">Clinicians</div>
+            <div className="text-sm text-purple-700">Employees</div>
           </div>
           <div className="text-center p-4 bg-indigo-50 rounded-lg">
             <div className="text-2xl font-bold text-indigo-600">
@@ -473,7 +473,7 @@ const ClinicianManagement: React.FC = () => {
           <User className="w-16 h-16 mx-auto text-gray-300 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Assigned Staff Members</h3>
           <p className="text-gray-600">
-            You don't have any staff members (clinicians or directors) assigned to you yet. Contact your administrator to assign staff to your supervision.
+            You don't have any staff members (employees or directors) assigned to you yet. Contact your administrator to assign staff to your supervision.
           </p>
         </div>
       )}

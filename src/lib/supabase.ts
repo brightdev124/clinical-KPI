@@ -1,8 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { createAuthHeader } from './jwt';
 
-const supabaseUrl = 'https://iljbcbmebjeputawrqok.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsamJjYm1lYmplcHV0YXdycW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5OTUyMzYsImV4cCI6MjA2OTU3MTIzNn0.nHg76_vDGOSkDPb_qD3m0svvhfsy1oxAd54e4HCZYEk';
+const supabaseUrl = 'https://epgzvmkuxqqbkbvcexcv.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwZ3p2bWt1eHFxYmtidmNleGN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NTE2MzQsImV4cCI6MjA3MDMyNzYzNH0.vPZ8NuePjn-2NE0IMrWtv4L4ug_Hs0JSTe0oVKroGUQ';
 
 // Base Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);

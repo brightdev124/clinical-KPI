@@ -4,7 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
-import LandingPage from './components/LandingPage';
+import AuthPage from './pages/Auth';
 import PendingApproval from './components/PendingApproval';
 
 import Dashboard from './pages/Dashboard';
@@ -20,9 +20,7 @@ import PermissionManagement from './pages/PermissionManagement';
 import ClinicianProfile from './pages/ClinicianProfile';
 import ClinicianTypesManagement from './pages/ClinicianTypesManagement';
 import PositionManagement from './pages/PositionManagement';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
+
 import SecuritySettingsPage from './pages/SecuritySettings';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
@@ -35,7 +33,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LandingPage />;
+    return <AuthPage />;
   }
 
   // Special handling for clinicians - only show Dashboard and Security Settings
@@ -89,6 +87,16 @@ const AppContent: React.FC = () => {
             <WeeklyReview />
           </RoleBasedRoute>
         } />
+        <Route path="review/:clinicianId" element={
+          <RoleBasedRoute allowedRoles={['director']}>
+            <MonthlyReview />
+          </RoleBasedRoute>
+        } />
+        <Route path="my-reviews" element={
+          <RoleBasedRoute allowedRoles={['director']}>
+            <MonthlyReview />
+          </RoleBasedRoute>
+        } />
 
         <Route path="users" element={
           <RoleBasedRoute allowedRoles={['super-admin']}>
@@ -123,12 +131,7 @@ function App() {
       <DataProvider>
         <Router>
           <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            
-            {/* Protected routes */}
+            {/* All routes handled by AppContent */}
             <Route path="/*" element={<AppContent />} />
           </Routes>
         </Router>

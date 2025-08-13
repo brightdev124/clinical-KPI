@@ -118,7 +118,7 @@ const Login: React.FC = () => {
           <div className="space-y-1 text-xs">
             <p><strong>Admin:</strong> admin@clinic.com</p>
             <p><strong>Clinical Director:</strong> director@clinic.com</p>
-            <p><strong>Clinician:</strong> clinician@clinic.com</p>
+            <p><strong>Employee:</strong> employee@clinic.com</p>
             <p className="text-blue-600">Password: <strong>password</strong></p>
           </div>
         </div>

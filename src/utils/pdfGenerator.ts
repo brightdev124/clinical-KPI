@@ -51,7 +51,7 @@ export const generateReviewPDF = (
   // Clinician Information
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
-  doc.text('Clinician Information', margin, 50);
+  doc.text('Employee Information', margin, 50);
   
   // Calculate score
   const calculateScore = () => {
@@ -282,12 +282,12 @@ export const generateClinicianSummaryPDF = (
   // Header
   doc.setFontSize(20);
   doc.setTextColor(59, 130, 246);
-  doc.text('Clinician Performance Summary', margin, 30);
+  doc.text('Employee Performance Summary', margin, 30);
 
   // Clinician Information
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
-  doc.text('Clinician Profile', margin, 50);
+  doc.text('Employee Profile', margin, 50);
   
   doc.setFontSize(11);
   const clinicianInfo = [
@@ -853,7 +853,7 @@ export const generateMonthlyDataPDF = (
       // Clinician Information
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text('Clinician Information', margin, 50);
+      doc.text('Employee Information', margin, 50);
       
       doc.setFontSize(11);
       const reportPeriod = viewType === 'weekly' && weekData 
@@ -862,7 +862,7 @@ export const generateMonthlyDataPDF = (
       
       const clinicianInfo = [
         `Name: ${clinician.name || 'Unknown'}`,
-        `Position: ${clinician.position_info?.position_title || 'Clinician'}`,
+        `Position: ${clinician.position_info?.position_title || 'Employee'}`,
         `Department: ${clinician.clinician_info?.type_info?.title || 'General'}`,
         `Report Period: ${reportPeriod}`,
         `Performance Score: ${score}%`
@@ -1036,7 +1036,7 @@ export const generateMonthlyDataPDF = (
           yPosition += 10;
           
           // Position with text wrapping
-          const positionText = `Position: ${member.clinician.position_info?.position_title || 'Clinician'}`;
+          const positionText = `Position: ${member.clinician.position_info?.position_title || 'Employee'}`;
           const positionLines = doc.splitTextToSize(positionText, pageWidth - margin * 2 - 10);
           doc.text(positionLines, margin + 10, yPosition);
           yPosition += positionLines.length * 5 + 5;
@@ -1145,7 +1145,7 @@ export const generateAIAnalysisPDF = (
     yPosition += 25;
 
     // CLINICIAN INFORMATION
-    addSectionHeader('Clinician Information');
+    addSectionHeader('Employee Information');
     
     const clinicianInfo = [
       `Name: ${clinicianData.clinicianName}`,

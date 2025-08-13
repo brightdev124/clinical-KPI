@@ -33,9 +33,9 @@ const Header: React.FC = () => {
     return [
       { name: 'Dashboard', href: '/', icon: BarChart3, roles: ['super-admin', 'director'] },
       { name: 'KPI Management', href: '/kpis', icon: Target, roles: ['super-admin'] },
-      { name: 'Clinicians', href: '/clinicians', icon: Users, roles: ['director'] },
+      { name: 'Employees', href: '/clinicians', icon: Users, roles: ['director'] },
       { name: 'Assign Director', href: '/assign-director', icon: UserCheck, roles: ['super-admin'] },
-      { name: 'Clinician Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
+      { name: 'Employee Types', href: '/clinician-types', icon: Tag, roles: ['super-admin'] },
       { name: 'Positions', href: '/positions', icon: Briefcase, roles: ['super-admin'] },
       { name: 'Permissions', href: '/permissions', icon: Shield, roles: ['super-admin'] },
     ];
@@ -139,7 +139,7 @@ const Header: React.FC = () => {
                         <p className="text-xs text-gray-600">
                           {user?.role === 'super-admin' && 'Super Administrator'}
                           {user?.role === 'director' && 'Clinical Director'}
-                          {user?.role === 'clinician' && 'Clinician'}
+                          {user?.role === 'clinician' && 'Employee'}
                         </p>
                       </div>
                     </div>
@@ -188,7 +188,7 @@ const Header: React.FC = () => {
             <p className="text-sm text-gray-600 mt-1">
               {user?.role === 'super-admin' && 'Super Administrator'}
               {user?.role === 'director' && 'Clinical Director'}
-              {user?.role === 'clinician' && 'Clinician'}
+              {user?.role === 'clinician' && 'Employee'}
             </p>
           </div>
         </div>

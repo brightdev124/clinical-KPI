@@ -49,8 +49,8 @@ const ClinicianTypesManagement: React.FC = () => {
       if (error) throw error;
       setClinicianTypes(data || []);
     } catch (error: any) {
-      console.error('Error fetching clinician types:', error);
-      setError(error.message || 'Failed to fetch clinician types');
+      console.error('Error fetching Employee types:', error);
+      setError(error.message || 'Failed to fetch Employee types');
     } finally {
       setLoading(false);
     }
@@ -99,11 +99,11 @@ const ClinicianTypesManagement: React.FC = () => {
       if (error) throw error;
 
       setClinicianTypes([...clinicianTypes, data]);
-      setSuccess('Clinician type added successfully');
+      setSuccess('Employee type added successfully');
       setShowAddModal(false);
     } catch (error: any) {
-      console.error('Error adding clinician type:', error);
-      setError(error.message || 'Failed to add clinician type');
+      console.error('Error adding Employee type:', error);
+      setError(error.message || 'Failed to add Employee type');
     }
   };
 
@@ -130,11 +130,11 @@ const ClinicianTypesManagement: React.FC = () => {
       setClinicianTypes(clinicianTypes.map(type => 
         type.id === currentType.id ? data : type
       ));
-      setSuccess('Clinician type updated successfully');
+      setSuccess('Employee type updated successfully');
       setShowEditModal(false);
     } catch (error: any) {
-      console.error('Error updating clinician type:', error);
-      setError(error.message || 'Failed to update clinician type');
+      console.error('Error updating Employee type:', error);
+      setError(error.message || 'Failed to update Employee type');
     }
   };
 
@@ -151,7 +151,7 @@ const ClinicianTypesManagement: React.FC = () => {
       if (countError) throw countError;
 
       if (count && count > 0) {
-        setError(`Cannot delete: This clinician type is used by ${count} clinician(s)`);
+        setError(`Cannot delete: This employee type is used by ${count} employee(s)`);
         setShowDeleteModal(false);
         return;
       }
@@ -164,11 +164,11 @@ const ClinicianTypesManagement: React.FC = () => {
       if (error) throw error;
 
       setClinicianTypes(clinicianTypes.filter(type => type.id !== currentType.id));
-      setSuccess('Clinician type deleted successfully');
+      setSuccess('employee type deleted successfully');
       setShowDeleteModal(false);
     } catch (error: any) {
-      console.error('Error deleting clinician type:', error);
-      setError(error.message || 'Failed to delete clinician type');
+      console.error('Error deleting employee type:', error);
+      setError(error.message || 'Failed to delete employee type');
     }
   };
 
@@ -185,8 +185,8 @@ const ClinicianTypesManagement: React.FC = () => {
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Clinician Types Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">Manage clinician types for your organization</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Employee Types Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">Manage employee types for your organization</p>
           </div>
           <button
             onClick={handleAddClick}
@@ -216,7 +216,7 @@ const ClinicianTypesManagement: React.FC = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
           <input
             type="text"
-            placeholder="Search clinician types..."
+            placeholder="Search employee types..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
@@ -234,11 +234,11 @@ const ClinicianTypesManagement: React.FC = () => {
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <Search className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                 </div>
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No clinician types found</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No employee types found</h3>
                 <p className="text-sm sm:text-base text-gray-500">
                   {searchTerm 
                     ? 'Try adjusting your search criteria'
-                    : 'Get started by adding a new clinician type'
+                    : 'Get started by adding a new employee type'
                   }
                 </p>
               </div>
@@ -295,11 +295,11 @@ const ClinicianTypesManagement: React.FC = () => {
                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                         <Search className="w-8 h-8 text-gray-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No clinician types found</h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No employee types found</h3>
                       <p className="text-gray-500">
                         {searchTerm 
                           ? 'Try adjusting your search criteria'
-                          : 'Get started by adding a new clinician type'
+                          : 'Get started by adding a new employee type'
                         }
                       </p>
                     </div>
@@ -342,7 +342,7 @@ const ClinicianTypesManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Add New Clinician Type</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Add New Employee Type</h3>
               
               <form onSubmit={handleAddSubmit} className="space-y-4">
                 <div>
@@ -354,7 +354,7 @@ const ClinicianTypesManagement: React.FC = () => {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                    placeholder="Enter clinician type title"
+                    placeholder="Enter employee type title"
                   />
                 </div>
 
@@ -384,7 +384,7 @@ const ClinicianTypesManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Edit Clinician Type</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Edit employee Type</h3>
               
               <form onSubmit={handleEditSubmit} className="space-y-4">
                 <div>
@@ -427,7 +427,7 @@ const ClinicianTypesManagement: React.FC = () => {
             <div className="p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Confirm Delete</h3>
               <p className="text-sm sm:text-base text-gray-600 mb-6">
-                Are you sure you want to delete the clinician type <strong>{currentType.title}</strong>? This action cannot be undone.
+                Are you sure you want to delete the employee type <strong>{currentType.title}</strong>? This action cannot be undone.
               </p>
               
               <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3">

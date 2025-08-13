@@ -423,7 +423,7 @@ const Review: React.FC = () => {
 
   const handleDownloadPDF = () => {
     if (!clinician) {
-      alert('Clinician data not found');
+      alert('Employee data not found');
       return;
     }
 

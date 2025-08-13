@@ -150,7 +150,7 @@ const PerformanceAnalytics: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Clinicians</p>
+              <p className="text-sm font-medium text-gray-600">Active Employees</p>
               <p className="text-2xl font-bold text-gray-900">{filteredClinicians.length}</p>
             </div>
             <Users className="w-8 h-8 text-blue-600" />

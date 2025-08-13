@@ -447,7 +447,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Map role to position_title for lookup
         const titleToMatch = role === 'director' ? 'Director' : 
                             role === 'admin' ? 'Administrator' : 
-                            'Clinician';
+                            'Employee';
         
         // First try to find position by exact title match
         const { data: positionData, error: positionError } = await supabase

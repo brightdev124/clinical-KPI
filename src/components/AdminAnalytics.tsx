@@ -697,7 +697,7 @@ const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ className = '' }) => {
               }`}
             >
               <Users className="w-4 h-4 inline mr-2" />
-              Clinician
+              Employee
             </button>
           </div>
 

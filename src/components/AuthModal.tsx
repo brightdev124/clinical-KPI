@@ -483,7 +483,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onSwitchMode }) =>
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                       />
                       <label htmlFor="clinician" className="ml-3 block text-sm font-medium text-gray-700">
-                        Clinician
+                        Employee
                       </label>
                     </div>
                   </div>

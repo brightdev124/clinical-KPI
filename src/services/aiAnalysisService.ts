@@ -430,7 +430,7 @@ LANGUAGE STANDARDS:
       
       return analysis;
     } catch (error) {
-      console.error('Error analyzing clinician performance:', error);
+      console.error('Error analyzing Employee performance:', error);
       throw error;
     }
   }
@@ -453,7 +453,7 @@ LANGUAGE STANDARDS:
     return `
 ═══ CLINICAL PERFORMANCE ANALYSIS REQUEST ═══
 
-🏥 CLINICIAN PROFILE:
+🏥 EMPLOYEE PROFILE:
 Name: ${data.clinicianName}
 Department: ${data.department}
 Position: ${data.position}

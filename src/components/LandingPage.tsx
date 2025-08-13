@@ -34,7 +34,7 @@ const LandingPage: React.FC = () => {
     {
       icon: Users,
       title: 'Team Management',
-      description: 'Organize clinicians by department with role-based access controls',
+      description: 'Organize employees by department with role-based access controls',
       color: 'bg-purple-500'
     },
     {
@@ -55,7 +55,7 @@ const LandingPage: React.FC = () => {
     {
       icon: UserCheck,
       title: 'Acting more like union reps',
-      description: 'Defending clinicians instead of setting clear expectations and standards',
+      description: 'Defending employees instead of setting clear expectations and standards',
       color: 'text-orange-600'
     },
     {
@@ -244,7 +244,7 @@ ${contactForm.message}
               Transform Your Clinical Performance Management
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Built for clinicians who manage clinicians
+              Built for employees who manage employees
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
                 You can’t improve what you can’t see
               </span>
@@ -393,7 +393,7 @@ ${contactForm.message}
               How KPI Brain Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              A simple check-the-box tool to track if clinicians are meeting KPIs
+              A simple check-the-box tool to track if employees are meeting KPIs
             </p>
             <div className="bg-white rounded-xl p-6 max-w-2xl mx-auto shadow-lg border border-blue-200">
               <div className="grid grid-cols-2 gap-6 text-left">
@@ -531,7 +531,7 @@ ${contactForm.message}
                   ))}
                 </div>
                 <blockquote className="text-2xl font-medium text-gray-900 leading-relaxed mb-6">
-                  "Communication usually flows the wrong way. When clinical directors relay clinicians' problems instead of setting expectations, they fail to establish clear standards for their team. With KPI Brain, they are now the voice of accountability."
+                  "Communication usually flows the wrong way. When clinical directors relay employees' problems instead of setting expectations, they fail to establish clear standards for their team. With KPI Brain, they are now the voice of accountability."
                 </blockquote>
                 <div className="flex items-center justify-center space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -580,7 +580,7 @@ ${contactForm.message}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-white">
             <h2 className="text-4xl font-bold mb-4">
-              Ready to bring structure to clinician leadership?
+              Ready to bring structure to employee leadership?
             </h2>           
             <button
               onClick={handleContactClick}

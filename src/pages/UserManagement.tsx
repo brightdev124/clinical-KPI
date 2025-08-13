@@ -144,7 +144,7 @@ const UserManagement: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600 mt-1">Manage system users and assign clinicians to directors</p>
+          <p className="text-gray-600 mt-1">Manage system users and assign employees to directors</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -157,7 +157,7 @@ const UserManagement: React.FC = () => {
 
       {/* Clinician Assignment Overview */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Clinician Assignments</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Employee Assignments</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {directors.map(director => (
             <div key={director.id} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -172,7 +172,7 @@ const UserManagement: React.FC = () => {
                 </button>
               </div>
               <div className="text-sm text-blue-700">
-                {director.assignedClinicians?.length || 0} assigned clinicians
+                {director.assignedClinicians?.length || 0} assigned Employees
               </div>
               <div className="mt-2 space-y-1">
                 {director.assignedClinicians?.map(clinicianId => {
@@ -190,7 +190,7 @@ const UserManagement: React.FC = () => {
         
         {unassignedClinicians.length > 0 && (
           <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <h4 className="font-medium text-yellow-900 mb-2">Unassigned Clinicians</h4>
+            <h4 className="font-medium text-yellow-900 mb-2">Unassigned Employees</h4>
             <div className="space-y-1">
               {unassignedClinicians.map(clinician => (
                 <div key={clinician.id} className="text-sm text-yellow-700">
@@ -218,7 +218,7 @@ const UserManagement: React.FC = () => {
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned Clinicians
+                  Assigned Employees
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -252,7 +252,7 @@ const UserManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.role === 'clinical_director' ? (
                         <div className="flex items-center space-x-2">
-                          <span>{user.assignedClinicians?.length || 0} clinicians</span>
+                          <span>{user.assignedClinicians?.length || 0} employees</span>
                           <button
                             onClick={() => handleAssignClinicians(user)}
                             className="text-blue-600 hover:text-blue-700"
@@ -295,7 +295,7 @@ const UserManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Assign Clinicians to {formatName(selectedDirector.name)}
+              Assign Employees to {formatName(selectedDirector.name)}
             </h3>
             <div className="space-y-4">
               {clinicians.map(clinician => {
@@ -385,7 +385,7 @@ const UserManagement: React.FC = () => {
                   options={[
                     { 
                       value: 'clinician', 
-                      label: 'Clinician',
+                      label: 'Employee',
                       description: 'Front-line healthcare provider',
                       icon: User
                     },

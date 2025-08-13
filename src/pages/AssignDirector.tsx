@@ -80,12 +80,12 @@ const AssignDirector: React.FC = () => {
     
     try {
       await assignClinician(clinicianId, selectedDirector);
-      console.log('Clinician assigned successfully');
+      console.log('Employee assigned successfully');
       // Optionally close sidebar after assignment
       // setShowSidebar(false);
     } catch (error) {
-      console.error('Failed to assign clinician:', error);
-      alert('Failed to assign clinician. Please try again.');
+      console.error('Failed to assign Employee:', error);
+      alert('Failed to assign Employee. Please try again.');
     }
   };
 
@@ -94,12 +94,12 @@ const AssignDirector: React.FC = () => {
     
     try {
       await unassignClinician(clinicianId, selectedDirector);
-      console.log('Clinician unassigned successfully');
+      console.log('Employee unassigned successfully');
       // Optionally close sidebar after unassignment
       // setShowSidebar(false);
     } catch (error) {
-      console.error('Failed to unassign clinician:', error);
-      alert('Failed to unassign clinician. Please try again.');
+      console.error('Failed to unassign Employee:', error);
+      alert('Failed to unassign Employee. Please try again.');
     }
   };
 
@@ -150,7 +150,7 @@ const AssignDirector: React.FC = () => {
   // Debug logging
   useEffect(() => {
     console.log('Directors:', directors);
-    console.log('Unassigned clinicians:', unassignedClinicians);
+    console.log('Unassigned Employees:', unassignedClinicians);
     console.log('Assignments:', assignments);
   }, [directors, unassignedClinicians, assignments]);
 
@@ -188,7 +188,7 @@ const AssignDirector: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Director Assignment</h2>
-            <p className="text-gray-600 mt-1">Manage clinician assignments to directors</p>
+            <p className="text-gray-600 mt-1">Manage Employee assignments to directors</p>
           </div>
           <button
             onClick={() => {
@@ -286,7 +286,7 @@ const AssignDirector: React.FC = () => {
                   {totalAssigned > 0 && (
                     <div className="mt-4 pt-3 border-t border-gray-100">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">
-                        Assigned Staff: {assignedClinicians.length} clinicians, {assignedDirectors.length} directors
+                        Assigned Staff: {assignedClinicians.length} employees, {assignedDirectors.length} directors
                       </h4>
                       <div className="space-y-2">
                         {/* Show assigned directors first */}
@@ -407,7 +407,7 @@ const AssignDirector: React.FC = () => {
                   }`}
                 >
                   <User className="w-4 h-4 mr-1" />
-                  Clinicians
+                  Employees
                 </button>
                 <button
                   onClick={() => {
@@ -445,7 +445,7 @@ const AssignDirector: React.FC = () => {
                   
                   <div className="text-sm text-gray-600 mb-4">
                     {activeTab === 'clinicians' ? (
-                      <>Available unassigned clinicians ({filteredUnassignedClinicians.length}{searchTerm ? ` of ${unassignedClinicians.length}` : ''})</>
+                      <>Available unassigned employees ({filteredUnassignedClinicians.length}{searchTerm ? ` of ${unassignedClinicians.length}` : ''})</>
                     ) : (
                       <>Available unassigned directors ({filteredUnassignedDirectors.length}{searchTerm ? ` of ${unassignedDirectors.filter(d => d.id !== selectedDirector).length}` : ''})</>
                     )}
@@ -456,7 +456,7 @@ const AssignDirector: React.FC = () => {
                         <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         {searchTerm ? (
                           <div>
-                            <p>No clinicians match your search</p>
+                            <p>No employees match your search</p>
                             <button
                               onClick={() => setSearchTerm('')}
                               className="text-blue-600 hover:text-blue-700 text-sm mt-2"
@@ -465,7 +465,7 @@ const AssignDirector: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <p>No unassigned clinicians available</p>
+                          <p>No unassigned employees available</p>
                         )}
                       </div>
                     ) : (
@@ -557,7 +557,7 @@ const AssignDirector: React.FC = () => {
                   
                   <div className="text-sm text-gray-600 mb-4">
                     {activeTab === 'clinicians' ? (
-                      <>Currently assigned clinicians ({filteredAssignedClinicians.length}{searchTerm ? ` of ${assignedClinicians.length}` : ''})</>
+                      <>Currently assigned employees ({filteredAssignedClinicians.length}{searchTerm ? ` of ${assignedClinicians.length}` : ''})</>
                     ) : (
                       <>Currently assigned directors ({filteredAssignedDirectors.length}{searchTerm ? ` of ${assignedDirectors.length}` : ''})</>
                     )}
@@ -568,7 +568,7 @@ const AssignDirector: React.FC = () => {
                         <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         {searchTerm ? (
                           <div>
-                            <p>No clinicians match your search</p>
+                            <p>No employees match your search</p>
                             <button
                               onClick={() => setSearchTerm('')}
                               className="text-blue-600 hover:text-blue-700 text-sm mt-2"
@@ -577,7 +577,7 @@ const AssignDirector: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <p>No clinicians assigned to this director</p>
+                          <p>No employees assigned to this director</p>
                         )}
                       </div>
                     ) : (

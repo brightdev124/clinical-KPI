@@ -95,7 +95,7 @@ const PermissionManagement: React.FC = () => {
       ]);
       console.log('Fetched users:', userData);
       console.log('Fetched positions:', positionsData);
-      console.log('Fetched clinician types:', clinicianTypesData);
+      console.log('Fetched employee types:', clinicianTypesData);
       
       setUsers(userData);
       setPositions(positionsData);
@@ -269,7 +269,7 @@ const PermissionManagement: React.FC = () => {
           if (firstType) {
             updateData.clinician_info = { type_id: firstType.id };
           } else {
-            setError('No clinician types found. Please create one first.');
+            setError('No employee types found. Please create one first.');
             setIsUpdating(false);
             return;
           }
@@ -325,7 +325,7 @@ const PermissionManagement: React.FC = () => {
       } else if (userToDelete.role === 'clinician') {
         // You could add additional business logic here
         // For example, check if the clinician has any pending KPI reviews
-        console.log(`Deleting clinician: ${userToDelete.name} with position: ${userToDelete.position_name}`);
+        console.log(`Deleting employee: ${userToDelete.name} with position: ${userToDelete.position_name}`);
       }
 
       await UserService.deleteUser(userToDelete.id);
@@ -413,7 +413,7 @@ const PermissionManagement: React.FC = () => {
           if (firstType) {
             createData.clinician_info = { type_id: firstType.id };
           } else {
-            setError('No clinician types found. Please create one first.');
+            setError('No employee types found. Please create one first.');
             setIsCreating(false);
             return;
           }
@@ -755,7 +755,7 @@ const PermissionManagement: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Clinicians
+              Employees
             </button>
           </div>
         </div>
@@ -1214,7 +1214,7 @@ const PermissionManagement: React.FC = () => {
                         Username
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Clinician Type
+                        Employee Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Position Title
@@ -1236,11 +1236,11 @@ const PermissionManagement: React.FC = () => {
                         <td colSpan={7} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center">
                             <Users className="w-12 h-12 text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
                             <p className="text-gray-500">
                               {searchTerm || filterStatus !== 'all'
                                 ? 'Try adjusting your search or filter criteria'
-                                : 'No clinicians have been created yet'
+                                : 'No employees have been created yet'
                               }
                             </p>
                           </div>
@@ -1328,11 +1328,11 @@ const PermissionManagement: React.FC = () => {
                 {filteredUsers.length === 0 ? (
                   <div className="p-6 text-center">
                     <Users className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No clinicians found</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
                     <p className="text-gray-500">
                       {searchTerm || filterStatus !== 'all'
                         ? 'Try adjusting your search or filter criteria'
-                        : 'No clinicians have been created yet'
+                        : 'No employees have been created yet'
                       }
                     </p>
                   </div>
@@ -1512,7 +1512,7 @@ const PermissionManagement: React.FC = () => {
                       options={[
                         { value: 'super-admin', label: 'Super Admin' },
                         { value: 'director', label: 'Director' },
-                        { value: 'clinician', label: 'Clinician' }
+                        { value: 'clinician', label: 'Employee' }
                       ]}
                       icon={<Shield className="w-4 h-4" />}
                       label="Role"
@@ -1574,7 +1574,7 @@ const PermissionManagement: React.FC = () => {
                       <EnhancedSelect
                         value={editData.clinician_info?.type_id || ''}
                         onChange={(value) => {
-                          console.log('Selected clinician type:', value);
+                          console.log('Selected employee type:', value);
                           console.log('Available types:', clinicianTypes);
                           setEditData({ 
                             ...editData, 
@@ -1588,7 +1588,7 @@ const PermissionManagement: React.FC = () => {
                                 value: type.id,
                                 label: type.title
                               }))
-                            : [{ value: '', label: 'No clinician types available', disabled: true }]
+                            : [{ value: '', label: 'No employee types available', disabled: true }]
                           ),
                           // Add debugging option if needed
                           ...(editData.clinician_info?.type_id && !clinicianTypes.some(t => t.id === editData.clinician_info?.type_id)
@@ -1597,10 +1597,10 @@ const PermissionManagement: React.FC = () => {
                           )
                         ]}
                         icon={<UserIcon className="w-4 h-4" />}
-                        label="Clinician Type"
+                        label="Employee Type"
                         variant="default"
                         size="md"
-                        placeholder="Select a clinician type..."
+                        placeholder="Select a employee type..."
                       />
                     </div>
                   )}
@@ -1745,7 +1745,7 @@ const PermissionManagement: React.FC = () => {
                     >
                       <option value="super-admin">Super Admin</option>
                       <option value="director">Director</option>
-                      <option value="clinician">Clinician</option>
+                      <option value="clinician">Employee</option>
                     </select>
                   </div>
 
@@ -1800,7 +1800,7 @@ const PermissionManagement: React.FC = () => {
                   {newUserData.role === 'clinician' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Clinician Type
+                        Employee Type
                       </label>
                       <select
                         value={newUserData.clinician_info?.type_id || ''}
@@ -1820,7 +1820,7 @@ const PermissionManagement: React.FC = () => {
                             </option>
                           ))
                         ) : (
-                          <option value="" disabled>No clinician types available</option>
+                          <option value="" disabled>No Employee types available</option>
                         )}
                       </select>
                     </div>
@@ -1895,16 +1895,16 @@ const PermissionManagement: React.FC = () => {
                       </p>
                       <div className="bg-white p-3 rounded border border-blue-200 mb-3">
                         <code className="text-sm text-gray-700">
-                          Full_Name, Username, Password, Role, Position, Clinician_Type
+                          Full_Name, Username, Password, Role, Position, Employee_Type
                         </code>
                       </div>
                       <ul className="text-sm text-blue-800 space-y-1">
                         <li>• <strong>Full_Name</strong>: User's full name (required)</li>
                         <li>• <strong>Username</strong>: Unique username (required)</li>
                         <li>• <strong>Password</strong>: User's password (required)</li>
-                        <li>• <strong>Role</strong>: Text description (e.g., "Admin", "Director", "Clinician")</li>
+                        <li>• <strong>Role</strong>: Text description (e.g., "Admin", "Director", "Employee")</li>
                         <li>• <strong>Position</strong>: Position title (will be mapped to database positions)</li>
-                        <li>• <strong>Clinician_Type</strong>: Type of clinician (for clinician roles only)</li>
+                        <li>• <strong>Employee_Type</strong>: Type of employee (for employee roles only)</li>
                       </ul>
                     </div>
                   </div>
@@ -1942,7 +1942,7 @@ const PermissionManagement: React.FC = () => {
                             <th className="px-3 py-2 text-left font-medium text-gray-700">Username</th>
                             <th className="px-3 py-2 text-left font-medium text-gray-700">Role</th>
                             <th className="px-3 py-2 text-left font-medium text-gray-700">Position</th>
-                            <th className="px-3 py-2 text-left font-medium text-gray-700">Clinician Type</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Employee Type</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">

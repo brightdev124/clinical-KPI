@@ -123,7 +123,7 @@ const Register: React.FC = () => {
     }
 
     if (selectedRole === 'clinician' && !formData.clinicianTypeId) {
-      setError('Clinician type is required for clinician positions');
+      setError('Employee type is required for employee positions');
       return false;
     }
 
@@ -351,7 +351,7 @@ const Register: React.FC = () => {
             <div>
               <label htmlFor="clinicianTypeId" className="block text-sm font-medium text-gray-700 mb-2">
                 <Shield className="w-4 h-4 inline mr-1" />
-                Clinician Type *
+                employee Type *
               </label>
               <select
                 id="clinicianTypeId"
@@ -361,7 +361,7 @@ const Register: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 required
               >
-                <option value="">Select clinician type</option>
+                <option value="">Select employee type</option>
                 {clinicianTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.title}

@@ -665,7 +665,7 @@ const Dashboard: React.FC = () => {
         // For SuperAdmin role, get individual KPI scores for top performing clinicians
         if (user?.role === 'super-admin' && clinicianTopPerformers.length > 0) {
           console.log('Calculating KPI scores for SuperAdmin weekly view');
-          console.log('Top performing clinicians:', clinicianTopPerformers.map(p => ({ name: p.name, role: p.position_info?.role })));
+          console.log('Top performing employees:', clinicianTopPerformers.map(p => ({ name: p.name, role: p.position_info?.role })));
           
           const kpiScoresMap = new Map();
           
@@ -1206,7 +1206,7 @@ const Dashboard: React.FC = () => {
       // Find the current clinician's profile
       const clinicianProfile = profiles.find(p => p.id === user.id);
       if (!clinicianProfile) {
-        throw new Error('Clinician profile not found');
+        throw new Error('Employee profile not found');
       }
 
       // Get performance data for the last 12 months
@@ -1295,7 +1295,7 @@ const Dashboard: React.FC = () => {
             generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
           }
         } else {
-          alert('Error: Clinician profile not found');
+          alert('Error: Employee profile not found');
         }
       } else {
         // For directors/admins, check current view type
@@ -1351,7 +1351,7 @@ const Dashboard: React.FC = () => {
             generateMonthlyDataPDF(clinician, kpis, monthlyReviews, selectedMonth, selectedYear, score, 'monthly');
           }
         } else {
-          alert('Error: Clinician profile not found');
+          alert('Error: Employee profile not found');
         }
       }
     } catch (error) {
@@ -2207,7 +2207,7 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                {user?.role === 'super-admin' ? 'Total Team Members' : 'Total Clinicians'}
+                {user?.role === 'super-admin' ? 'Total Team Members' : 'Total Employees'}
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{totalTeamMembers}</p>
               <p className="text-xs sm:text-sm text-green-600 mt-1 flex items-center">
@@ -2278,7 +2278,7 @@ const Dashboard: React.FC = () => {
                 {user?.role === 'super-admin' ? 
                   (teamDataViewType === 'monthly' ? 'Current month performance by Director' : 'Current week performance by Director') : 
                  user?.role === 'director' ? 
-                  (teamDataViewType === 'monthly' ? 'Current month performance by assigned staff (👤 Clinicians, 👑 Directors)' : 'Current week performance by assigned staff (👤 Clinicians, 👑 Directors)') :
+                  (teamDataViewType === 'monthly' ? 'Current month performance by assigned staff (👤 Employees, 👑 Directors)' : 'Current week performance by assigned staff (👤 Clinicians, 👑 Directors)') :
                   (teamDataViewType === 'monthly' ? 'Current month performance' : 'Current week performance')}
               </p>
             </div>
@@ -2581,7 +2581,7 @@ const Dashboard: React.FC = () => {
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">Top Performers</h3>
                   <p className="text-xs sm:text-sm text-gray-600">
                     {user?.role === 'super-admin' 
-                      ? 'Clinicians with scores ≥ 90%'
+                      ? 'Employees with scores ≥ 90%'
                       : 'Team members with scores ≥ 90%'
                     }
                   </p>
@@ -2640,7 +2640,7 @@ const Dashboard: React.FC = () => {
                   <div className="mb-3">
                     <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
                     <p className="text-xs text-gray-600 truncate">
-                      {clinician.position_info?.position_title || 'Clinician'} • 
+                      {clinician.position_info?.position_title || 'Employee'} • 
                       {clinician.clinician_info?.type_info?.title || 'General'}
                     </p>
                   </div>
@@ -2706,7 +2706,7 @@ const Dashboard: React.FC = () => {
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">KPI Review needed</h3>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {user?.role === 'super-admin' ? 'Clinicians with scores < 70% requiring attention' : 'Team members with scores < 70% requiring attention'}
+                    {user?.role === 'super-admin' ? 'Employees with scores < 70% requiring attention' : 'Team members with scores < 70% requiring attention'}
                   </p>
                 </div>
               </div>
@@ -2767,7 +2767,7 @@ const Dashboard: React.FC = () => {
                     <div className="mb-3">
                       <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{clinician.name}</h4>
                       <p className="text-xs text-gray-600 truncate">
-                        {clinician.position_info?.position_title || 'Clinician'} • 
+                        {clinician.position_info?.position_title || 'Employee'} • 
                         {clinician.clinician_info?.type_info?.title || 'General'}
                       </p>
                     </div>
@@ -3052,7 +3052,7 @@ const Dashboard: React.FC = () => {
                           ))}
                           {cliniciansNotMet.length > 3 && (
                             <div className="text-xs text-gray-500 text-center">
-                              +{cliniciansNotMet.length - 3} more clinicians
+                              +{cliniciansNotMet.length - 3} more employees
                             </div>
                           )}
                         </div>
@@ -3079,7 +3079,7 @@ const Dashboard: React.FC = () => {
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium text-gray-700">No KPI Reviews Available</p>
-                  <p className="text-sm mt-1">No reviews from approved clinicians found for {teamDataViewType === 'weekly' ? `Week ${selectedWeek.week}, ${selectedWeek.year}` : `${selectedMonth} ${selectedYear}`}</p>
+                  <p className="text-sm mt-1">No reviews from approved employees found for {teamDataViewType === 'weekly' ? `Week ${selectedWeek.week}, ${selectedWeek.year}` : `${selectedMonth} ${selectedYear}`}</p>
                 </div>
               )}
             </div>
@@ -3126,7 +3126,7 @@ const Dashboard: React.FC = () => {
                 <div className="text-center py-8">
                   <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm">No recent activity found</p>
-                  <p className="text-gray-400 text-xs mt-1">Activity will appear here when clinicians complete reviews</p>
+                  <p className="text-gray-400 text-xs mt-1">Activity will appear here when employees complete reviews</p>
                 </div>
               )}
             </div>
